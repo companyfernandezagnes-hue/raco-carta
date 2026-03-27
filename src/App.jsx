@@ -5,6 +5,7 @@ import Categorias from './components/Categorias.jsx'
 import ListaBebidas from './components/ListaBebidas.jsx'
 import DetalleBebida from './components/DetalleBebida.jsx'
 import Maridaje from './components/Maridaje.jsx'
+import PanelAdmin from './components/PanelAdmin.jsx'
 
 export default function App() {
   const [bebidas, setBebidas] = useState([])
@@ -13,19 +14,19 @@ export default function App() {
   const [subcategoriaActiva, setSubcategoriaActiva] = useState(null)
   const [bebidaseleccionada, setBebidaseleccionada] = useState(null)
   const [vista, setVista] = useState('carta') // 'carta' | 'detalle' | 'maridaje'
+  const [adminAbierto, setAdminAbierto] = useState(false)
 
-  useEffect(() => {
-    async function cargar() {
-      const { data, error } = await supabase
-        .from('carta_bebidas')
-        .select('*')
-        .eq('disponible', true)
-        .order('orden', { ascending: true })
-      if (!error) setBebidas(data)
-      setLoading(false)
-    }
-    cargar()
-  }, [])
+  async function cargar() {
+    const { data, error } = await supabase
+      .from('carta_bebidas')
+      .select('*')
+      .eq('disponible', true)
+      .order('orden', { ascending: true })
+    if (!error) setBebidas(data)
+    setLoading(false)
+  }
+
+  useEffect(() => { cargar() }, [])
 
   function abrirDetalle(bebida) {
     setBebidaseleccionada(bebida)
@@ -73,7 +74,12 @@ export default function App() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', maxWidth: '480px', margin: '0 auto' }}>
-      <Header vista={vista} onVolver={volver} onMaridaje={() => setVista('maridaje')} />
+      <Header
+        vista={vista}
+        onVolver={volver}
+        onMaridaje={() => setVista('maridaje')}
+        onAdmin={() => setAdminAbierto(true)}
+      />
 
       {vista === 'carta' && (
         <>
@@ -98,6 +104,14 @@ export default function App() {
       {vista === 'maridaje' && (
         <Maridaje bebidas={bebidas} onSeleccionar={abrirDetalle} onVolver={volver} />
       )}
+
+      {adminAbierto && (
+        <PanelAdmin
+          bebidas={bebidas}
+          onCerrar={() => setAdminAbierto(false)}
+          onActualizar={cargar}
+        />
+      )}
     </div>
   )
-}
+      }

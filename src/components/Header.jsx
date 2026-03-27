@@ -1,4 +1,19 @@
-export default function Header({ vista, onVolver, onMaridaje }) {
+import { useRef } from 'react'
+
+// ── TRUCO ADMIN: mantén pulsado el logo 5 segundos para abrir el panel ────────
+export default function Header({ vista, onVolver, onMaridaje, onAdmin }) {
+  const pressTimer = useRef(null)
+
+  function startPress() {
+    pressTimer.current = setTimeout(() => {
+      onAdmin?.()
+    }, 5000)
+  }
+
+  function cancelPress() {
+    clearTimeout(pressTimer.current)
+  }
+
   return (
     <header style={{
       background: 'var(--bg2)',
@@ -10,7 +25,14 @@ export default function Header({ vista, onVolver, onMaridaje }) {
     }}>
       {vista === 'carta' ? (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-          <div>
+          <div
+            onMouseDown={startPress}
+            onMouseUp={cancelPress}
+            onMouseLeave={cancelPress}
+            onTouchStart={startPress}
+            onTouchEnd={cancelPress}
+            style={{ userSelect: 'none', cursor: 'default' }}
+          >
             <p style={{
               fontSize: '10px',
               letterSpacing: '0.2em',
@@ -74,4 +96,4 @@ export default function Header({ vista, onVolver, onMaridaje }) {
       )}
     </header>
   )
-}
+                }

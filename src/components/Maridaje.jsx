@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 const PLATOS = [
   { id: 'carne_roja', label: 'Carne roja', emoji: '🥩' },
   { id: 'carne_blanca', label: 'Carne blanca', emoji: '🍗' },
@@ -63,7 +65,6 @@ export default function Maridaje({ bebidas, onSeleccionar, onVolver }) {
         </p>
       </div>
 
-      {/* Grid de platos */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(3, 1fr)',
@@ -84,3 +85,98 @@ export default function Maridaje({ bebidas, onSeleccionar, onVolver }) {
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.2s',
+              }}
+            >
+              <span style={{ fontSize: '24px' }}>{plato.emoji}</span>
+              <span style={{
+                fontSize: '12px',
+                color: activo ? 'var(--gold)' : 'var(--text-muted)',
+                letterSpacing: '0.04em',
+              }}>
+                {plato.label}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+
+      <button
+        onClick={buscar}
+        disabled={seleccionados.length === 0}
+        style={{
+          width: '100%',
+          padding: '14px',
+          borderRadius: 'var(--radius)',
+          background: seleccionados.length > 0 ? 'var(--gold)' : 'var(--bg3)',
+          color: seleccionados.length > 0 ? 'var(--bg)' : 'var(--text-muted)',
+          fontSize: '13px',
+          letterSpacing: '0.15em',
+          textTransform: 'uppercase',
+          border: 'none',
+          transition: 'all 0.2s',
+          marginBottom: '28px',
+          fontFamily: 'inherit',
+        }}
+      >
+        Ver sugerencias
+      </button>
+
+      {resultado !== null && (
+        <div>
+          <p style={{
+            fontSize: '10px',
+            letterSpacing: '0.2em',
+            textTransform: 'uppercase',
+            color: 'var(--text-muted)',
+            marginBottom: '12px',
+          }}>
+            {resultado.length > 0
+              ? `${resultado.length} sugerencia${resultado.length > 1 ? 's' : ''}`
+              : 'Sin coincidencias'}
+          </p>
+
+          {resultado.length === 0 && (
+            <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: '1.6' }}>
+              No hay bebidas que maridemos específicamente con tu selección. Pregunta al equipo de sala, estarán encantados de ayudarte.
+            </p>
+          )}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {resultado.map(b => (
+              <div
+                key={b.id}
+                onClick={() => onSeleccionar(b)}
+                style={{
+                  background: 'var(--bg2)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius)',
+                  padding: '16px',
+                  cursor: 'pointer',
+                  transition: 'border-color 0.2s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--gold-dim)'}
+                onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <h3 style={{ fontSize: '16px', fontWeight: 'normal', color: 'var(--text)', marginBottom: '4px' }}>
+                      {b.nombre}
+                    </h3>
+                    <p style={{ fontSize: '13px', color: 'var(--text-dim)' }}>
+                      {[b.bodega, b.region, b.anada].filter(Boolean).join(' · ')}
+                    </p>
+                  </div>
+                  <p style={{ fontSize: '18px', color: 'var(--gold)', flexShrink: 0, marginLeft: '12px' }}>
+                    {b.precio_botella ? `${b.precio_botella.toFixed(0)} €` : `${b.precio_copa?.toFixed(0)} €`}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

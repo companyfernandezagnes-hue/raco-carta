@@ -20,6 +20,8 @@ jobs:
       - run: npm install
 
       - run: npm run build
+        env:
+          VITE_SUPABASE_SERVICE_KEY: ${{ secrets.VITE_SUPABASE_SERVICE_KEY }}
 
       - uses: peaceiris/actions-gh-pages@v3
         with:

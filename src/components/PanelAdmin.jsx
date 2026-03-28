@@ -3,6 +3,7 @@ import { supabaseAdmin } from '../lib/supabaseAdmin'
 
 const PASS_HASH = 'Y21GamJ6SXdNalU9'
 
+// v2 - force rebuild with VITE_OPENAI_API_KEY
 function verificarPassword(input) {
   try { return btoa(btoa(input)) === PASS_HASH } catch { return false }
 }

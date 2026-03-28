@@ -7,5 +7,8 @@ const SUPABASE_URL = 'https://xdnqctumnqxtfolmexcu.supabase.co'
 const SUPABASE_SERVICE_KEY = import.meta.env.VITE_SUPABASE_SERVICE_KEY
 
 export const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
-  auth: { persistSession: false }
+  auth: {
+    persistSession: false,
+    storageKey: 'sb-admin-auth'
+  }
 })

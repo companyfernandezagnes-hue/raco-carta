@@ -3,7 +3,7 @@ import { supabaseAdmin } from '../lib/supabaseAdmin'
 
 const PASS_HASH = 'Y21GamJ6SXdNalU9'
 
-// v2 - force rebuild with VITE_OPENAI_API_KEY
+// v3 - usando Google Gemini API
 function verificarPassword(input) {
   try { return btoa(btoa(input)) === PASS_HASH } catch { return false }
 }
@@ -19,42 +19,33 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
   setIaLoading(true)
   setIaError('')
   try {
-    const messages = []
+    const parts = []
     const systemPrompt = `Eres un experto en vinos y bebidas de restaurante. Dado el nombre o la foto de una bebida, rellenas una ficha completa en JSON con estos campos exactos:
 nombre, categoria (Vino/Cerveza/Coctel/Refresco/Agua/Cafe/Destilado/Otro), subcategoria, descripcion, bodega, productor, pais, region (denominacion de origen), anada (año numero o null), uvas (uva principal), tipo_uva_secundaria, parcela, nota_cata, maridajes (array de strings), temperatura, graduacion (numero o null), precio_copa (numero o null), precio_botella (numero o null), notas_ia.
 IMPORTANTE: Solo rellena con datos reales y conocidos. Si no sabes un campo, pon null. No inventes datos. Devuelve SOLO el JSON, sin texto extra.`
-
+    parts.push({ text: systemPrompt })
     if (fotoBase64) {
-      messages.push({
-        role: 'user',
-        content: [
-          { type: 'text', text: 'Analiza esta bebida y rellena la ficha completa en JSON.' },
-          { type: 'image_url', image_url: { url: fotoBase64 } }
-        ]
-      })
+      const base64Data = fotoBase64.split(',')[1]
+      const mimeType = fotoBase64.split(';')[0].split(':')[1]
+      parts.push({ inline_data: { mime_type: mimeType, data: base64Data } })
+      parts.push({ text: 'Analiza esta bebida y rellena la ficha completa en JSON.' })
     } else {
-      messages.push({
-        role: 'user',
-        content: `Rellena la ficha completa en JSON para esta bebida: ${nombre}`
-      })
+      parts.push({ text: `Rellena la ficha completa en JSON para esta bebida: ${nombre}` })
     }
-
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [{ role: 'system', content: systemPrompt }, ...messages],
-        max_tokens: 1000,
-        temperature: 0.2
-      })
-    })
-    if (!res.ok) throw new Error(`OpenAI error: ${res.status}`)
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts }],
+          generationConfig: { temperature: 0.2, maxOutputTokens: 1000 }
+        })
+      }
+    )
+    if (!res.ok) throw new Error(`Gemini error: ${res.status}`)
     const data = await res.json()
-    const text = data.choices[0].message.content.trim()
+    const text = data.candidates[0].content.parts[0].text.trim()
     const json = JSON.parse(text.replace(/```json?/g,'').replace(/```/g,'').trim())
     setForm(prev => ({
       ...prev,
@@ -82,7 +73,7 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
   const [iaTexto, setIaTexto] = useState('')
   const [mostrarIA, setMostrarIA] = useState(false)
   const fotoInputRef = useRef(null)
-  const apiKey = import.meta.env.VITE_OPENAI_API_KEY
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY
 
   function login() {
     if (verificarPassword(pass)) { setFase('lista'); setError('') }
@@ -256,7 +247,7 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
                     {iaLoading ? '⏳ Analizando con IA...' : '📷 Subir foto de la botella'}
                   </button>
                   {iaError && <p style={{color:'#f87171',margin:0,fontSize:'13px'}}>{iaError}</p>}
-                  {!apiKey && <p style={{color:'#fbbf24',margin:0,fontSize:'12px'}}>⚠️ VITE_OPENAI_API_KEY no configurada en Vercel</p>}
+                  {!apiKey && <p style={{color:'#fbbf24',margin:0,fontSize:'12px'}}>⚠️ VITE_GEMINI_API_KEY no configurada en Vercel</p>}
                 </div>
               )}
             </div>

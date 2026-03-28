@@ -21,7 +21,7 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
   try {
     const parts = []
     const systemPrompt = `Eres un experto en vinos y bebidas de restaurante. Dado el nombre o la foto de una bebida, rellenas una ficha completa en JSON con estos campos exactos:
-nombre, categoria (Vino/Cerveza/Coctel/Refresco/Agua/Cafe/Destilado/Otro), subcategoria, descripcion, bodega, productor, pais, region (denominacion de origen), anada (aÃ±o numero o null), uvas (uva principal), tipo_uva_secundaria, parcela, nota_cata, maridajes (array de strings), temperatura, graduacion (numero o null), precio_copa (numero o null), precio_botella (numero o null), notas_ia.
+nombre, categoria (Vino/Cerveza/Coctel/Refresco/Agua/Cafe/Destilado/Otro), subcategoria, descripcion, bodega, productor, pais, region (denominacion de origen), anada (aÃÂ±o numero o null), uvas (uva principal), tipo_uva_secundaria, parcela, nota_cata, maridajes (array de strings), temperatura, graduacion (numero o null), precio_copa (numero o null), precio_botella (numero o null), notas_ia.
 IMPORTANTE: Solo rellena con datos reales y conocidos. Si no sabes un campo, pon null. No inventes datos. Devuelve SOLO el JSON, sin texto extra.`
     parts.push({ text: systemPrompt })
     if (fotoBase64) {
@@ -33,7 +33,7 @@ IMPORTANTE: Solo rellena con datos reales y conocidos. Si no sabes un campo, pon
       parts.push({ text: `Rellena la ficha completa en JSON para esta bebida: ${nombre}` })
     }
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -77,7 +77,7 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
 
   function login() {
     if (verificarPassword(pass)) { setFase('lista'); setError('') }
-    else setError('ContraseÃ±a incorrecta')
+    else setError('ContraseÃÂ±a incorrecta')
   }
 
   function abrirEditar(b) {
@@ -117,7 +117,7 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
     setBebida(null)
     setForm({
       nombre:'',categoria:'',subcategoria:'',descripcion:'',bodega:'',productor:'',
-      pais:'EspaÃ±a',region:'',anada:'',uvas:'',tipo_uva_secundaria:'',parcela:'',
+      pais:'EspaÃÂ±a',region:'',anada:'',uvas:'',tipo_uva_secundaria:'',parcela:'',
       nota_cata:'',maridajes:'',temperatura:'',graduacion:'',precio_copa:'',
       precio_botella:'',disponible:true,destacado:false,foto_url:'',orden:0,notas_ia:''
     })
@@ -184,8 +184,8 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
       <div style={card}>
         {fase === 'login' && (
           <>
-            <h2 style={{margin:'0 0 20px',textAlign:'center'}}>ð Admin Raco</h2>
-            <input style={inp} type="password" placeholder="ContraseÃ±a" value={pass}
+            <h2 style={{margin:'0 0 20px',textAlign:'center'}}>Ã°ÂÂÂ Admin Raco</h2>
+            <input style={inp} type="password" placeholder="ContraseÃÂ±a" value={pass}
               onChange={e=>setPass(e.target.value)} onKeyDown={e=>e.key==='Enter'&&login()} autoFocus />
             {error && <p style={{color:'#f87171',margin:'8px 0'}}>{error}</p>}
             <div style={{display:'flex',gap:'12px',marginTop:'16px'}}>
@@ -198,10 +198,10 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
         {fase === 'lista' && (
           <>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'16px'}}>
-              <h2 style={{margin:0}}>ð Bebidas ({bebidas.length})</h2>
+              <h2 style={{margin:0}}>Ã°ÂÂÂ Bebidas ({bebidas.length})</h2>
               <div style={{display:'flex',gap:'8px'}}>
-                <button style={btn('#7c3aed')} onClick={abrirNueva}>+ Nueva â¨IA</button>
-                <button style={btn('#444')} onClick={onCerrar}>â</button>
+                <button style={btn('#7c3aed')} onClick={abrirNueva}>+ Nueva Ã¢ÂÂ¨IA</button>
+                <button style={btn('#444')} onClick={onCerrar}>Ã¢ÂÂ</button>
               </div>
             </div>
             {bebidas.map(b => (
@@ -210,7 +210,7 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
                 <div>
                   <span style={{fontWeight:'600'}}>{b.nombre}</span>
                   <span style={{color:'#aaa',marginLeft:'8px',fontSize:'13px'}}>{b.categoria}</span>
-                  {!b.disponible && <span style={{color:'#f87171',marginLeft:'8px',fontSize:'12px'}}>â No disponible</span>}
+                  {!b.disponible && <span style={{color:'#f87171',marginLeft:'8px',fontSize:'12px'}}>Ã¢ÂÂ No disponible</span>}
                 </div>
                 <button style={btn()} onClick={()=>abrirEditar(b)}>Editar</button>
               </div>
@@ -221,15 +221,15 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
         {fase === 'editando' && (
           <>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'16px'}}>
-              <h2 style={{margin:0}}>{bebida ? 'âï¸ Editar' : 'â Nueva bebida'}</h2>
-              <button style={btn('#444')} onClick={()=>setFase('lista')}>â Volver</button>
+              <h2 style={{margin:0}}>{bebida ? 'Ã¢ÂÂÃ¯Â¸Â Editar' : 'Ã¢ÂÂ Nueva bebida'}</h2>
+              <button style={btn('#444')} onClick={()=>setFase('lista')}>Ã¢ÂÂ Volver</button>
             </div>
 
             {/* BLOQUE IA */}
             <div style={{background:'#2a1f4e',borderRadius:'10px',padding:'16px',marginBottom:'16px',border:'1px solid #7c3aed'}}>
               <button style={{...btn('#7c3aed'),width:'100%',marginBottom: mostrarIA?'12px':'0'}}
                 onClick={()=>setMostrarIA(v=>!v)}>
-                â¨ {mostrarIA ? 'Ocultar IA' : 'Rellenar con IA'}
+                Ã¢ÂÂ¨ {mostrarIA ? 'Ocultar IA' : 'Rellenar con IA'}
               </button>
               {mostrarIA && (
                 <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
@@ -241,13 +241,13 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
                       {iaLoading ? '...' : 'Buscar'}
                     </button>
                   </div>
-                  <div style={{textAlign:'center',color:'#aaa',fontSize:'13px'}}>â o sube una foto â</div>
+                  <div style={{textAlign:'center',color:'#aaa',fontSize:'13px'}}>Ã¢ÂÂ o sube una foto Ã¢ÂÂ</div>
                   <input ref={fotoInputRef} type="file" accept="image/*" style={{display:'none'}} onChange={handleFoto} />
                   <button style={btn('#374151')} disabled={iaLoading} onClick={()=>fotoInputRef.current?.click()}>
-                    {iaLoading ? 'â³ Analizando con IA...' : 'ð· Subir foto de la botella'}
+                    {iaLoading ? 'Ã¢ÂÂ³ Analizando con IA...' : 'Ã°ÂÂÂ· Subir foto de la botella'}
                   </button>
                   {iaError && <p style={{color:'#f87171',margin:0,fontSize:'13px'}}>{iaError}</p>}
-                  {!apiKey && <p style={{color:'#fbbf24',margin:0,fontSize:'12px'}}>â ï¸ VITE_GEMINI_API_KEY no configurada en Vercel</p>}
+                  {!apiKey && <p style={{color:'#fbbf24',margin:0,fontSize:'12px'}}>Ã¢ÂÂ Ã¯Â¸Â VITE_GEMINI_API_KEY no configurada en Vercel</p>}
                 </div>
               )}
             </div>
@@ -255,14 +255,14 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
             {/* CAMPOS */}
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 16px'}}>
               {[
-                ['Nombre *','nombre','text'],['CategorÃ­a *','categoria','text'],
-                ['SubcategorÃ­a','subcategoria','text'],['Bodega','bodega','text'],
-                ['Productor','productor','text'],['PaÃ­s','pais','text'],
-                ['RegiÃ³n / D.O.','region','text'],['AÃ±ada','anada','number'],
+                ['Nombre *','nombre','text'],['CategorÃÂ­a *','categoria','text'],
+                ['SubcategorÃÂ­a','subcategoria','text'],['Bodega','bodega','text'],
+                ['Productor','productor','text'],['PaÃÂ­s','pais','text'],
+                ['RegiÃÂ³n / D.O.','region','text'],['AÃÂ±ada','anada','number'],
                 ['Uva principal','uvas','text'],['Uva secundaria','tipo_uva_secundaria','text'],
                 ['Parcela','parcela','text'],['Temperatura','temperatura','text'],
-                ['GraduaciÃ³n (%)','graduacion','number'],['Precio copa (â¬)','precio_copa','number'],
-                ['Precio botella (â¬)','precio_botella','number'],['Orden','orden','number'],
+                ['GraduaciÃÂ³n (%)','graduacion','number'],['Precio copa (Ã¢ÂÂ¬)','precio_copa','number'],
+                ['Precio botella (Ã¢ÂÂ¬)','precio_botella','number'],['Orden','orden','number'],
                 ['Foto URL','foto_url','text'],['']
               ].map(([lbl,key,type],i) => lbl ? (
                 <div key={key}>
@@ -273,7 +273,7 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
               ) : <div key={i} />)}
             </div>
 
-            <label style={label}>DescripciÃ³n</label>
+            <label style={label}>DescripciÃÂ³n</label>
             <textarea style={{...inp,minHeight:'60px',resize:'vertical'}} value={form.descripcion||''}
               onChange={e=>setForm(p=>({...p,descripcion:e.target.value}))} />
 
@@ -284,7 +284,7 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
             <label style={label}>Maridajes (separados por coma)</label>
             <input style={inp} value={form.maridajes||''} onChange={e=>setForm(p=>({...p,maridajes:e.target.value}))} />
 
-            <label style={label}>Notas IA (anÃ¡lisis automÃ¡tico)</label>
+            <label style={label}>Notas IA (anÃÂ¡lisis automÃÂ¡tico)</label>
             <textarea style={{...inp,minHeight:'50px',resize:'vertical',color:'#a78bfa'}} value={form.notas_ia||''}
               onChange={e=>setForm(p=>({...p,notas_ia:e.target.value}))} />
 
@@ -297,7 +297,7 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
               <label style={{display:'flex',alignItems:'center',gap:'6px',cursor:'pointer'}}>
                 <input type="checkbox" checked={form.destacado??false}
                   onChange={e=>setForm(p=>({...p,destacado:e.target.checked}))} />
-                <span style={{fontSize:'14px'}}>â­ Destacado</span>
+                <span style={{fontSize:'14px'}}>Ã¢Â­Â Destacado</span>
               </label>
             </div>
 
@@ -308,7 +308,7 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
 
             <div style={{display:'flex',gap:'12px',marginTop:'20px'}}>
               <button style={btn()} onClick={guardar} disabled={guardando}>
-                {guardando ? 'Guardando...' : 'ð¾ Guardar'}
+                {guardando ? 'Guardando...' : 'Ã°ÂÂÂ¾ Guardar'}
               </button>
               <button style={btn('#444')} onClick={()=>setFase('lista')}>Cancelar</button>
             </div>

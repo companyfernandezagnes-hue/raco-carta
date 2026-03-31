@@ -177,8 +177,8 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
                                                 onChange={e=>setPass(e.target.value)} onKeyDown={e=>e.key==='Enter'&&login()} autoFocus />
                       {error && <p style={{color:'#f87171',margin:'8px 0'}}>{error}</p>}
                                 <div style={{display:'flex',gap:'12px',marginTop:'16px'}}>
-                                              <button style={btn()} onClick={login}>Entrar</button>button>
-                                              <button style={btn('#444')} onClick={onCerrar}>Cancelar</button>button>
+                                              <button style={btn()} onClick={login}>Entrar</button>
+                                              <button style={btn('#444')} onClick={onCerrar}>Cancelar</button>
                                 </div>
                     </>>
                   )}
@@ -188,8 +188,8 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
                                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'16px'}}>
                                               <h2 style={{margin:0}}>Bebidas ({bebidas.length})</h2>h2>
                                               <div style={{display:'flex',gap:'8px'}}>
-                                                              <button style={btn('#7c3aed')} onClick={abrirNueva}>+ Nueva IA</button>button>
-                                                              <button style={btn('#444')} onClick={onCerrar}>X</button>button>
+                                                              <button style={btn('#7c3aed')} onClick={abrirNueva}>+ Nueva IA</button>
+                                                              <button style={btn('#444')} onClick={onCerrar}>X</button>
                                               </div>
                                 </div>
                       {bebidas.map(b => (
@@ -200,7 +200,7 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
                                                                       <span style={{color:'#aaa',marginLeft:'8px',fontSize:'13px'}}>{b.categoria}</span>
                                                       {!b.disponible && <span style={{color:'#f87171',marginLeft:'8px',fontSize:'12px'}}>No disponible</span>}
                                                     </div>
-                                                    <button style={btn()} onClick={()=>abrirEditar(b)}>Editar</button>button>
+                                                    <button style={btn()} onClick={()=>abrirEditar(b)}>Editar</button>
                                     </div>
                                   ))}
                     </>>
@@ -210,7 +210,7 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
                     <>
                                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'16px'}}>
                                               <h2 style={{margin:0}}>{bebida ? 'Editar' : 'Nueva bebida'}</h2>h2>
-                                              <button style={btn('#444')} onClick={()=>setFase('lista')}>Volver</button>button>
+                                              <button style={btn('#444')} onClick={()=>setFase('lista')}>Volver</button>
                                 </div>
                     
                       {/* BLOQUE IA */}
@@ -218,7 +218,7 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
                                               <button style={{...btn('#7c3aed'),width:'100%',marginBottom: mostrarIA?'12px':'0'}}
                                                                 onClick={()=>setMostrarIA(v=>!v)}>
                                                 {mostrarIA ? 'Ocultar IA' : 'Rellenar con IA'}
-                                              </button>button>
+                                              </button>
                                   {mostrarIA && (
                                       <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
                                                         <div style={{display:'flex',gap:'8px'}}>
@@ -227,13 +227,13 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
                                                                             <button style={btn('#7c3aed')} disabled={iaLoading || !iaTexto}
                                                                                                     onClick={()=>rellenarConIA({nombre:iaTexto,apiKey,setForm,setIaLoading,setIaError})}>
                                                                               {iaLoading ? '...' : 'Buscar'}
-                                                                            </button>button>
+                                                                            </button>
                                                         </div>
                                                         <div style={{textAlign:'center',color:'#aaa',fontSize:'13px'}}>o sube una foto</div>
                                                         <input ref={fotoInputRef} type="file" accept="image/*" style={{display:'none'}} onChange={handleFoto} />
                                                         <button style={btn('#374151')} disabled={iaLoading} onClick={()=>fotoInputRef.current?.click()}>
                                                                               {iaLoading ? 'Analizando con IA...' : 'Subir foto de la botella'}
-                                                        </button>button>
+                                                        </button>
                                         {iaError && <p style={{color:'#f87171',margin:0,fontSize:'13px'}}>{iaError}</p>}
                                         {!apiKey && <p style={{color:'#fbbf24',margin:0,fontSize:'12px'}}>VITE_GEMINI_API_KEY no configurada en Vercel</p>}
                                       </div>
@@ -284,7 +284,7 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
                                                               <button onClick={addPuntuacion} style={{background:'#4ade80',color:'#1a1a1a',border:'none',
                                                                                                                         borderRadius:'6px',padding:'4px 12px',cursor:'pointer',fontWeight:'700',fontSize:'13px'}}>
                                                                                 + Añadir
-                                                              </button>button>
+                                                              </button>
                                               </div>
                                   {(!form.puntuaciones || form.puntuaciones.length === 0) && (
                                       <p style={{color:'#666',fontSize:'13px',margin:0,textAlign:'center'}}>
@@ -295,8 +295,8 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
                                       <div key={i} style={{display:'flex',gap:'8px',alignItems:'center',marginBottom:'8px'}}>
                                                         <select value={p.critico} onChange={e=>updatePuntuacion(i,'critico',e.target.value)}
                                                                               style={{...inp,width:'auto',flex:1,padding:'6px 10px'}}>
-                                                          {CRITICOS.map(c => <option key={c} value={c}>{c}</option>option>)}
-    </select>select>
+                                                          {CRITICOS.map(c => <option key={c} value={c}>{c}</option>)}
+    </select>
                                                         <input type="number" min="50" max="100" placeholder="Nota" value={p.nota}
                                                                               onChange={e=>updatePuntuacion(i,'nota',e.target.value)}
                                                                               style={{...inp,width:'70px',textAlign:'center',padding:'6px 8px'}} />
@@ -304,7 +304,7 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
                                                                               style={{background:'#7f1d1d',color:'#fca5a5',border:'none',borderRadius:'6px',
                                                                                                             padding:'6px 10px',cursor:'pointer',fontSize:'14px',fontWeight:'700'}}>
                                                                             x
-                                                        </button>button>
+                                                        </button>
                                       </div>
                                     ))}
                                   {(form.puntuaciones || []).length > 0 && (
@@ -340,7 +340,7 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
                                 <div style={{display:'flex',gap:'12px',marginTop:'20px'}}>
                                               <button style={btn()} onClick={guardar} disabled={guardando}>
                                                 {guardando ? 'Guardando...' : 'Guardar'}
-                                                </button>button>
+                                                </button>
                                     <button style={btn('#444')} onClick={()=>setFase('lista')}>Cancelar</button>
                                 </div>
                     </>>

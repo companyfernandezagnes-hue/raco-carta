@@ -123,8 +123,8 @@ export default function App() {
           <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px', background: 'var(--bg)' }}>
                     <div style={{ width: '32px', height: '32px', border: '2px solid var(--border)', borderTop: '2px solid var(--gold)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}/>
                     <style dangerouslySetInnerHTML={{__html: '@keyframes spin { to { transform: rotate(360deg) } }'}} />
-                    <p style={{ color: 'var(--text-muted)', fontSize: '13px', letterSpacing: '0.1em' }}>CARGANDO CARTA</p>p>
-          </div>div>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '13px', letterSpacing: '0.1em' }}>CARGANDO CARTA</p>
+          </div>
         )
 
   return (
@@ -146,22 +146,22 @@ export default function App() {
                                                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '10px', padding: '10px 14px' }}>
                                                                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                                                                             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                                                                          </svg>svg>
+                                                                          </svg>
                                                                           <input type="text" placeholder="Buscar por nombre, bodega, uva..." value={busqueda} onChange={e => setBusqueda(e.target.value)} style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--text)', fontSize: '14px', fontFamily: 'inherit' }} />
                                                               {busqueda && <button onClick={() => setBusqueda('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '18px', lineHeight: 1, padding: 0 }}>x</button>button>}
-                                                          </div>div>
+                                                          </div>
                                                           <button onClick={() => setFiltrosAbiertos(v => !v)} style={{ background: (filtrosAbiertos || filtroPais || filtroTipo || filtroOrden) ? 'var(--gold)' : 'var(--card)', border: '1px solid var(--border)', borderRadius: '10px', padding: '10px 14px', cursor: 'pointer', color: (filtrosAbiertos || filtroPais || filtroTipo || filtroOrden) ? '#1a1a1a' : 'var(--text-muted)', fontSize: '13px', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}>
                                                                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                                                                             <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/>
-                                                                          </svg>svg>
+                                                                          </svg>
                                                                           Filtros
                                                               {[filtroPais, filtroTipo, filtroOrden].filter(Boolean).length > 0 && (
                                             <span style={{ background: '#1a1a1a', color: 'var(--gold)', borderRadius: '50%', width: '16px', height: '16px', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
                                                 {[filtroPais, filtroTipo, filtroOrden].filter(Boolean).length}
-                                            </span>span>
+                                            </span>
                                                                           )}
                                                           </button>button>
-                                            </div>div>
+                                            </div>
                                 
                                     {filtrosAbiertos && (
                                         <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '10px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '8px' }}>
@@ -174,7 +174,7 @@ export default function App() {
                                                                                               <option value="">Pais: todos</option>option>
                                                                               {paises.map(p => <option key={p} value={p}>{p}</option>option>)}
                                                                           </select>select>
-                                                        </div>div>
+                                                        </div>
                                                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                                                           <select value={filtroOrden} onChange={e => setFiltroOrden(e.target.value)} style={selectStyle}>
                                                                                               <option value="">Orden: por defecto</option>option>
@@ -187,15 +187,15 @@ export default function App() {
                                                                                       Limpiar todo
                                                                 </button>button>
                                                                           )}
-                                                        </div>div>
-                                        </div>div>
+                                                        </div>
+                                        </div>
                                             )}
                                 
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
                                                 {(busqueda || filtroPais || filtroTipo) ? (
                                           <p style={{ color: 'var(--text-muted)', fontSize: '12px', letterSpacing: '0.05em' }}>
                                               {bebidasFiltradas.length} resultado{bebidasFiltradas.length !== 1 ? 's' : ''}{busqueda ? ' para "' + busqueda + '"' : ''}
-                                          </p>p>
+                                          </p>
                                         ) : <div />}
                                                           <div style={{ display: 'flex', gap: '4px' }}>
                                                               {[
@@ -217,9 +217,9 @@ export default function App() {
                                                 {'\u2696'} {comparador.length}/2
                                             </button>button>
                                                                           )}
-                                                          </div>div>
-                                            </div>div>
-                                </div>div>
+                                                          </div>
+                                            </div>
+                                </div>
                       
                                 <ListaBebidas
                                                 bebidas={modoVista === 'favoritos' ? bebidasFiltradas.filter(b => favoritos.includes(b.id)) : bebidasFiltradas}
@@ -234,7 +234,7 @@ export default function App() {
                           {mostrarComparador && comparador.length === 2 && (
                                       <ComparadorModal bebida1={comparador[0]} bebida2={comparador[1]} onCerrar={() => setMostrarComparador(false)} />
                                     )}
-                      </div>div>
+                      </div>
                 )}
           
               {vista === 'detalle' && bebidaseleccionada && (
@@ -248,7 +248,7 @@ export default function App() {
               {adminAbierto && (
                       <PanelAdmin bebidas={bebidas} onCerrar={() => setAdminAbierto(false)} onActualizar={cargar} />
                     )}
-          </div>div>
+          </div>
         )
 }
 
@@ -269,30 +269,30 @@ function ComparadorModal({ bebida1, bebida2, onCerrar }) {
                     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 1000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={e => e.target === e.currentTarget && onCerrar()}>
                           <div style={{ background: 'var(--bg2)', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: '480px', maxHeight: '90vh', overflow: 'auto', padding: '24px 20px 40px' }}>
                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                                            <p style={{ fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Comparador</p>p>
+                                            <p style={{ fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Comparador</p>
                                             <button onClick={onCerrar} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '22px', lineHeight: 1 }}>{'\u00d7'}</button>button>
-                                  </div>div>
+                                  </div>
                                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
                                       {[bebida1, bebida2].map(b => (
                                     <div key={b.id} style={{ textAlign: 'center' }}>
-                                                  <p style={{ fontSize: '13px', color: 'var(--gold)', fontWeight: 'normal', marginBottom: '2px' }}>{b.nombre}</p>p>
-                                                  <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{b.bodega}</p>p>
-                                    </div>div>
+                                                  <p style={{ fontSize: '13px', color: 'var(--gold)', fontWeight: 'normal', marginBottom: '2px' }}>{b.nombre}</p>
+                                                  <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{b.bodega}</p>
+                                    </div>
                                   ))}
-                                  </div>div>
+                                  </div>
                               {campos.map(c => {
                                   const v1 = c.fmt ? c.fmt(bebida1[c.key]) : (bebida1[c.key] || '-')
                                                 const v2 = c.fmt ? c.fmt(bebida2[c.key]) : (bebida2[c.key] || '-')
                                                               const igual = String(v1) === String(v2)
                                                                             return (
                                                                                             <div key={c.key} style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '8px', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
-                                                                                                          <p style={{ fontSize: '12px', color: igual ? 'var(--text-dim)' : 'var(--text)', textAlign: 'right' }}>{v1}</p>p>
-                                                                                                          <p style={{ fontSize: '9px', color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', textAlign: 'center', minWidth: '60px' }}>{c.label}</p>p>
-                                                                                                          <p style={{ fontSize: '12px', color: igual ? 'var(--text-dim)' : 'var(--text)' }}>{v2}</p>p>
-                                                                                                </div>div>
+                                                                                                          <p style={{ fontSize: '12px', color: igual ? 'var(--text-dim)' : 'var(--text)', textAlign: 'right' }}>{v1}</p>
+                                                                                                          <p style={{ fontSize: '9px', color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', textAlign: 'center', minWidth: '60px' }}>{c.label}</p>
+                                                                                                          <p style={{ fontSize: '12px', color: igual ? 'var(--text-dim)' : 'var(--text)' }}>{v2}</p>
+                                                                                                </div>
                                                                                           )
                     })}
-                          </div>div>
-                    </div>div>
+                          </div>
+                    </div>
                   )
 }</div>

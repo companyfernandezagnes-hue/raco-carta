@@ -103,6 +103,8 @@ function NotaCataTabs({ bebida }) {
           { id: 'boca', label: 'Boca' },
           { id: 'visual', label: 'Visual' },
           { id: 'final', label: 'Final' },
+              { id: 'cuerpo', label: 'Cuerpo' },
+                      { id: 'estructura', label: 'Estructura' },
             ]
             const contenido = {
                   general: bebida.nota_cata,
@@ -110,6 +112,8 @@ function NotaCataTabs({ bebida }) {
                   boca: bebida.nota_boca,
                   visual: bebida.nota_visual,
                   final: bebida.nota_final,
+                          cuerpo: bebida.nota_cuerpo,
+                                      estructura: bebida.nota_estructura,
             }
                 const tabsConDatos = tabs.filter(t => contenido[t.id])
                   

@@ -175,11 +175,11 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
                                 <h2 style={{margin:'0 0 20px',textAlign:'center'}}>Admin Raco</h2>h2>
                                 <input style={inp} type="password" placeholder="Contrasena" value={pass}
                                                 onChange={e=>setPass(e.target.value)} onKeyDown={e=>e.key==='Enter'&&login()} autoFocus />
-                      {error && <p style={{color:'#f87171',margin:'8px 0'}}>{error}</p>p>}
+                      {error && <p style={{color:'#f87171',margin:'8px 0'}}>{error}</p>}
                                 <div style={{display:'flex',gap:'12px',marginTop:'16px'}}>
                                               <button style={btn()} onClick={login}>Entrar</button>button>
                                               <button style={btn('#444')} onClick={onCerrar}>Cancelar</button>button>
-                                </div>div>
+                                </div>
                     </>>
                   )}
                 
@@ -190,18 +190,18 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
                                               <div style={{display:'flex',gap:'8px'}}>
                                                               <button style={btn('#7c3aed')} onClick={abrirNueva}>+ Nueva IA</button>button>
                                                               <button style={btn('#444')} onClick={onCerrar}>X</button>button>
-                                              </div>div>
-                                </div>div>
+                                              </div>
+                                </div>
                       {bebidas.map(b => (
                                     <div key={b.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',
                                                                             padding:'10px',marginBottom:'8px',background:'#2a2a2a',borderRadius:'8px'}}>
                                                     <div>
-                                                                      <span style={{fontWeight:'600'}}>{b.nombre}</span>span>
-                                                                      <span style={{color:'#aaa',marginLeft:'8px',fontSize:'13px'}}>{b.categoria}</span>span>
-                                                      {!b.disponible && <span style={{color:'#f87171',marginLeft:'8px',fontSize:'12px'}}>No disponible</span>span>}
-                                                    </div>div>
+                                                                      <span style={{fontWeight:'600'}}>{b.nombre}</span>
+                                                                      <span style={{color:'#aaa',marginLeft:'8px',fontSize:'13px'}}>{b.categoria}</span>
+                                                      {!b.disponible && <span style={{color:'#f87171',marginLeft:'8px',fontSize:'12px'}}>No disponible</span>}
+                                                    </div>
                                                     <button style={btn()} onClick={()=>abrirEditar(b)}>Editar</button>button>
-                                    </div>div>
+                                    </div>
                                   ))}
                     </>>
                   )}
@@ -211,7 +211,7 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
                                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'16px'}}>
                                               <h2 style={{margin:0}}>{bebida ? 'Editar' : 'Nueva bebida'}</h2>h2>
                                               <button style={btn('#444')} onClick={()=>setFase('lista')}>Volver</button>button>
-                                </div>div>
+                                </div>
                     
                       {/* BLOQUE IA */}
                                 <div style={{background:'#2a1f4e',borderRadius:'10px',padding:'16px',marginBottom:'16px',border:'1px solid #7c3aed'}}>
@@ -228,17 +228,17 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
                                                                                                     onClick={()=>rellenarConIA({nombre:iaTexto,apiKey,setForm,setIaLoading,setIaError})}>
                                                                               {iaLoading ? '...' : 'Buscar'}
                                                                             </button>button>
-                                                        </div>div>
-                                                        <div style={{textAlign:'center',color:'#aaa',fontSize:'13px'}}>o sube una foto</div>div>
+                                                        </div>
+                                                        <div style={{textAlign:'center',color:'#aaa',fontSize:'13px'}}>o sube una foto</div>
                                                         <input ref={fotoInputRef} type="file" accept="image/*" style={{display:'none'}} onChange={handleFoto} />
                                                         <button style={btn('#374151')} disabled={iaLoading} onClick={()=>fotoInputRef.current?.click()}>
                                                                               {iaLoading ? 'Analizando con IA...' : 'Subir foto de la botella'}
                                                         </button>button>
-                                        {iaError && <p style={{color:'#f87171',margin:0,fontSize:'13px'}}>{iaError}</p>p>}
-                                        {!apiKey && <p style={{color:'#fbbf24',margin:0,fontSize:'12px'}}>VITE_GEMINI_API_KEY no configurada en Vercel</p>p>}
-                                      </div>div>
+                                        {iaError && <p style={{color:'#f87171',margin:0,fontSize:'13px'}}>{iaError}</p>}
+                                        {!apiKey && <p style={{color:'#fbbf24',margin:0,fontSize:'12px'}}>VITE_GEMINI_API_KEY no configurada en Vercel</p>}
+                                      </div>
                                               )}
-                                </div>div>
+                                </div>
                     
                       {/* CAMPOS */}
                                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 16px'}}>
@@ -256,9 +256,9 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
                                       <div key={key}>
                                                         <label style={label}>{lbl}</label>label>
                                                         <input style={inp} type={type} value={form[key]??''} onChange={e=>setForm(p=>({...p,[key]:e.target.value}))} />
-                                      </div>div>
+                                      </div>
                                                     ) : <div key={i} />)}
-                                </div>div>
+                                </div>
                     
                                 <label style={label}>Descripcion</label>label>
                                 <textarea style={{...inp,minHeight:'60px',resize:'vertical'}} value={form.descripcion||''}
@@ -280,16 +280,16 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
                                               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'10px'}}>
                                                               <span style={{fontSize:'12px',color:'#4ade80',fontWeight:'600',letterSpacing:'0.1em',textTransform:'uppercase'}}>
                                                                                 Puntuaciones de criticos
-                                                              </span>span>
+                                                              </span>
                                                               <button onClick={addPuntuacion} style={{background:'#4ade80',color:'#1a1a1a',border:'none',
                                                                                                                         borderRadius:'6px',padding:'4px 12px',cursor:'pointer',fontWeight:'700',fontSize:'13px'}}>
                                                                                 + Añadir
                                                               </button>button>
-                                              </div>div>
+                                              </div>
                                   {(!form.puntuaciones || form.puntuaciones.length === 0) && (
                                       <p style={{color:'#666',fontSize:'13px',margin:0,textAlign:'center'}}>
                                                         Sin puntuaciones aun. Pulsa + Añadir para agregar una.
-                                      </p>p>
+                                      </p>
                                               )}
                                   {(form.puntuaciones || []).map((p, i) => (
                                       <div key={i} style={{display:'flex',gap:'8px',alignItems:'center',marginBottom:'8px'}}>
@@ -305,7 +305,7 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
                                                                                                             padding:'6px 10px',cursor:'pointer',fontSize:'14px',fontWeight:'700'}}>
                                                                             x
                                                         </button>button>
-                                      </div>div>
+                                      </div>
                                     ))}
                                   {(form.puntuaciones || []).length > 0 && (
                                       <div style={{display:'flex',gap:'6px',flexWrap:'wrap',marginTop:'10px'}}>
@@ -313,24 +313,24 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
                                                             <span key={i} style={{background:'#78350f',color:'#fde68a',border:'1px solid #d97706',
                                                                                                         borderRadius:'6px',padding:'3px 10px',fontSize:'12px',fontWeight:'700'}}>
                                                               {p.nota} {p.critico}
-                                                            </span>span>
+                                                            </span>
                                                           ))}
-                                      </div>div>
+                                      </div>
                                               )}
-                                </div>div>
+                                </div>
                     
                                 <div style={{display:'flex',gap:'12px',marginTop:'16px',alignItems:'center'}}>
                                               <label style={{display:'flex',alignItems:'center',gap:'6px',cursor:'pointer'}}>
                                     <input type="checkbox" checked={form.disponible??true}
                                                         onChange={e=>setForm(p=>({...p,disponible:e.target.checked}))} />
-                                                              <span style={{fontSize:'14px'}}>Disponible</span>span>
+                                                              <span style={{fontSize:'14px'}}>Disponible</span>
                                               </label>label>
                                     <label style={{display:'flex',alignItems:'center',gap:'6px',cursor:'pointer'}}>
                                                     <input type="checkbox" checked={form.destacado??false}
                                         onChange={e=>setForm(p=>({...p,destacado:e.target.checked}))} />
                                                     <span style={{fontSize:'14px'}}>Destacado</span>
                                     </label>label>
-                                </div>div>
+                                </div>
                     
                       {form.foto_url && (
                                     <img src={form.foto_url} alt="preview" style={{width:'100%',maxHeight:'180px',
@@ -342,10 +342,10 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
                                                 {guardando ? 'Guardando...' : 'Guardar'}
                                                 </button>button>
                                     <button style={btn('#444')} onClick={()=>setFase('lista')}>Cancelar</button>
-                                </div>div>
+                                </div>
                     </>>
                   )}
-                </div>div>
-</div>div>
+                </div>
+</div>
       )
   }</></></>

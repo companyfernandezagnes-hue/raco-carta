@@ -280,6 +280,7 @@ function ComparadorModal({ bebida1, bebida2, onCerrar }) {
                                     </div>
                                   ))}
                                   </div>
+                                              {(bebida1.caracteristicas || bebida2.caracteristicas) && <RadarComparador b1={bebida1} b2={bebida2} />}
                               {campos.map(c => {
                                   const v1 = c.fmt ? c.fmt(bebida1[c.key]) : (bebida1[c.key] || '-')
                                                 const v2 = c.fmt ? c.fmt(bebida2[c.key]) : (bebida2[c.key] || '-')
@@ -296,3 +297,70 @@ function ComparadorModal({ bebida1, bebida2, onCerrar }) {
                     </div>
                   )
 }</div>
+
+function RadarComparador({ b1, b2 }) {
+          const ejes = [
+              { label: 'Potencia', key: 'potencia' },
+                  { label: 'Acidez', key: 'acidez' },
+                      { label: 'Taninos', key: 'taninos' },
+                          { label: 'Dulzura', key: 'dulzura' },
+                              { label: 'Afrutado', key: 'afrutado' },
+                                ]
+                                  const n = ejes.length
+                                    const cx = 90, cy = 90, r = 65
+                                      const gridLevels = [0.25, 0.5, 0.75, 1]
+                                        const axisPoints = ejes.map((_, i) => {
+                                            const angle = (Math.PI * 2 * i / n) - Math.PI / 2
+                                                return [cx + r * Math.cos(angle), cy + r * Math.sin(angle)]
+                                                  })
+                                                    const labelPoints = ejes.map((e, i) => {
+                                                        const angle = (Math.PI * 2 * i / n) - Math.PI / 2
+                                                            const lr = r + 20
+                                                                return { x: cx + lr * Math.cos(angle), y: cy + lr * Math.sin(angle), label: e.label }
+                                                                  })
+                                                                    const getPoints = (bebida) => {
+                                                                        const c = bebida.caracteristicas || {}
+                                                                            return ejes.map((e, i) => {
+                                                                                  const angle = (Math.PI * 2 * i / n) - Math.PI / 2
+                                                                                        const v = (c[e.key] || 0) / 10
+                                                                                              return [cx + r * v * Math.cos(angle), cy + r * v * Math.sin(angle)]
+                                                                                                  })
+                                                                                                    }
+                                                                                                      const pts1 = getPoints(b1)
+                                                                                                        const pts2 = getPoints(b2)
+                                                                                                          return (
+                                                                                                              <div style={{ marginBottom: '20px' }}>
+                                                                                                                    <p style={{ fontSize: '9px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '10px', textAlign: 'center' }}>Perfil comparativo</p>
+                                                                                                                          <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', alignItems: 'center', marginBottom: '8px' }}>
+                                                                                                                                  <span style={{ fontSize: '10px', color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                                                                                            <span style={{ width: '10px', height: '2px', background: '#f59e0b', display: 'inline-block', borderRadius: '1px' }}></span>
+                                                                                                                                                      {b1.nombre.split(' ').slice(0, 2).join(' ')}
+                                                                                                                                                              </span>
+                                                                                                                                                                      <span style={{ fontSize: '10px', color: '#60a5fa', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                                                                                                                                <span style={{ width: '10px', height: '2px', background: '#60a5fa', display: 'inline-block', borderRadius: '1px' }}></span>
+                                                                                                                                                                                          {b2.nombre.split(' ').slice(0, 2).join(' ')}
+                                                                                                                                                                                                  </span>
+                                                                                                                                                                                                        </div>
+                                                                                                                                                                                                              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                                                                                                                                                                                                      <svg width="180" height="180" viewBox="0 0 180 180">
+                                                                                                                                                                                                                                {gridLevels.map((lv, gi) => {
+                                                                                                                                                                                                                                            const gpts = ejes.map((_, i) => {
+                                                                                                                                                                                                                                                          const angle = (Math.PI * 2 * i / n) - Math.PI / 2
+                                                                                                                                                                                                                                                                        return [cx + r * lv * Math.cos(angle), cy + r * lv * Math.sin(angle)]
+                                                                                                                                                                                                                                                                                    })
+                                                                                                                                                                                                                                                                                                return <polygon key={gi} points={gpts.map(p => p.join(',')).join(' ')} fill="none" stroke="var(--border)" strokeWidth="0.5" />
+                                                                                                                                                                                                                                                                                                          })}
+                                                                                                                                                                                                                                                                                                                    {axisPoints.map((p, i) => (
+                                                                                                                                                                                                                                                                                                                                <line key={i} x1={cx} y1={cy} x2={p[0]} y2={p[1]} stroke="var(--border)" strokeWidth="0.5" />
+                                                                                                                                                                                                                                                                                                                                          ))}
+                                                                                                                                                                                                                                                                                                                                                    <polygon points={pts1.map(p => p.join(',')).join(' ')} fill="rgba(245,158,11,0.15)" stroke="#f59e0b" strokeWidth="1.5" />
+                                                                                                                                                                                                                                                                                                                                                              <polygon points={pts2.map(p => p.join(',')).join(' ')} fill="rgba(96,165,250,0.15)" stroke="#60a5fa" strokeWidth="1.5" />
+                                                                                                                                                                                                                                                                                                                                                                        {labelPoints.map((lp, i) => (
+                                                                                                                                                                                                                                                                                                                                                                                    <text key={i} x={lp.x} y={lp.y} textAnchor="middle" dominantBaseline="middle" fontSize="8" fill="var(--text-muted)" letterSpacing="0.03em">{lp.label}</text>
+                                                                                                                                                                                                                                                                                                                                                                                              ))}
+                                                                                                                                                                                                                                                                                                                                                                                                      </svg>
+                                                                                                                                                                                                                                                                                                                                                                                                            </div>
+                                                                                                                                                                                                                                                                                                                                                                                                                </div>
+                                                                                                                                                                                                                                                                                                                                                                                                                  )
+                                                                                                                                                                                                                                                                                                                                                                                                                  }
+}

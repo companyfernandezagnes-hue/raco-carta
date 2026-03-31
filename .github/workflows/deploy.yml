@@ -1,14 +1,11 @@
-name: Deploy to GitHub Pages
+name: Build check
 
 on:
   push:
     branches: [main]
 
-permissions:
-  contents: write
-
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,8 +17,3 @@ jobs:
       - run: npm install
 
       - run: npm run build
-
-      - uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist

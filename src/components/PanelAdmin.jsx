@@ -172,7 +172,7 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
                 <div style={card}>
                   {fase === 'login' && (
                     <>
-                                <h2 style={{margin:'0 0 20px',textAlign:'center'}}>Admin Raco</h2>h2>
+                                <h2 style={{margin:'0 0 20px',textAlign:'center'}}>Admin Raco</h2>
                                 <input style={inp} type="password" placeholder="Contrasena" value={pass}
                                                 onChange={e=>setPass(e.target.value)} onKeyDown={e=>e.key==='Enter'&&login()} autoFocus />
                       {error && <p style={{color:'#f87171',margin:'8px 0'}}>{error}</p>}
@@ -186,7 +186,7 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
                   {fase === 'lista' && (
                     <>
                                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'16px'}}>
-                                              <h2 style={{margin:0}}>Bebidas ({bebidas.length})</h2>h2>
+                                              <h2 style={{margin:0}}>Bebidas ({bebidas.length})</h2>
                                               <div style={{display:'flex',gap:'8px'}}>
                                                               <button style={btn('#7c3aed')} onClick={abrirNueva}>+ Nueva IA</button>
                                                               <button style={btn('#444')} onClick={onCerrar}>X</button>
@@ -209,7 +209,7 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
                   {fase === 'editando' && (
                     <>
                                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'16px'}}>
-                                              <h2 style={{margin:0}}>{bebida ? 'Editar' : 'Nueva bebida'}</h2>h2>
+                                              <h2 style={{margin:0}}>{bebida ? 'Editar' : 'Nueva bebida'}</h2>
                                               <button style={btn('#444')} onClick={()=>setFase('lista')}>Volver</button>
                                 </div>
                     
@@ -254,24 +254,24 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
                                       ['Foto URL','foto_url','text'],['']
                                     ].map(([lbl,key,type],i) => lbl ? (
                                       <div key={key}>
-                                                        <label style={label}>{lbl}</label>label>
+                                                        <label style={label}>{lbl}</label>
                                                         <input style={inp} type={type} value={form[key]??''} onChange={e=>setForm(p=>({...p,[key]:e.target.value}))} />
                                       </div>
                                                     ) : <div key={i} />)}
                                 </div>
                     
-                                <label style={label}>Descripcion</label>label>
+                                <label style={label}>Descripcion</label>
                                 <textarea style={{...inp,minHeight:'60px',resize:'vertical'}} value={form.descripcion||''}
                                                 onChange={e=>setForm(p=>({...p,descripcion:e.target.value}))} />
                     
-                                <label style={label}>Nota de cata</label>label>
+                                <label style={label}>Nota de cata</label>
                                 <textarea style={{...inp,minHeight:'60px',resize:'vertical'}} value={form.nota_cata||''}
                                                 onChange={e=>setForm(p=>({...p,nota_cata:e.target.value}))} />
                     
-                                <label style={label}>Maridajes (separados por coma)</label>label>
+                                <label style={label}>Maridajes (separados por coma)</label>
                                 <input style={inp} value={form.maridajes||''} onChange={e=>setForm(p=>({...p,maridajes:e.target.value}))} />
                     
-                                <label style={label}>Notas IA (analisis automatico)</label>label>
+                                <label style={label}>Notas IA (analisis automatico)</label>
                                 <textarea style={{...inp,minHeight:'50px',resize:'vertical',color:'#a78bfa'}} value={form.notas_ia||''}
                                                 onChange={e=>setForm(p=>({...p,notas_ia:e.target.value}))} />
                     
@@ -324,12 +324,12 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
                                     <input type="checkbox" checked={form.disponible??true}
                                                         onChange={e=>setForm(p=>({...p,disponible:e.target.checked}))} />
                                                               <span style={{fontSize:'14px'}}>Disponible</span>
-                                              </label>label>
+                                              </label>
                                     <label style={{display:'flex',alignItems:'center',gap:'6px',cursor:'pointer'}}>
                                                     <input type="checkbox" checked={form.destacado??false}
                                         onChange={e=>setForm(p=>({...p,destacado:e.target.checked}))} />
                                                     <span style={{fontSize:'14px'}}>Destacado</span>
-                                    </label>label>
+                                    </label>
                                 </div>
                     
                       {form.foto_url && (

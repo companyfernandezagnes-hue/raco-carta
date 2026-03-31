@@ -53,8 +53,7 @@ export default function DetalleBebida({ bebida, onVolver, todasBebidas, comparad
                                               {bebida.graduacion && (<p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{bebida.graduacion}% vol.</p>)}
                                                             {onToggleComparador && (
                                                                               <button
-                                                                                                onClick={() => onToggleComparado
-                                                                                                r(bebida)}
+                                                                                                onClick={() => onToggleComparador(bebida)}
                                                                                                                   style={{
                                                                                                                                       marginTop: '8px',
                                                                                                                                                           background: comparador.some(c => c.id === bebida.id) ? 'var(--gold-dim)' : 'none',

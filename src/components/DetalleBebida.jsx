@@ -10,7 +10,7 @@ export default function DetalleBebida({ bebida, onVolver, todasBebidas, comparad
                 {bebida.foto_url && (
                         <div style={{ width: '100%', background: 'linear-gradient(180deg, var(--bg2) 0%, var(--bg) 100%)', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '32px 20px 24px', borderBottom: '1px solid var(--border)', marginBottom: '24px' }}>
                                     <img src={bebida.foto_url} alt={bebida.nombre} style={{ maxHeight: '260px', maxWidth: '100%', objectFit: 'contain', borderRadius: '8px', boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }} />
-                        </div>div>
+                        </div>
                       )}
                       <div style={{ padding: '0 20px' }}>
                                 <div style={{ borderBottom: '1px solid var(--border)', paddingBottom: '20px', marginBottom: '24px' }}>
@@ -25,13 +25,13 @@ export default function DetalleBebida({ bebida, onVolver, todasBebidas, comparad
                                                 🌿 Ecologico
                               </span>span>
                             )}
-                                            </div>div>
+                                            </div>
                                   {Array.isArray(bebida.puntuaciones) && bebida.puntuaciones.filter(p => p.critico && p.nota).length > 0 && (
                             <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', marginBottom: '10px' }}>
                               {bebida.puntuaciones.filter(p => p.critico && p.nota).map((p, i) => (
                                               <BadgeCritico key={i} nota={p.nota} critico={p.critico} />
                                             ))}
-                            </div>div>
+                            </div>
                           )}
                                             <h2 style={{ fontSize: '26px', fontWeight: 'normal', color: 'var(--text)', lineHeight: '1.2', marginBottom: '8px' }}>{bebida.nombre}</h2>h2>
                                   {bebida.bodega && (<p style={{ fontSize: '15px', color: 'var(--text-dim)', marginBottom: '16px' }}>{bebida.bodega}</p>p>)}
@@ -41,15 +41,15 @@ export default function DetalleBebida({ bebida, onVolver, todasBebidas, comparad
                                 <div>
                                                   <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '2px', letterSpacing: '0.1em' }}>BOTELLA</p>p>
                                                   <p style={{ fontSize: '24px', color: 'var(--gold)' }}>{bebida.precio_botella.toFixed(0)} euros</p>p>
-                                </div>div>
+                                </div>
                                                                         )}
                                                             {bebida.precio_copa && (
                                 <div>
                                                   <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '2px', letterSpacing: '0.1em' }}>COPA</p>p>
                                                   <p style={{ fontSize: '24px', color: 'var(--text-dim)' }}>{bebida.precio_copa.toFixed(0)} euros</p>p>
-                                </div>div>
+                                </div>
                                                                         )}
-                                                          </div>div>
+                                                          </div>
                                               {bebida.graduacion && (<p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{bebida.graduacion}% vol.</p>p>)}
                                                             {onToggleComparador && (
                                                                               <button
@@ -79,8 +79,8 @@ export default function DetalleBebida({ bebida, onVolver, todasBebidas, comparad
                                                                                                                                                                                                                                         </button>
                                                                                                                                                                                                                                                     )}
                                                             )}
-                                            </div>div>
-                                </div>div>
+                                            </div>
+                                </div>
                       
                         {bebida.nota_cata && <NotaCataTabs bebida={bebida} />}
                       
@@ -96,7 +96,7 @@ export default function DetalleBebida({ bebida, onVolver, todasBebidas, comparad
                                           {bebida.crianza && <Spec label="Crianza" valor={bebida.crianza} />}
                                           {bebida.temperatura && <Spec label="Servir a" valor={bebida.temperatura} />}
                                           {bebida.graduacion && <Spec label="Graduacion" valor={bebida.graduacion + '%'} />}
-                                        </div>div>
+                                        </div>
                               </Seccion>Seccion>
                       
                               <InfoBodegaTabs bebida={bebida} />
@@ -111,15 +111,15 @@ export default function DetalleBebida({ bebida, onVolver, todasBebidas, comparad
                                                               <div>
                                                                                   <p style={{ fontSize: '14px', color: 'var(--text)', marginBottom: '2px' }}>{b.nombre}</p>p>
                                                                                   <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{[b.bodega, b.region, b.anada].filter(Boolean).join(' · ')}</p>p>
-                                                              </div>div>
+                                                              </div>
                                               {b.precio_botella && <p style={{ fontSize: '15px', color: 'var(--gold)' }}>{b.precio_botella.toFixed(0)}€</p>p>}
-                                            </div>div>
+                                            </div>
                                           ))}
-                                      </div>div>
+                                      </div>
                           </Seccion>Seccion>
                               )}
-                      </div>div>
-              </div>div>
+                      </div>
+              </div>
             )
 }
 
@@ -155,12 +155,12 @@ function NotaCataTabs({ bebida }) {
                                           {tabsConDatos.map(t => (
                                                       <button key={t.id} onClick={() => setTab(t.id)} style={{ fontSize: '11px', padding: '4px 12px', borderRadius: '20px', border: '1px solid ' + (tab === t.id ? 'var(--gold)' : 'var(--border)'), background: tab === t.id ? 'var(--gold-dim)' : 'transparent', color: tab === t.id ? 'var(--gold)' : 'var(--text-muted)', cursor: 'pointer', letterSpacing: '0.05em', transition: 'all 0.15s' }}>
                                                         {t.label}
-                                                      </button>button>
+                                                      </button>
                                                     ))}
-                                        </div>div>
+                                        </div>
                                     )}
                                     <p style={{ fontSize: '15px', color: 'var(--text-dim)', lineHeight: '1.7', fontStyle: 'italic' }}>"{contenido[tab]}"</p>p>
-                              </div>div>
+                              </div>
                             )
                           }
                           
@@ -215,8 +215,8 @@ function NotaCataTabs({ bebida }) {
                                                                                           <text key={i} x={lp.x} y={lp.y} textAnchor="middle" dominantBaseline="middle" fontSize="9" fill="var(--text-muted)" letterSpacing="0.03em">{lp.label}</text>text>
                                                                                         ))}
                                                                                           </svg>svg>
-                                                                                  </div>div>
-                                                                            </div>div>
+                                                                                  </div>
+                                                                            </div>
                                                                           )
                                                                         }
                                                                         
@@ -240,11 +240,11 @@ function NotaCataTabs({ bebida }) {
                                                                                                               {tabsConDatos.map(t => (
                                                                                                                   <button key={t.id} onClick={() => setTab(t.id)} style={{ fontSize: '11px', padding: '4px 12px', borderRadius: '20px', border: '1px solid ' + (activeTab.id === t.id ? 'var(--gold)' : 'var(--border)'), background: activeTab.id === t.id ? 'var(--gold-dim)' : 'transparent', color: activeTab.id === t.id ? 'var(--gold)' : 'var(--text-muted)', cursor: 'pointer', letterSpacing: '0.05em', transition: 'all 0.15s' }}>
                                                                                                                     {t.label}
-                                                                                                                    </button>button>
+                                                                                                                    </button>
                                                                                                                 ))}
-                                                                                                              </div>div>
+                                                                                                              </div>
                                                                                                             <p style={{ fontSize: '14px', color: 'var(--text-dim)', lineHeight: '1.6' }}>{activeTab.val}</p>p>
-                                                                                                        </div>div>
+                                                                                                        </div>
                                                                                                     )
                                                                                                   }
                                                                                                   
@@ -268,18 +268,18 @@ function NotaCataTabs({ bebida }) {
                                                                                                                         <button onClick={() => setAbierto(!abierto)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: abierto ? '12px' : 0 }}>
                                                                                                                                 <p style={{ fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text-muted)', margin: 0 }}>Marida con</p>p>
                                                                                                                                 <span style={{ fontSize: '14px', color: 'var(--text-muted)', transform: abierto ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s', display: 'inline-block' }}>▼</span>span>
-                                                                                                                          </button>button>
+                                                                                                                          </button>
                                                                                                                     {abierto && (
                                                                                                                             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '8px' }}>
                                                                                                                               {maridajes.map(m => (
                                                                                                                                           <div key={m} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '13px', padding: '6px 12px', borderRadius: '20px', border: '1px solid var(--border)', color: 'var(--text-dim)', background: 'var(--bg3)' }}>
                                                                                                                                                         <span>{ICONOS_MARIDAJE[m] || '🍷'}</span>span>
                                                                                                                                                         <span>{m}</span>span>
-                                                                                                                                            </div>div>
+                                                                                                                                            </div>
                                                                                                                                         ))}
-                                                                                                                              </div>div>
+                                                                                                                              </div>
                                                                                                                         )}
-                                                                                                                    </div>div>
+                                                                                                                    </div>
                                                                                                                 )
                                                                                                               }
                                                                                                               
@@ -308,7 +308,7 @@ function Seccion({ titulo, children }) {
           <div style={{ marginBottom: '28px' }}>
                 <p style={{ fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '12px' }}>{titulo}</p>p>
             {children}
-          </div>div>
+          </div>
         )
 }
 
@@ -317,6 +317,6 @@ function Spec({ label, valor }) {
           <div style={{ background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: '10px 12px' }}>
                 <p style={{ fontSize: '10px', color: 'var(--text-muted)', letterSpacing: '0.1em', marginBottom: '4px' }}>{label.toUpperCase()}</p>p>
                 <p style={{ fontSize: '13px', color: 'var(--gold)', fontWeight: 'normal' }}>{valor}</p>p>
-          </div>div>
+          </div>
         )
 }</div>

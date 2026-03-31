@@ -130,8 +130,8 @@ function TarjetaBebida({ bebida, onSeleccionar, destacado, esFavorito, onToggleF
                                       {[bebida.bodega, bebida.region, bebida.anada].filter(Boolean).join(' · ')}
                                   </p>
                                   <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                                      {bebida.subcategoria && <Tag>{bebida.subcategoria}</Tag>Tag>}
-                                      {bebida.uvas && <Tag>{bebida.uvas.split(',')[0].trim()}</Tag>Tag>}
+                                      {bebida.subcategoria && <Tag>{bebida.subcategoria}</Tag>}
+                                      {bebida.uvas && <Tag>{bebida.uvas.split(',')[0].trim()}</Tag>}
                                   </div>
                               {puntuaciones.length > 0 && (
                                   <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', marginTop: '8px' }}>

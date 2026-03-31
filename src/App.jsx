@@ -148,7 +148,7 @@ export default function App() {
                                                                                             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
                                                                           </svg>
                                                                           <input type="text" placeholder="Buscar por nombre, bodega, uva..." value={busqueda} onChange={e => setBusqueda(e.target.value)} style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--text)', fontSize: '14px', fontFamily: 'inherit' }} />
-                                                              {busqueda && <button onClick={() => setBusqueda('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '18px', lineHeight: 1, padding: 0 }}>x</button>button>}
+                                                              {busqueda && <button onClick={() => setBusqueda('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '18px', lineHeight: 1, padding: 0 }}>x</button>}
                                                           </div>
                                                           <button onClick={() => setFiltrosAbiertos(v => !v)} style={{ background: (filtrosAbiertos || filtroPais || filtroTipo || filtroOrden) ? 'var(--gold)' : 'var(--card)', border: '1px solid var(--border)', borderRadius: '10px', padding: '10px 14px', cursor: 'pointer', color: (filtrosAbiertos || filtroPais || filtroTipo || filtroOrden) ? '#1a1a1a' : 'var(--text-muted)', fontSize: '13px', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}>
                                                                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -160,32 +160,32 @@ export default function App() {
                                                 {[filtroPais, filtroTipo, filtroOrden].filter(Boolean).length}
                                             </span>
                                                                           )}
-                                                          </button>button>
+                                                          </button>
                                             </div>
                                 
                                     {filtrosAbiertos && (
                                         <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '10px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '8px' }}>
                                                         <div style={{ display: 'flex', gap: '8px' }}>
                                                                           <select value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)} style={selectStyle}>
-                                                                                              <option value="">Tipo: todos</option>option>
-                                                                              {tipos.map(t => <option key={t} value={t}>{t}</option>option>)}
-                                                                          </select>select>
+                                                                                              <option value="">Tipo: todos</option>
+                                                                              {tipos.map(t => <option key={t} value={t}>{t}</option>)}
+                                                                          </select>
                                                                           <select value={filtroPais} onChange={e => setFiltroPais(e.target.value)} style={selectStyle}>
-                                                                                              <option value="">Pais: todos</option>option>
-                                                                              {paises.map(p => <option key={p} value={p}>{p}</option>option>)}
-                                                                          </select>select>
+                                                                                              <option value="">Pais: todos</option>
+                                                                              {paises.map(p => <option key={p} value={p}>{p}</option>)}
+                                                                          </select>
                                                         </div>
                                                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                                                           <select value={filtroOrden} onChange={e => setFiltroOrden(e.target.value)} style={selectStyle}>
-                                                                                              <option value="">Orden: por defecto</option>option>
-                                                                                              <option value="precio_asc">Precio: menor a mayor</option>option>
-                                                                                              <option value="precio_desc">Precio: mayor a menor</option>option>
-                                                                                              <option value="nombre_asc">Nombre: A-Z</option>option>
-                                                                          </select>select>
+                                                                                              <option value="">Orden: por defecto</option>
+                                                                                              <option value="precio_asc">Precio: menor a mayor</option>
+                                                                                              <option value="precio_desc">Precio: mayor a menor</option>
+                                                                                              <option value="nombre_asc">Nombre: A-Z</option>
+                                                                          </select>
                                                             {hayFiltrosActivos && (
                                                                 <button onClick={limpiarFiltros} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: '8px', padding: '7px 12px', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '12px', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
                                                                                       Limpiar todo
-                                                                </button>button>
+                                                                </button>
                                                                           )}
                                                         </div>
                                         </div>
@@ -205,17 +205,17 @@ export default function App() {
                                           ].map(v => (
                                                                 <button key={v.id} onClick={() => setModoVista(v.id)} title={v.title} style={{ background: modoVista === v.id ? 'var(--gold-dim)' : 'transparent', border: '1px solid ' + (modoVista === v.id ? 'var(--gold)' : 'var(--border)'), borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', color: modoVista === v.id ? 'var(--gold)' : 'var(--text-muted)', fontSize: '16px', lineHeight: 1 }}>
                                                                     {v.icon}
-                                                                </button>button>
+                                                                </button>
                                                               ))}
                                                               {favoritos.length > 0 && (
                                             <button onClick={() => setModoVista(modoVista === 'favoritos' ? 'lista' : 'favoritos')} style={{ background: modoVista === 'favoritos' ? 'var(--gold-dim)' : 'transparent', border: '1px solid ' + (modoVista === 'favoritos' ? 'var(--gold)' : 'var(--border)'), borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', color: modoVista === 'favoritos' ? 'var(--gold)' : 'var(--text-muted)', fontSize: '14px' }} title="Favoritos">
                                                 {'\u2665'} {favoritos.length}
-                                            </button>button>
+                                            </button>
                                                                           )}
                                                               {comparador.length > 0 && (
                                             <button onClick={() => setMostrarComparador(true)} style={{ background: 'var(--gold-dim)', border: '1px solid var(--gold)', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', color: 'var(--gold)', fontSize: '12px', letterSpacing: '0.05em' }}>
                                                 {'\u2696'} {comparador.length}/2
-                                            </button>button>
+                                            </button>
                                                                           )}
                                                           </div>
                                             </div>
@@ -270,7 +270,7 @@ function ComparadorModal({ bebida1, bebida2, onCerrar }) {
                           <div style={{ background: 'var(--bg2)', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: '480px', maxHeight: '90vh', overflow: 'auto', padding: '24px 20px 40px' }}>
                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                                             <p style={{ fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Comparador</p>
-                                            <button onClick={onCerrar} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '22px', lineHeight: 1 }}>{'\u00d7'}</button>button>
+                                            <button onClick={onCerrar} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '22px', lineHeight: 1 }}>{'\u00d7'}</button>
                                   </div>
                                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
                                       {[bebida1, bebida2].map(b => (
@@ -296,7 +296,7 @@ function ComparadorModal({ bebida1, bebida2, onCerrar }) {
                           </div>
                     </div>
                   )
-}</div>
+}
 
 function RadarComparador({ b1, b2 }) {
           const ejes = [

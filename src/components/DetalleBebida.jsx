@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-export default function DetalleBebida({ bebida, onVolver, todasBebidas }) {
+export default function DetalleBebida({ bebida, onVolver, todasBebidas, comparador = [], onToggleComparador }) {}
     const relacionados = todasBebidas
       ? todasBebidas.filter(b => b.id !== bebida.id && b.categoria === bebida.categoria && (b.region === bebida.region || b.subcategoria === bebida.subcategoria)).slice(0, 3)
           : []
@@ -51,6 +51,34 @@ export default function DetalleBebida({ bebida, onVolver, todasBebidas }) {
                                                                         )}
                                                           </div>div>
                                               {bebida.graduacion && (<p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{bebida.graduacion}% vol.</p>p>)}
+                                                            {onToggleComparador && (
+                                                                              <button
+                                                                                                onClick={() => onToggleComparado
+                                                                                                r(bebida)}
+                                                                                                                  style={{
+                                                                                                                                      marginTop: '8px',
+                                                                                                                                                          background: comparador.some(c => c.id === bebida.id) ? 'var(--gold-dim)' : 'none',
+                                                                                                                                                                              border: '1px solid ' + (comparador.some(c => c.id === bebida.id) ? 'var(--gold)' : 'var(--border)'),
+                                                                                                                                                                                                  borderRadius: '6 p x ' , 
+                                                                                                                                                                                                                { o n T o g g l e C o m p apraadddoirn g&:&  '(5
+                                                                                                                                                                                                                p x   1 0 p x ' , 
+                                                                                                                                                                                                                          < b u t t o n   o n C l i c k =c{u(r)s o=r>:  o'npTooigngtleerC'o,m
+                                                                                                                                                                                                                          p a r a d o r ( b e b i d a ) }   s t y lfeo=n{t{S ibzaec:k g'r1o2upnxd':, 
+                                                                                                                                                                                                                          c o m p a r a d o r . s o m e ( c   = >  cco.liodr := =c=o mbpeabriaddao.ri.ds)o m?e ('cv a=r>( -c-.giodl d=-=d=i mb)e'b i:d a'.niodn)e '?,  'bvoarrd(e-r-:g o'l1dp)x'  s:o l'ivda r'( -+- t(ecxotm-pmaurtaeddo)r'.,s
+                                                                                                                                                                                                                          o m e ( c   = >   c . i d   = = =   b e bliedtat.eirdS)p a?c i'nvga:r ('-0-.g0o5ledm)'', 
+                                                                                                                                                                                                                          :   ' v a r ( - - b o r d e r ) ' ) ,   bdoirsdpelraRya:d i'ufsl:e x''6,p
+                                                                                                                                                                                                                          x ' ,   p a d d i n g :   ' 5 p x   1 0 paxl'i,g ncIutresmosr::  ''cpeonitnetre'r,'
+                                                                                                                                                                                                                          ,   f o n t S i z e :   ' 1 2 p x ' ,   cgoalpo:r :' 5cpoxm'p,a
+                                                                                                                                                                                                                          r a d o r . s o m e ( c   = >   c . i}d} 
+                                                                                                                                                                                                                          = = =   b e b i d a . i d )   ?  >'
+                                                                                                                                                                                                                          v a r ( - - g o l d ) '   :   ' v a r<(s-p-atne>x⚖<t/-smpuatne>d
+                                                                                                                                                                                                                          ) ' ,   d i s p l a y :   ' f l e x '<,s paalni>g{ncIotmepmasr:a d'ocre.nstoemre'(,c  g=a>p :c .'i4dp x='=,=  lbeetbtiedraS.piadc)i n?g :' E'n0 .c0o5mepma'r a}d}o>r
+                                                                                                                                                                                                                          '   :   ' C o m p a r a r ' } < /⚖ s{pcaonm>p
+                                                                                                                                                                                                                          a r a d o r . s o m e ( c   = >  <c/.biudt t=o=n=> 
+                                                                                                                                                                                                                          b e b i d a . i d )   ?   ' E)n} comparador' : 'Comparar'}
+                                                                                                                                                                                                                                        </button>
+                                                                                                                                                                                                                                                    )}
+                                                            )}
                                             </div>div>
                                 </div>div>
                       

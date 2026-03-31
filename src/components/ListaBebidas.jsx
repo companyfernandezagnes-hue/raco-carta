@@ -80,12 +80,12 @@ function TarjetaGrid({ bebida, onSeleccionar, destacado, esPequena, esFavorito, 
                   {onToggleFavorito && (
                           <button onClick={e => { e.stopPropagation(); onToggleFavorito(bebida) }} style={{ position: 'absolute', top: '5px', right: '5px', background: 'rgba(0,0,0,0.5)', border: 'none', borderRadius: '50%', width: '24px', height: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', color: esFavorito ? '#e53e3e' : 'rgba(255,255,255,0.6)' }}>
                               {esFavorito ? '♥' : '♡'}
-                          </button>button>
+                          </button>
                     )}
                   {onToggleComparador && (
                           <button onClick={e => { e.stopPropagation(); onToggleComparador(bebida) }} style={{ position: 'absolute', top: '5px', left: '5px', background: enComparador ? 'var(--gold-dim)' : 'rgba(0,0,0,0.5)', border: '1px solid ' + (enComparador ? 'var(--gold)' : 'transparent'), borderRadius: '4px', padding: '2px 5px', cursor: 'pointer', fontSize: '9px', color: enComparador ? 'var(--gold)' : 'rgba(255,255,255,0.6)', letterSpacing: '0.05em' }}>
                                     ⚖
-                          </button>button>
+                          </button>
                     )}
               </div>
             )
@@ -147,12 +147,12 @@ function TarjetaBebida({ bebida, onSeleccionar, destacado, esFavorito, onToggleF
                                       {onToggleFavorito && (
                                     <button onClick={e => { e.stopPropagation(); onToggleFavorito(bebida) }} style={{ background: 'none', border: '1px solid ' + (esFavorito ? '#e53e3e' : 'var(--border)'), borderRadius: '4px', padding: '3px 6px', cursor: 'pointer', fontSize: '13px', color: esFavorito ? '#e53e3e' : 'var(--text-muted)', lineHeight: 1 }}>
                                         {esFavorito ? '♥' : '♡'}
-                                    </button>button>
+                                    </button>
                                             )}
                                       {onToggleComparador && (
                                     <button onClick={e => { e.stopPropagation(); onToggleComparador(bebida) }} style={{ background: enComparador ? 'var(--gold-dim)' : 'none', border: '1px solid ' + (enComparador ? 'var(--gold)' : 'var(--border)'), borderRadius: '4px', padding: '3px 6px', cursor: 'pointer', fontSize: '11px', color: enComparador ? 'var(--gold)' : 'var(--text-muted)', lineHeight: 1 }}>
                                                   ⚖
-                                    </button>button>
+                                    </button>
                                             )}
                                   </div>
                           </div>

@@ -18,12 +18,12 @@ export default function DetalleBebida({ bebida, onVolver, todasBebidas, comparad
                                               {bebida.subcategoria && (
                               <p style={{ fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--gold)', margin: 0 }}>
                                 {bebida.categoria} · {bebida.subcategoria}
-                              </p>p>
+                              </p>
                             )}
                                               {bebida.ecologico && (
                               <span style={{ fontSize: '9px', letterSpacing: '0.12em', textTransform: 'uppercase', background: '#0a2010', border: '1px solid #16a34a', color: '#86efac', borderRadius: '4px', padding: '2px 7px' }}>
                                                 🌿 Ecologico
-                              </span>span>
+                              </span>
                             )}
                                             </div>
                                   {Array.isArray(bebida.puntuaciones) && bebida.puntuaciones.filter(p => p.critico && p.nota).length > 0 && (
@@ -33,24 +33,24 @@ export default function DetalleBebida({ bebida, onVolver, todasBebidas, comparad
                                             ))}
                             </div>
                           )}
-                                            <h2 style={{ fontSize: '26px', fontWeight: 'normal', color: 'var(--text)', lineHeight: '1.2', marginBottom: '8px' }}>{bebida.nombre}</h2>h2>
-                                  {bebida.bodega && (<p style={{ fontSize: '15px', color: 'var(--text-dim)', marginBottom: '16px' }}>{bebida.bodega}</p>p>)}
+                                            <h2 style={{ fontSize: '26px', fontWeight: 'normal', color: 'var(--text)', lineHeight: '1.2', marginBottom: '8px' }}>{bebida.nombre}</h2>
+                                  {bebida.bodega && (<p style={{ fontSize: '15px', color: 'var(--text-dim)', marginBottom: '16px' }}>{bebida.bodega}</p>)}
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                                                           <div style={{ display: 'flex', gap: '16px' }}>
                                                             {bebida.precio_botella && (
                                 <div>
-                                                  <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '2px', letterSpacing: '0.1em' }}>BOTELLA</p>p>
-                                                  <p style={{ fontSize: '24px', color: 'var(--gold)' }}>{bebida.precio_botella.toFixed(0)} euros</p>p>
+                                                  <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '2px', letterSpacing: '0.1em' }}>BOTELLA</p>
+                                                  <p style={{ fontSize: '24px', color: 'var(--gold)' }}>{bebida.precio_botella.toFixed(0)} euros</p>
                                 </div>
                                                                         )}
                                                             {bebida.precio_copa && (
                                 <div>
-                                                  <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '2px', letterSpacing: '0.1em' }}>COPA</p>p>
-                                                  <p style={{ fontSize: '24px', color: 'var(--text-dim)' }}>{bebida.precio_copa.toFixed(0)} euros</p>p>
+                                                  <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '2px', letterSpacing: '0.1em' }}>COPA</p>
+                                                  <p style={{ fontSize: '24px', color: 'var(--text-dim)' }}>{bebida.precio_copa.toFixed(0)} euros</p>
                                 </div>
                                                                         )}
                                                           </div>
-                                              {bebida.graduacion && (<p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{bebida.graduacion}% vol.</p>p>)}
+                                              {bebida.graduacion && (<p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{bebida.graduacion}% vol.</p>)}
                                                             {onToggleComparador && (
                                                                               <button
                                                                                                 onClick={() => onToggleComparado
@@ -97,7 +97,7 @@ export default function DetalleBebida({ bebida, onVolver, todasBebidas, comparad
                                           {bebida.temperatura && <Spec label="Servir a" valor={bebida.temperatura} />}
                                           {bebida.graduacion && <Spec label="Graduacion" valor={bebida.graduacion + '%'} />}
                                         </div>
-                              </Seccion>Seccion>
+                              </Seccion>
                       
                               <InfoBodegaTabs bebida={bebida} />
                       
@@ -109,14 +109,14 @@ export default function DetalleBebida({ bebida, onVolver, todasBebidas, comparad
                                         {relacionados.map(b => (
                                             <div key={b.id} onClick={() => onVolver('relacionado', b)} style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: '8px', padding: '10px 14px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'border-color 0.2s' }} onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--gold-dim)'} onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}>
                                                               <div>
-                                                                                  <p style={{ fontSize: '14px', color: 'var(--text)', marginBottom: '2px' }}>{b.nombre}</p>p>
-                                                                                  <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{[b.bodega, b.region, b.anada].filter(Boolean).join(' · ')}</p>p>
+                                                                                  <p style={{ fontSize: '14px', color: 'var(--text)', marginBottom: '2px' }}>{b.nombre}</p>
+                                                                                  <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{[b.bodega, b.region, b.anada].filter(Boolean).join(' · ')}</p>
                                                               </div>
-                                              {b.precio_botella && <p style={{ fontSize: '15px', color: 'var(--gold)' }}>{b.precio_botella.toFixed(0)}€</p>p>}
+                                              {b.precio_botella && <p style={{ fontSize: '15px', color: 'var(--gold)' }}>{b.precio_botella.toFixed(0)}€</p>}
                                             </div>
                                           ))}
                                       </div>
-                          </Seccion>Seccion>
+                          </Seccion>
                               )}
                       </div>
               </div>
@@ -149,7 +149,7 @@ function NotaCataTabs({ bebida }) {
                       
                         return (
                               <div style={{ marginBottom: '28px' }}>
-                                    <p style={{ fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '12px' }}>Nota de cata</p>p>
+                                    <p style={{ fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '12px' }}>Nota de cata</p>
                                 {tabsConDatos.length > 1 && (
                                         <div style={{ display: 'flex', gap: '4px', marginBottom: '12px', flexWrap: 'wrap' }}>
                                           {tabsConDatos.map(t => (
@@ -159,7 +159,7 @@ function NotaCataTabs({ bebida }) {
                                                     ))}
                                         </div>
                                     )}
-                                    <p style={{ fontSize: '15px', color: 'var(--text-dim)', lineHeight: '1.7', fontStyle: 'italic' }}>"{contenido[tab]}"</p>p>
+                                    <p style={{ fontSize: '15px', color: 'var(--text-dim)', lineHeight: '1.7', fontStyle: 'italic' }}>"{contenido[tab]}"</p>
                               </div>
                             )
                           }
@@ -194,7 +194,7 @@ function NotaCataTabs({ bebida }) {
                                                                     
                                                                       return (
                                                                             <div style={{ marginBottom: '28px' }}>
-                                                                                  <p style={{ fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '12px' }}>Perfil</p>p>
+                                                                                  <p style={{ fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '12px' }}>Perfil</p>
                                                                                   <div style={{ display: 'flex', justifyContent: 'center' }}>
                                                                                           <svg width="160" height="160" viewBox="0 0 160 160">
                                                                                             {gridLevels.map((lv, gi) => {
@@ -212,9 +212,9 @@ function NotaCataTabs({ bebida }) {
                                                                                           <circle key={i} cx={p[0]} cy={p[1]} r="3" fill="var(--gold)" />
                                                                                         ))}
                                                                                             {labelPoints.map((lp, i) => (
-                                                                                          <text key={i} x={lp.x} y={lp.y} textAnchor="middle" dominantBaseline="middle" fontSize="9" fill="var(--text-muted)" letterSpacing="0.03em">{lp.label}</text>text>
+                                                                                          <text key={i} x={lp.x} y={lp.y} textAnchor="middle" dominantBaseline="middle" fontSize="9" fill="var(--text-muted)" letterSpacing="0.03em">{lp.label}</text>
                                                                                         ))}
-                                                                                          </svg>svg>
+                                                                                          </svg>
                                                                                   </div>
                                                                             </div>
                                                                           )
@@ -235,7 +235,7 @@ function NotaCataTabs({ bebida }) {
                                                                                               
                                                                                                 return (
                                                                                                       <div style={{ marginBottom: '28px' }}>
-                                                                                                            <p style={{ fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '12px' }}>Elaboracion</p>p>
+                                                                                                            <p style={{ fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '12px' }}>Elaboracion</p>
                                                                                                             <div style={{ display: 'flex', gap: '4px', marginBottom: '12px', flexWrap: 'wrap' }}>
                                                                                                               {tabsConDatos.map(t => (
                                                                                                                   <button key={t.id} onClick={() => setTab(t.id)} style={{ fontSize: '11px', padding: '4px 12px', borderRadius: '20px', border: '1px solid ' + (activeTab.id === t.id ? 'var(--gold)' : 'var(--border)'), background: activeTab.id === t.id ? 'var(--gold-dim)' : 'transparent', color: activeTab.id === t.id ? 'var(--gold)' : 'var(--text-muted)', cursor: 'pointer', letterSpacing: '0.05em', transition: 'all 0.15s' }}>
@@ -243,7 +243,7 @@ function NotaCataTabs({ bebida }) {
                                                                                                                     </button>
                                                                                                                 ))}
                                                                                                               </div>
-                                                                                                            <p style={{ fontSize: '14px', color: 'var(--text-dim)', lineHeight: '1.6' }}>{activeTab.val}</p>p>
+                                                                                                            <p style={{ fontSize: '14px', color: 'var(--text-dim)', lineHeight: '1.6' }}>{activeTab.val}</p>
                                                                                                         </div>
                                                                                                     )
                                                                                                   }
@@ -266,15 +266,15 @@ function NotaCataTabs({ bebida }) {
                                                                                                             return (
                                                                                                                   <div style={{ marginBottom: '28px' }}>
                                                                                                                         <button onClick={() => setAbierto(!abierto)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: abierto ? '12px' : 0 }}>
-                                                                                                                                <p style={{ fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text-muted)', margin: 0 }}>Marida con</p>p>
-                                                                                                                                <span style={{ fontSize: '14px', color: 'var(--text-muted)', transform: abierto ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s', display: 'inline-block' }}>▼</span>span>
+                                                                                                                                <p style={{ fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text-muted)', margin: 0 }}>Marida con</p>
+                                                                                                                                <span style={{ fontSize: '14px', color: 'var(--text-muted)', transform: abierto ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s', display: 'inline-block' }}>▼</span>
                                                                                                                           </button>
                                                                                                                     {abierto && (
                                                                                                                             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '8px' }}>
                                                                                                                               {maridajes.map(m => (
                                                                                                                                           <div key={m} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '13px', padding: '6px 12px', borderRadius: '20px', border: '1px solid var(--border)', color: 'var(--text-dim)', background: 'var(--bg3)' }}>
-                                                                                                                                                        <span>{ICONOS_MARIDAJE[m] || '🍷'}</span>span>
-                                                                                                                                                        <span>{m}</span>span>
+                                                                                                                                                        <span>{ICONOS_MARIDAJE[m] || '🍷'}</span>
+                                                                                                                                                        <span>{m}</span>
                                                                                                                                             </div>
                                                                                                                                         ))}
                                                                                                                               </div>
@@ -297,16 +297,16 @@ function NotaCataTabs({ bebida }) {
                                                                                                                       const c = colores[critico] || colores['Otro']
                                                                                                                           return (
                                                                                                                                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: c.bg, border: '1px solid ' + c.border, borderRadius: '5px', padding: '2px 7px', fontSize: '11px', fontWeight: '700', color: c.text, letterSpacing: '0.03em', whiteSpace: 'nowrap' }}>
-                                                                                                                                      <span style={{ fontSize: '13px', fontWeight: '800' }}>{nota}</span>span>
-                                                                                                                                      <span style={{ fontSize: '9px', opacity: 0.85, letterSpacing: '0.05em' }}>{critico}</span>span>
-                                                                                                                                  </span>span>
+                                                                                                                                      <span style={{ fontSize: '13px', fontWeight: '800' }}>{nota}</span>
+                                                                                                                                      <span style={{ fontSize: '9px', opacity: 0.85, letterSpacing: '0.05em' }}>{critico}</span>
+                                                                                                                                  </span>
                                                                                                                               )
                                                                                                                 }
 
 function Seccion({ titulo, children }) {
     return (
           <div style={{ marginBottom: '28px' }}>
-                <p style={{ fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '12px' }}>{titulo}</p>p>
+                <p style={{ fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '12px' }}>{titulo}</p>
             {children}
           </div>
         )
@@ -315,8 +315,8 @@ function Seccion({ titulo, children }) {
 function Spec({ label, valor }) {
     return (
           <div style={{ background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: '10px 12px' }}>
-                <p style={{ fontSize: '10px', color: 'var(--text-muted)', letterSpacing: '0.1em', marginBottom: '4px' }}>{label.toUpperCase()}</p>p>
-                <p style={{ fontSize: '13px', color: 'var(--gold)', fontWeight: 'normal' }}>{valor}</p>p>
+                <p style={{ fontSize: '10px', color: 'var(--text-muted)', letterSpacing: '0.1em', marginBottom: '4px' }}>{label.toUpperCase()}</p>
+                <p style={{ fontSize: '13px', color: 'var(--gold)', fontWeight: 'normal' }}>{valor}</p>
           </div>
         )
 }</div>

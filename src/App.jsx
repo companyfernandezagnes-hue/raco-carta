@@ -8,242 +8,291 @@ import Maridaje from './components/Maridaje.jsx'
 import PanelAdmin from './components/PanelAdmin.jsx'
 
 export default function App() {
-  const [bebidas, setBebidas] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [categoriaActiva, setCategoriaActiva] = useState('todas')
-  const [subcategoriaActiva, setSubcategoriaActiva] = useState(null)
-  const [bebidaseleccionada, setBebidaseleccionada] = useState(null)
-  const [vista, setVista] = useState('carta')
-  const [adminAbierto, setAdminAbierto] = useState(false)
-  const [busqueda, setBusqueda] = useState('')
-  const [filtroPais, setFiltroPais] = useState('')
-  const [filtroTipo, setFiltroTipo] = useState('')
-  const [filtroOrden, setFiltroOrden] = useState('')
-  const [filtrosAbiertos, setFiltrosAbiertos] = useState(false)
+    const [bebidas, setBebidas] = useState([])
+    const [loading, setLoading] = useState(true)
+    const [categoriaActiva, setCategoriaActiva] = useState('todas')
+    const [subcategoriaActiva, setSubcategoriaActiva] = useState(null)
+    const [bebidaseleccionada, setBebidaseleccionada] = useState(null)
+    const [vista, setVista] = useState('carta')
+    const [adminAbierto, setAdminAbierto] = useState(false)
+    const [busqueda, setBusqueda] = useState('')
+    const [filtroPais, setFiltroPais] = useState('')
+    const [filtroTipo, setFiltroTipo] = useState('')
+    const [filtroOrden, setFiltroOrden] = useState('')
+    const [filtrosAbiertos, setFiltrosAbiertos] = useState(false)
+    const [modoVista, setModoVista] = useState('lista')
+    const [favoritos, setFavoritos] = useState(() => {
+          try { return JSON.parse(localStorage.getItem('favoritos') || '[]') } catch { return [] }
+    })
+    const [comparador, setComparador] = useState([])
+    const [mostrarComparador, setMostrarComparador] = useState(false)
 
   async function cargar() {
-    const { data, error } = await supabase
-      .from('carta_bebidas')
-      .select('*')
-      .eq('disponible', true)
-      .order('orden', { ascending: true })
-    if (!error) setBebidas(data)
-    setLoading(false)
+        const { data, error } = await supabase
+          .from('carta_bebidas')
+          .select('*')
+          .eq('disponible', true)
+          .order('orden', { ascending: true })
+        if (!error) setBebidas(data)
+        setLoading(false)
   }
 
   useEffect(() => { cargar() }, [])
 
+  function toggleFavorito(bebida) {
+        setFavoritos(prev => {
+                const nuevo = prev.includes(bebida.id)
+                  ? prev.filter(id => id !== bebida.id)
+                          : [...prev, bebida.id]
+                localStorage.setItem('favoritos', JSON.stringify(nuevo))
+                return nuevo
+        })
+  }
+
+  function toggleComparador(bebida) {
+        setComparador(prev => {
+                if (prev.find(b => b.id === bebida.id)) return prev.filter(b => b.id !== bebida.id)
+                if (prev.length >= 2) return [prev[1], bebida]
+                return [...prev, bebida]
+        })
+  }
+
   function abrirDetalle(bebida) {
-    setBebidaseleccionada(bebida)
-    setVista('detalle')
+        setBebidaseleccionada(bebida)
+        setVista('detalle')
+  }
+
+  function volverODetalle(accion, bebidaRelacionada) {
+        if (accion === 'relacionado' && bebidaRelacionada) {
+                setBebidaseleccionada(bebidaRelacionada)
+        } else {
+                setBebidaseleccionada(null)
+                setVista('carta')
+        }
   }
 
   function volver() {
-    setBebidaseleccionada(null)
-    setVista('carta')
+        setBebidaseleccionada(null)
+        setVista('carta')
   }
 
   function limpiarFiltros() {
-    setBusqueda('')
-    setFiltroPais('')
-    setFiltroTipo('')
-    setFiltroOrden('')
+          setBusqueda('')
+        setFiltroPais('')
+        setFiltroTipo('')
+        setFiltroOrden('')
   }
 
   const paises = [...new Set(bebidas.map(b => b.pais).filter(Boolean))].sort()
-  const tipos = [...new Set(bebidas.map(b => b.subcategoria).filter(Boolean))].sort()
-  const hayFiltrosActivos = busqueda || filtroPais || filtroTipo || filtroOrden
+    const tipos = [...new Set(bebidas.map(b => b.subcategoria).filter(Boolean))].sort()
+    const hayFiltrosActivos = busqueda || filtroPais || filtroTipo || filtroOrden
 
   let bebidasFiltradas = bebidas.filter(b => {
-    const q = busqueda.toLowerCase().trim()
-    if (q) {
-      const coincide = (
-        (b.nombre || '').toLowerCase().includes(q) ||
-        (b.bodega || '').toLowerCase().includes(q) ||
-        (b.descripcion || '').toLowerCase().includes(q) ||
-        (b.uvas || '').toLowerCase().includes(q) ||
-        (b.region || '').toLowerCase().includes(q)
-      )
-      if (!coincide) return false
-    }
-    if (filtroPais && b.pais !== filtroPais) return false
-    if (filtroTipo && b.subcategoria !== filtroTipo) return false
-    if (categoriaActiva === 'todas') return true
-    if (categoriaActiva === 'vino') {
-      if (subcategoriaActiva) return b.categoria === 'vino' && b.subcategoria === subcategoriaActiva
-      return b.categoria === 'vino'
-    }
-    return b.categoria === categoriaActiva
+        const q = busqueda.toLowerCase().trim()
+                                 if (q) {
+                                         const coincide = (
+          (b.nombre || '').toLowerCase().includes(q) ||
+                                                   (b.bodega || '').toLowerCase().includes(q) ||
+                                                   (b.descripcion || '').toLowerCase().includes(q) ||
+                                                   (b.uvas || '').toLowerCase().includes(q) ||
+                                                   (b.region || '').toLowerCase().includes(q)
+                                                 )
+                                         if (!coincide) return false
+                                 }
+        if (filtroPais && b.pais !== filtroPais) return false
+        if (filtroTipo && b.subcategoria !== filtroTipo) return false
+        if (categoriaActiva === 'todas') return true
+        if (categoriaActiva === 'vino') {
+                if (subcategoriaActiva) return b.categoria === 'vino' && b.subcategoria === subcategoriaActiva
+                return b.categoria === 'vino'
+        }
+        return b.categoria === categoriaActiva
   })
 
   if (filtroOrden === 'precio_asc') bebidasFiltradas = [...bebidasFiltradas].sort((a, b) => (a.precio_botella || 0) - (b.precio_botella || 0))
-  if (filtroOrden === 'precio_desc') bebidasFiltradas = [...bebidasFiltradas].sort((a, b) => (b.precio_botella || 0) - (a.precio_botella || 0))
-  if (filtroOrden === 'nombre_asc') bebidasFiltradas = [...bebidasFiltradas].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''))
+    if (filtroOrden === 'precio_desc') bebidasFiltradas = [...bebidasFiltradas].sort((a, b) => (b.precio_botella || 0) - (a.precio_botella || 0))
+    if (filtroOrden === 'nombre_asc') bebidasFiltradas = [...bebidasFiltradas].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''))
 
   const selectStyle = {
-    background: 'var(--card)',
-    border: '1px solid var(--border)',
-    borderRadius: '8px',
-    padding: '7px 10px',
-    color: 'var(--text)',
-    fontSize: '13px',
-    fontFamily: 'inherit',
-    cursor: 'pointer',
-    outline: 'none',
-    flex: 1,
-    minWidth: 0,
+        background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px',
+        padding: '7px 10px', color: 'var(--text)', fontSize: '13px', fontFamily: 'inherit',
+        cursor: 'pointer', outline: 'none', flex: 1, minWidth: 0,
   }
 
   if (loading) return (
-    <div style={{
-      height: '100vh', display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center', gap: '16px', background: 'var(--bg)'
-    }}>
-      <div style={{
-        width: '32px', height: '32px', border: '2px solid var(--border)',
-        borderTop: '2px solid var(--gold)', borderRadius: '50%', animation: 'spin 1s linear infinite'
-      }}/>
-      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-      <p style={{ color: 'var(--text-muted)', fontSize: '13px', letterSpacing: '0.1em' }}>CARGANDO CARTA</p>
-    </div>
-  )
-
-  return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', maxWidth: '480px', margin: '0 auto' }}>
-      <Header
-        vista={vista}
-        onVolver={volver}
-        onMaridaje={() => setVista('maridaje')}
-        onAdmin={() => setAdminAbierto(true)}
-      />
-
-      {vista === 'carta' && (
-        <>
-          <Categorias
-            categoriaActiva={categoriaActiva}
-            subcategoriaActiva={subcategoriaActiva}
-            onCategoria={(cat) => { setCategoriaActiva(cat); setSubcategoriaActiva(null) }}
-            onSubcategoria={setSubcategoriaActiva}
-            bebidas={bebidas}
-          />
-
-          <div style={{ padding: '0 16px 12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: '10px', flex: 1,
-                background: 'var(--card)', border: '1px solid var(--border)',
-                borderRadius: '10px', padding: '10px 14px',
-              }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                </svg>
-                <input
-                  type="text"
-                  placeholder="Buscar por nombre, bodega, uva..."
-                  value={busqueda}
-                  onChange={e => setBusqueda(e.target.value)}
-                  style={{
-                    flex: 1, background: 'transparent', border: 'none', outline: 'none',
-                    color: 'var(--text)', fontSize: '14px', fontFamily: 'inherit',
-                  }}
-                />
-                {busqueda && (
-                  <button onClick={() => setBusqueda('')} style={{
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    color: 'var(--text-muted)', fontSize: '18px', lineHeight: 1, padding: 0,
-                  }}>x</button>
-                )}
-              </div>
-              <button
-                onClick={() => setFiltrosAbiertos(v => !v)}
-                style={{
-                  background: (filtrosAbiertos || filtroPais || filtroTipo || filtroOrden) ? 'var(--gold)' : 'var(--card)',
-                  border: '1px solid var(--border)',
-                  borderRadius: '10px', padding: '10px 14px', cursor: 'pointer',
-                  color: (filtrosAbiertos || filtroPais || filtroTipo || filtroOrden) ? '#1a1a1a' : 'var(--text-muted)',
-                  fontSize: '13px', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '6px',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/>
-                </svg>
-                Filtros
-                {[filtroPais, filtroTipo, filtroOrden].filter(Boolean).length > 0 && (
-                  <span style={{
-                    background: '#1a1a1a', color: 'var(--gold)', borderRadius: '50%',
-                    width: '16px', height: '16px', fontSize: '10px', display: 'flex',
-                    alignItems: 'center', justifyContent: 'center', fontWeight: 'bold',
-                  }}>
-                    {[filtroPais, filtroTipo, filtroOrden].filter(Boolean).length}
-                  </span>
-                )}
-              </button>
-            </div>
-
-            {filtrosAbiertos && (
-              <div style={{
-                background: 'var(--card)', border: '1px solid var(--border)',
-                borderRadius: '10px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px',
-                marginBottom: '8px',
-              }}>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <select value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)} style={selectStyle}>
-                    <option value="">Tipo: todos</option>
-                    {tipos.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                  <select value={filtroPais} onChange={e => setFiltroPais(e.target.value)} style={selectStyle}>
-                    <option value="">Pais: todos</option>
-                    {paises.map(p => <option key={p} value={p}>{p}</option>)}
-                  </select>
-                </div>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <select value={filtroOrden} onChange={e => setFiltroOrden(e.target.value)} style={selectStyle}>
-                    <option value="">Orden: por defecto</option>
-                    <option value="precio_asc">Precio: menor a mayor</option>
-                    <option value="precio_desc">Precio: mayor a menor</option>
-                    <option value="nombre_asc">Nombre: A-Z</option>
-                  </select>
-                  {hayFiltrosActivos && (
-                    <button onClick={limpiarFiltros} style={{
-                      background: 'none', border: '1px solid var(--border)', borderRadius: '8px',
-                      padding: '7px 12px', cursor: 'pointer', color: 'var(--text-muted)',
-                      fontSize: '12px', fontFamily: 'inherit', whiteSpace: 'nowrap',
-                    }}>
-                      Limpiar todo
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {(busqueda || filtroPais || filtroTipo) && (
-              <p style={{ color: 'var(--text-muted)', fontSize: '12px', marginTop: '4px', letterSpacing: '0.05em' }}>
-                {bebidasFiltradas.length} resultado{bebidasFiltradas.length !== 1 ? 's' : ''}
-                {busqueda ? ` para "${busqueda}"` : ''}
-              </p>
-            )}
-          </div>
-
-          <ListaBebidas bebidas={bebidasFiltradas} onSeleccionar={abrirDetalle} />
-        </>
-      )}
-
-      {vista === 'detalle' && bebidaseleccionada && (
-        <DetalleBebida bebida={bebidaseleccionada} onVolver={volver} />
-      )}
-
-      {vista === 'maridaje' && (
-        <Maridaje bebidas={bebidas} onSeleccionar={abrirDetalle} onVolver={volver} />
-      )}
-
-      {adminAbierto && (
-        <PanelAdmin
-          bebidas={bebidas}
-          onCerrar={() => setAdminAbierto(false)}
-          onActualizar={cargar}
-        />
-      )}
-    </div>
-  )
+        <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px', background: 'var(--bg)' }}>
+                <div style={{ width: '32px', height: '32px', border: '2px solid var(--border)', borderTop: '2px solid var(--gold)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}/>
+                <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>style>
+              <p style={{ color: 'var(--text-muted)', fontSize: '13px', letterSpacing: '0.1em' }}>CARGANDO CARTA</p>p>
+        </div>div>
+      )
+    
+      return (
+            <div style={{ minHeight: '100vh', background: 'var(--bg)', maxWidth: '480px', margin: '0 auto' }}>
+                  <Header vista={vista} onVolver={volver} onMaridaje={() => setVista('maridaje')} onAdmin={() => setAdminAbierto(true)} />
+            
+              {vista === 'carta' && (
+                      <>
+                                <Categorias
+                                              categoriaActiva={categoriaActiva}
+                                              subcategoriaActiva={subcategoriaActiva}
+                                              onCategoria={(cat) => { setCategoriaActiva(cat); setSubcategoriaActiva(null) }}
+                                              onSubcategoria={setSubcategoriaActiva}
+                                              bebidas={bebidas}
+                                            />
+                      
+                                <div style={{ padding: '0 16px 12px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                                                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '10px', padding: '10px 14px' }}>
+                                                                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                                            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                                                          </svg>svg>
+                                                                          <input type="text" placeholder="Buscar por nombre, bodega, uva..." value={busqueda} onChange={e => setBusqueda(e.target.value)} style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--text)', fontSize: '14px', fontFamily: 'inherit' }} />
+                                                            {busqueda && <button onClick={() => setBusqueda('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '18px', lineHeight: 1, padding: 0 }}>x</button>button>}
+                                                          </div>div>
+                                                          <button onClick={() => setFiltrosAbiertos(v => !v)} style={{ background: (filtrosAbiertos || filtroPais || filtroTipo || filtroOrden) ? 'var(--gold)' : 'var(--card)', border: '1px solid var(--border)', borderRadius: '10px', padding: '10px 14px', cursor: 'pointer', color: (filtrosAbiertos || filtroPais || filtroTipo || filtroOrden) ? '#1a1a1a' : 'var(--text-muted)', fontSize: '13px', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}>
+                                                                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                                            <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/>
+                                                                          </svg>svg>
+                                                                          Filtros
+                                                            {[filtroPais, filtroTipo, filtroOrden].filter(Boolean).length > 0 && (
+                                          <span style={{ background: '#1a1a1a', color: 'var(--gold)', borderRadius: '50%', width: '16px', height: '16px', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+                                            {[filtroPais, filtroTipo, filtroOrden].filter(Boolean).length}
+                                          </span>span>
+                                                                          )}
+                                                          </button>button>
+                                            </div>div>
+                                
+                                  {filtrosAbiertos && (
+                                      <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '10px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '8px' }}>
+                                                      <div style={{ display: 'flex', gap: '8px' }}>
+                                                                        <select value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)} style={selectStyle}>
+                                                                                            <option value="">Tipo: todos</option>option>
+                                                                          {tipos.map(t => <option key={t} value={t}>{t}</option>option>)}
+                                                                        </select>select>
+                                                                        <select value={filtroPais} onChange={e => setFiltroPais(e.target.value)} style={selectStyle}>
+                                                                                            <option value="">Pais: todos</option>option>
+                                                                          {paises.map(p => <option key={p} value={p}>{p}</option>option>)}
+                                                                        </select>select>
+                                                      </div>div>
+                                                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                                                        <select value={filtroOrden} onChange={e => setFiltroOrden(e.target.value)} style={selectStyle}>
+                                                                                            <option value="">Orden: por defecto</option>option>
+                                                                                            <option value="precio_asc">Precio: menor a mayor</option>option>
+                                                                                            <option value="precio_desc">Precio: mayor a menor</option>option>
+                                                                                            <option value="nombre_asc">Nombre: A-Z</option>option>
+                                                                        </select>select>
+                                                        {hayFiltrosActivos && (
+                                                            <button onClick={limpiarFiltros} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: '8px', padding: '7px 12px', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '12px', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+                                                                                  Limpiar todo
+                                                            </button>button>
+                                                                        )}
+                                                      </div>div>
+                                      </div>div>
+                                            )}
+                                
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
+                                              {(busqueda || filtroPais || filtroTipo) ? (
+                                        <p style={{ color: 'var(--text-muted)', fontSize: '12px', letterSpacing: '0.05em' }}>
+                                          {bebidasFiltradas.length} resultado{bebidasFiltradas.length !== 1 ? 's' : ''}{busqueda ? ` para "${busqueda}"` : ''}
+                                        </p>p>
+                                      ) : <div />}
+                                                          <div style={{ display: 'flex', gap: '4px' }}>
+                                                            {[
+                        { id: 'lista', icon: '≡', title: 'Lista' },
+                        { id: 'grid-sm', icon: '⊞', title: 'Cuadricula pequeña' },
+                        { id: 'grid-lg', icon: '□', title: 'Cuadricula grande' },
+                                        ].map(v => (
+                                                            <button key={v.id} onClick={() => setModoVista(v.id)} title={v.title} style={{ background: modoVista === v.id ? 'var(--gold-dim)' : 'transparent', border: '1px solid ' + (modoVista === v.id ? 'var(--gold)' : 'var(--border)'), borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', color: modoVista === v.id ? 'var(--gold)' : 'var(--text-muted)', fontSize: '16px', lineHeight: 1 }}>
+                                                              {v.icon}
+                                                            </button>button>
+                                                          ))}
+                                                            {favoritos.length > 0 && (
+                                          <button onClick={() => setModoVista(modoVista === 'favoritos' ? 'lista' : 'favoritos')} style={{ background: modoVista === 'favoritos' ? 'var(--gold-dim)' : 'transparent', border: '1px solid ' + (modoVista === 'favoritos' ? 'var(--gold)' : 'var(--border)'), borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', color: modoVista === 'favoritos' ? 'var(--gold)' : 'var(--text-muted)', fontSize: '14px' }} title="Favoritos">
+                                                              ♥ {favoritos.length}
+                                          </button>button>
+                                                                          )}
+                                                            {comparador.length > 0 && (
+                                          <button onClick={() => setMostrarComparador(true)} style={{ background: 'var(--gold-dim)', border: '1px solid var(--gold)', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', color: 'var(--gold)', fontSize: '12px', letterSpacing: '0.05em' }}>
+                                                              ⚖ {comparador.length}/2
+                                          </button>button>
+                                                                          )}
+                                                          </div>div>
+                                            </div>div>
+                                </div>div>
+                      
+                                <ListaBebidas
+                                              bebidas={modoVista === 'favoritos' ? bebidasFiltradas.filter(b => favoritos.includes(b.id)) : bebidasFiltradas}
+                                              onSeleccionar={abrirDetalle}
+                                              modoVista={modoVista === 'favoritos' ? 'lista' : modoVista}
+                                              favoritos={favoritos}
+                                              onToggleFavorito={toggleFavorito}
+                                              comparador={comparador}
+                                              onToggleComparador={toggleComparador}
+                                            />
+                      
+                        {mostrarComparador && comparador.length === 2 && (
+                                    <ComparadorModal bebida1={comparador[0]} bebida2={comparador[1]} onCerrar={() => setMostrarComparador(false)} />
+                                  )}
+                      </>>
+                    )}
+            
+              {vista === 'detalle' && bebidaseleccionada && (
+                      <DetalleBebida bebida={bebidaseleccionada} onVolver={volverODetalle} todasBebidas={bebidas} />
+                    )}
+            
+              {vista === 'maridaje' && (
+                      <Maridaje bebidas={bebidas} onSeleccionar={abrirDetalle} onVolver={volver} />
+                    )}
+            
+              {adminAbierto && (
+                      <PanelAdmin bebidas={bebidas} onCerrar={() => setAdminAbierto(false)} onActualizar={cargar} />
+                    )}
+            </div>div>
+          )
 }
+
+function ComparadorModal({ bebida1, bebida2, onCerrar }) {
+    const campos = [
+      { label: 'Tipo', key: 'subcategoria' },
+      { label: 'Region', key: 'region' },
+      { label: 'Pais', key: 'pais' },
+      { label: 'Anada', key: 'anada' },
+      { label: 'Uvas', key: 'uvas' },
+      { label: 'Crianza', key: 'crianza' },
+      { label: 'Graduacion', key: 'graduacion', format: v => v ? v + '%' : '-' },
+      { label: 'Botella', key: 'precio_botella', format: v => v ? v + '€' : '-' },
+      { label: 'Copa', key: 'precio_copa', format: v => v ? v + '€' : '-' },
+        ]
+      
+        return (
+              <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 1000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={e => e.target === e.currentTarget && onCerrar()}>
+                    <div style={{ background: 'var(--bg2)', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: '480px', maxHeight: '90vh', overflow: 'auto', padding: '24px 20px 40px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                                      <p style={{ fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Comparador</p>p>
+                                      <button onClick={onCerrar} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '22px', lineHeight: 1 }}>×</button>button>
+                            </div>div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
+                              {[bebida1, bebida2].map(b => (
+                            <div key={b.id} style={{ textAlign: 'center' }}>
+                                          <p style={{ fontSize: '13px', color: 'var(--gold)', fontWeight: 'normal', marginBottom: '2px' }}>{b.nombre}</p>p>
+                                          <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{b.bodega}</p>p>
+                            </div>div>
+                          ))}
+                            </div>div>
+                      {campos.map(c => {
+                          const v1 = c.format ? c.format(bebida1[c.key]) : (bebida1[c.key] || '-')
+                                      const v2 = c.format ? c.format(bebida2[c.key]) : (bebida2[c.key] || '-')
+                                                  const igual = String(v1) === String(v2)
+                                                              return (
+                                                                            <div key={c.key} style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '8px', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
+                                                                                          <p style={{ fontSize: '12px', color: igual ? 'var(--text-dim)' : 'var(--text)', textAlign: 'right' }}>{v1}</p>p>
+                                                                                          <p style={{ fontSize: '9px', color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', textAlign: 'center', minWidth: '60px' }}>{c.label}</p>p>
+                                                                                          <p style={{ fontSize: '12px', color: igual ? 'var(--text-dim)' : 'var(--text)' }}>{v2}</p>p>
+                                                                            </div>div>
+                                                                          )
+              })}
+                    </div>div>
+              </div>div>
+            )
+}</></style>

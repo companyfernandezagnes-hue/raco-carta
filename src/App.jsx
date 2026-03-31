@@ -15,6 +15,7 @@ export default function App() {
   const [bebidaseleccionada, setBebidaseleccionada] = useState(null)
   const [vista, setVista] = useState('carta') // 'carta' | 'detalle' | 'maridaje'
   const [adminAbierto, setAdminAbierto] = useState(false)
+  const [busqueda, setBusqueda] = useState('')
 
   async function cargar() {
     const { data, error } = await supabase
@@ -39,6 +40,17 @@ export default function App() {
   }
 
   const bebidasFiltradas = bebidas.filter(b => {
+    const q = busqueda.toLowerCase().trim()
+    if (q) {
+      const coincide = (
+        (b.nombre || '').toLowerCase().includes(q) ||
+        (b.bodega || '').toLowerCase().includes(q) ||
+        (b.descripcion || '').toLowerCase().includes(q) ||
+        (b.uvas || '').toLowerCase().includes(q) ||
+        (b.region || '').toLowerCase().includes(q)
+      )
+      if (!coincide) return false
+    }
     if (categoriaActiva === 'todas') return true
     if (categoriaActiva === 'vino') {
       if (subcategoriaActiva) return b.categoria === 'vino' && b.subcategoria === subcategoriaActiva
@@ -90,6 +102,58 @@ export default function App() {
             onSubcategoria={setSubcategoriaActiva}
             bebidas={bebidas}
           />
+
+          {/* BUSCADOR */}
+          <div style={{ padding: '0 16px 12px' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              background: 'var(--card)',
+              border: '1px solid var(--border)',
+              borderRadius: '10px',
+              padding: '10px 14px',
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <input
+                type="text"
+                placeholder="Buscar por nombre, bodega, uva..."
+                value={busqueda}
+                onChange={e => setBusqueda(e.target.value)}
+                style={{
+                  flex: 1,
+                  background: 'transparent',
+                  border: 'none',
+                  outline: 'none',
+                  color: 'var(--text)',
+                  fontSize: '14px',
+                  fontFamily: 'inherit',
+                }}
+              />
+              {busqueda && (
+                <button
+                  onClick={() => setBusqueda('')}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--text-muted)',
+                    fontSize: '18px',
+                    lineHeight: 1,
+                    padding: 0,
+                  }}
+                >x</button>
+              )}
+            </div>
+            {busqueda && (
+              <p style={{ color: 'var(--text-muted)', fontSize: '12px', marginTop: '8px', letterSpacing: '0.05em' }}>
+                {bebidasFiltradas.length} resultado{bebidasFiltradas.length !== 1 ? 's' : ''} para "{busqueda}"
+              </p>
+            )}
+          </div>
+
           <ListaBebidas
             bebidas={bebidasFiltradas}
             onSeleccionar={abrirDetalle}
@@ -114,4 +178,4 @@ export default function App() {
       )}
     </div>
   )
-      }
+}

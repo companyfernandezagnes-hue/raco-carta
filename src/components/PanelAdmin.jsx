@@ -180,7 +180,7 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
                                               <button style={btn()} onClick={login}>Entrar</button>
                                               <button style={btn('#444')} onClick={onCerrar}>Cancelar</button>
                                 </div>
-                    </>>
+                    </>
                   )}
                 
                   {fase === 'lista' && (
@@ -203,7 +203,7 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
                                                     <button style={btn()} onClick={()=>abrirEditar(b)}>Editar</button>
                                     </div>
                                   ))}
-                    </>>
+                    </>
                   )}
                 
                   {fase === 'editando' && (
@@ -343,7 +343,7 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
                                                 </button>
                                     <button style={btn('#444')} onClick={()=>setFase('lista')}>Cancelar</button>
                                 </div>
-                    </>>
+                    </>
                   )}
                 </div>
 </div>

@@ -308,8 +308,8 @@ function Seccion({ titulo, children }) {
 
 function Spec({ label, valor }) {    return (
           <div style={{ background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: '10px 12px' }}>
-                <p style={{ fontSize: '10px', color: 'var(--text-muted)', letterSpacing: '0.1em', marginBottom: '4px' }}>{label.toUpperCase()}</p>p>
-                <p style={{ fontSize: '13px', color: 'var(--gold)', fontWeight: 'normal' }}>{valor}</p>p>
+                <p style={{ fontSize: '10px', color: 'var(--text-muted)', letterSpacing: '0.1em', marginBottom: '4px' }}>{label.toUpperCase()}</p>
+                <p style={{ fontSize: '13px', color: 'var(--gold)', fontWeight: 'normal' }}>{valor}</p>
                       </div>
         )
       }

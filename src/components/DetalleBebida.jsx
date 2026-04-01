@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-export default function DetalleBebida({ bebida, onVolver, todasBebidas, comparador = [], onToggleComparador }) {}
+export default function DetalleBebida({ bebida, onVolver, todasBebidas, comparador = [], onToggleComparador }) {
     const relacionados = todasBebidas
       ? todasBebidas.filter(b => b.id !== bebida.id && b.categoria === bebida.categoria && (b.region === bebida.region || b.subcategoria === bebida.subcategoria)).slice(0, 3)
           : []
@@ -73,7 +73,6 @@ export default function DetalleBebida({ bebida, onVolver, todasBebidas, comparad
                                                                                                                                       {comparador.some(c => c.id === bebida.id) ? 'En comparador' : 'Comparar'}
                                                                                                                                                                                                                                         </button>
                                                                                                                                                                                                                                                     )}
-                                                            )}
                                             </div>
                                 </div>
                       

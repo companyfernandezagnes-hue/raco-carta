@@ -236,7 +236,9 @@ export default function App() {
                                     )}
                       </div>
                 )}
+
           
+
               {vista === 'detalle' && bebidaseleccionada && (
                       <DetalleBebida bebida={bebidaseleccionada} onVolver={volverODetalle} todasBebidas={bebidas} />
                     )}

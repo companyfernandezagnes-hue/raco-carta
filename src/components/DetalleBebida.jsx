@@ -302,15 +302,14 @@ function Seccion({ titulo, children }) {
           <div style={{ marginBottom: '28px' }}>
                 <p style={{ fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '12px' }}>{titulo}</p>
             {children}
-          </div>
+                      </div>
         )
 }
 
-function Spec({ label, valor }) {
-    return (
+function Spec({ label, valor }) {    return (
           <div style={{ background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: '10px 12px' }}>
-                <p style={{ fontSize: '10px', color: 'var(--text-muted)', letterSpacing: '0.1em', marginBottom: '4px' }}>{label.toUpperCase()}</p>
-                <p style={{ fontSize: '13px', color: 'var(--gold)', fontWeight: 'normal' }}>{valor}</p>
-          </div>
+                <p style={{ fontSize: '10px', color: 'var(--text-muted)', letterSpacing: '0.1em', marginBottom: '4px' }}>{label.toUpperCase()}</p>p>
+                <p style={{ fontSize: '13px', color: 'var(--gold)', fontWeight: 'normal' }}>{valor}</p>p>
+                      </div>
         )
-}</div>
+      }

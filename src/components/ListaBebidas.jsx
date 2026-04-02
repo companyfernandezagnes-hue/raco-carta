@@ -5,7 +5,7 @@ export default function ListaBebidas({ bebidas, onSeleccionar, modoVista = 'list
               </div>
             )
   const destacados = bebidas.filter(b => b.destacado)
-      const resto = bebidas.filter(b => !b.destacado)
+      const resto = bebidas.filter(b => !b.destacado) 
 
   if (modoVista === 'grid-sm' || modoVista === 'grid-lg') {
           const cols = modoVista === 'grid-sm' ? 3 : 2

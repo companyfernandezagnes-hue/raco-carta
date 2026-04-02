@@ -140,8 +140,8 @@ function TarjetaBebida({ bebida, onSeleccionar, destacado, esFavorito, onToggleF
                           </div>
                     
                           <div style={{ textAlign: 'right', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                              {bebida.precio_botella && <p style={{ fontSize: '20px', color: 'var(--raco-orange)', fontWeight: '300', fontFamily: 'var(--font-brand)', letterSpacing: '0.04em' }}>{bebida.precio_botella.toFixed(0)} euros</p>}
-                              {bebida.precio_copa && <p style={{ fontSize: '12px', color: 'var(--raco-muted)' }}>copa {bebida.precio_copa.toFixed(0)} euros</p>}
+                              {bebida.precio_botella && <p style={{ fontSize: '20px', color: 'var(--raco-orange)', fontWeight: '300', fontFamily: 'var(--font-brand)', letterSpacing: '0.04em' }}>{bebida.precio_botella.toFixed(0)} €</p>}
+                              {bebida.precio_copa && <p style={{ fontSize: '12px', color: 'var(--raco-muted)' }}>copa {bebida.precio_copa.toFixed(0)} €</p>}
                                   <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
                                       {onToggleFavorito && (
                                     <button onClick={e => { e.stopPropagation(); onToggleFavorito(bebida) }} style={{ background: 'none', border: '1px solid ' + (esFavorito ? '#e53e3e' : 'var(--raco-line)'), borderRadius: '4px', padding: '3px 6px', cursor: 'pointer', fontSize: '13px', color: esFavorito ? '#e53e3e' : 'var(--raco-muted)', lineHeight: 1 }}>

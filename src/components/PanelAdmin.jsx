@@ -62,6 +62,8 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
                                                           const [iaError, setIaError] = useState('')
       const [iaTexto, setIaTexto] = useState('')
       const [mostrarIA, setMostrarIA] = useState(false)
+      const [calc, setCalc] = useState({ precioIva:'', mlBotella:'750', mlFormato:'150', multiplicador:'3' })
+      const [mostrarCalc, setMostrarCalc] = useState(false)
       const fotoInputRef = useRef(null)
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY
 
@@ -258,6 +260,87 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
                                                         <input style={inp} type={type} value={form[key]??''} onChange={e=>setForm(p=>({...p,[key]:e.target.value}))} />
                                       </div>
                                                     ) : <div key={i} />)}
+                                </div>
+
+                                {/* ── CALCULADORA DE PRECIO ───────────────── */}
+                                <div style={{marginTop:'16px',background:'#1e2a1e',border:'1px solid #3a5a3a',borderRadius:'12px',padding:'16px'}}>
+                                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer',marginBottom: mostrarCalc ? '16px' : '0'}}
+                                       onClick={()=>setMostrarCalc(v=>!v)}>
+                                    <span style={{color:'#7ec87e',fontWeight:'700',fontSize:'13px',letterSpacing:'1px'}}>🧮 CALCULADORA DE PRECIO</span>
+                                    <span style={{color:'#7ec87e',fontSize:'18px'}}>{mostrarCalc ? '▲' : '▼'}</span>
+                                  </div>
+                                  {mostrarCalc && (() => {
+                                    const pIva  = parseFloat(calc.precioIva)    || 0
+                                    const mlBot = parseFloat(calc.mlBotella)    || 750
+                                    const multi = parseFloat(calc.multiplicador) || 3
+                                    const calcFormato = (mlStr) => {
+                                      const ml = parseFloat(mlStr) || 0
+                                      if (!pIva || !mlBot || !ml) return null
+                                      const coste = (pIva / mlBot) * ml
+                                      return { coste: coste.toFixed(2), precio: (coste * multi).toFixed(2) }
+                                    }
+                                    const resCopa = calcFormato(calc.mlFormato)
+                                    const resBot  = calcFormato(String(mlBot))
+                                    const inpCalc = {...inp, background:'#162016', fontSize:'13px'}
+                                    const lbl2 = { display:'block', fontSize:'11px', color:'#7ec87e', marginBottom:'3px', marginTop:'10px' }
+                                    return (
+                                      <div>
+                                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px'}}>
+                                          <div>
+                                            <label style={lbl2}>Precio compra con IVA (€)</label>
+                                            <input style={inpCalc} type="number" placeholder="ej: 24.50"
+                                              value={calc.precioIva} onChange={e=>setCalc(p=>({...p,precioIva:e.target.value}))} />
+                                          </div>
+                                          <div>
+                                            <label style={lbl2}>ml por botella</label>
+                                            <input style={inpCalc} type="number" placeholder="ej: 750"
+                                              value={calc.mlBotella} onChange={e=>setCalc(p=>({...p,mlBotella:e.target.value}))} />
+                                          </div>
+                                          <div>
+                                            <label style={lbl2}>ml por copa</label>
+                                            <input style={inpCalc} type="number" placeholder="ej: 150"
+                                              value={calc.mlFormato} onChange={e=>setCalc(p=>({...p,mlFormato:e.target.value}))} />
+                                          </div>
+                                          <div>
+                                            <label style={lbl2}>Multiplicador</label>
+                                            <input style={inpCalc} type="number" placeholder="3" step="0.1"
+                                              value={calc.multiplicador} onChange={e=>setCalc(p=>({...p,multiplicador:e.target.value}))} />
+                                          </div>
+                                        </div>
+                                        {pIva > 0 && (
+                                          <div style={{marginTop:'14px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px'}}>
+                                            {resCopa && (
+                                              <div style={{background:'#0f1f0f',borderRadius:'10px',padding:'12px',border:'1px solid #3a5a3a'}}>
+                                                <div style={{color:'#888',fontSize:'11px',marginBottom:'4px'}}>COPA ({calc.mlFormato}ml)</div>
+                                                <div style={{color:'#555',fontSize:'11px'}}>Coste: {resCopa.coste}€</div>
+                                                <div style={{color:'#7ec87e',fontSize:'22px',fontWeight:'700',margin:'4px 0'}}>{resCopa.precio}€</div>
+                                                <button onClick={()=>setForm(p=>({...p,precio_copa:resCopa.precio}))}
+                                                  style={{...btn('#7ec87e'),fontSize:'11px',padding:'5px 12px',color:'#0f1f0f',width:'100%',marginTop:'6px'}}>
+                                                  ✓ Aplicar precio copa
+                                                </button>
+                                              </div>
+                                            )}
+                                            {resBot && (
+                                              <div style={{background:'#0f1f0f',borderRadius:'10px',padding:'12px',border:'1px solid #3a5a3a'}}>
+                                                <div style={{color:'#888',fontSize:'11px',marginBottom:'4px'}}>BOTELLA ({mlBot}ml)</div>
+                                                <div style={{color:'#555',fontSize:'11px'}}>Coste: {resBot.coste}€</div>
+                                                <div style={{color:'#7ec87e',fontSize:'22px',fontWeight:'700',margin:'4px 0'}}>{resBot.precio}€</div>
+                                                <button onClick={()=>setForm(p=>({...p,precio_botella:resBot.precio}))}
+                                                  style={{...btn('#7ec87e'),fontSize:'11px',padding:'5px 12px',color:'#0f1f0f',width:'100%',marginTop:'6px'}}>
+                                                  ✓ Aplicar precio botella
+                                                </button>
+                                              </div>
+                                            )}
+                                          </div>
+                                        )}
+                                        {!pIva && (
+                                          <div style={{color:'#555',fontSize:'12px',marginTop:'10px',textAlign:'center',paddingBottom:'4px'}}>
+                                            Introduce el precio de compra con IVA para ver el resultado
+                                          </div>
+                                        )}
+                                      </div>
+                                    )
+                                  })()}
                                 </div>
                     
                                 <label style={label}>Descripcion</label>

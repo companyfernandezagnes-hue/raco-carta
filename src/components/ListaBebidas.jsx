@@ -4,7 +4,6 @@ export default function ListaBebidas({ bebidas, onSeleccionar, modoVista = 'list
                         No hay referencias disponibles
               </div>
             )
-
   const destacados = bebidas.filter(b => b.destacado)
       const resto = bebidas.filter(b => !b.destacado)
 

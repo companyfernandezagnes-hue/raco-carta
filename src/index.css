@@ -9,15 +9,15 @@
 
 :root {
   /* Paleta RACO */
-  --raco-khaki:   #B8A882;   /* tostado/arena marca */
-  --raco-orange:  #F0A85A;   /* naranja cálido marca */
-  --raco-dark:    #1C1A14;   /* negro cálido */
-  --raco-mid:     #252018;   /* fondo cards */
-  --raco-deep:    #2E2920;   /* superficies elevadas */
-  --raco-line:    #3A3228;   /* bordes sutiles */
-  --raco-text:    #EDE3D0;   /* texto principal */
-  --raco-dim:     #A09070;   /* texto secundario */
-  --raco-muted:   #5A5040;   /* texto terciario */
+  --raco-khaki:   #C4A96A;   /* dorado cálido marca */
+  --raco-orange:  #D4883A;   /* ámbar/terracota marca */
+  --raco-dark:    #0F0E0B;   /* negro profundo */
+  --raco-mid:     #1A1812;   /* fondo cards */
+  --raco-deep:    #221F16;   /* superficies elevadas */
+  --raco-line:    #2E2A1E;   /* bordes sutiles */
+  --raco-text:    #F0E8D5;   /* texto principal cálido */
+  --raco-dim:     #B8A882;   /* texto secundario */
+  --raco-muted:   #6A5F48;   /* texto terciario */
 
   /* Aliases para compatibilidad con el código existente */
   --bg:           var(--raco-dark);
@@ -85,7 +85,7 @@ a {
 }
 
 .raco-logo-accent {
-  color: var(--raco-orange);
+  color: var(--raco-khaki);
 }
 
 .raco-subtitle {
@@ -100,7 +100,7 @@ a {
 
 /* ===== HEADER ===== */
 .raco-header {
-  background: linear-gradient(180deg, var(--raco-dark) 0%, rgba(28,26,20,0.97) 100%);
+  background: linear-gradient(180deg, var(--raco-dark) 0%, rgba(15,14,11,0.98) 100%);
   border-bottom: 1px solid var(--raco-line);
   padding: 20px 20px 16px;
   position: sticky;

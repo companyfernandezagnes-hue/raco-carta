@@ -129,7 +129,7 @@ export default function App() {
         )
 
   return (
-          <div style={{ minHeight: '100vh', background: 'var(--raco-dark)', maxWidth: '480px', margin: '0 auto' }}>
+          <div style={{ minHeight: '100vh', background: 'var(--raco-dark)', maxWidth: '900px', margin: '0 auto' }}>
                     <Header vista={vista} onVolver={volver} onMaridaje={() => setVista('maridaje')} onAdmin={() => setAdminAbierto(true)} />
 
               {vista === 'carta' && (
@@ -270,7 +270,7 @@ function ComparadorModal({ bebida1, bebida2, onCerrar }) {
           
             return (
                     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 1000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={e => e.target === e.currentTarget && onCerrar()}>
-                          <div style={{ background: 'var(--raco-mid)', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: '480px', maxHeight: '90vh', overflow: 'auto', padding: '24px 20px 40px' }}>
+                          <div style={{ background: 'var(--raco-mid)', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: '900px', maxHeight: '90vh', overflow: 'auto', padding: '24px 20px 40px' }}>
                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                                             <p style={{ fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--raco-muted)' }}>Comparador</p>
                                             <button onClick={onCerrar} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--raco-muted)', fontSize: '22px', lineHeight: 1 }}>{'\u00d7'}</button>

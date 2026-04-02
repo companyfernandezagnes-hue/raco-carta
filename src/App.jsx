@@ -114,21 +114,22 @@ export default function App() {
       if (filtroOrden === 'nombre_asc') bebidasFiltradas = [...bebidasFiltradas].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''))
 
   const selectStyle = {
-          background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px',
-          padding: '7px 10px', color: 'var(--text)', fontSize: '13px', fontFamily: 'inherit',
+          background: 'var(--raco-mid)', border: '1px solid var(--raco-line)', borderRadius: '8px',
+          padding: '7px 10px', color: 'var(--raco-text)', fontSize: '13px', fontFamily: 'var(--font-body)',
+    fontWeight: '300',
           cursor: 'pointer', outline: 'none', flex: 1, minWidth: 0,
   }
 
   if (loading) return (
-          <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px', background: 'var(--bg)' }}>
-                    <div style={{ width: '32px', height: '32px', border: '2px solid var(--border)', borderTop: '2px solid var(--gold)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}/>
+          <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px', background: 'var(--raco-dark)' }}>
+                    <div style={{ width: '32px', height: '32px', border: '2px solid var(--raco-line)', borderTop: '2px solid var(--raco-orange)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}/>
                     <style dangerouslySetInnerHTML={{__html: '@keyframes spin { to { transform: rotate(360deg) } }'}} />
-                    <p style={{ color: 'var(--text-muted)', fontSize: '13px', letterSpacing: '0.1em' }}>CARGANDO CARTA</p>
+                    <p style={{ color: 'var(--raco-muted)', fontSize: '13px', letterSpacing: '0.1em' }}>CARGANDO CARTA</p>
           </div>
         )
 
   return (
-          <div style={{ minHeight: '100vh', background: 'var(--bg)', maxWidth: '480px', margin: '0 auto' }}>
+          <div style={{ minHeight: '100vh', background: 'var(--raco-dark)', maxWidth: '480px', margin: '0 auto' }}>
                     <Header vista={vista} onVolver={volver} onMaridaje={() => setVista('maridaje')} onAdmin={() => setAdminAbierto(true)} />
 
               {vista === 'carta' && (
@@ -143,20 +144,20 @@ export default function App() {
                       
                                 <div style={{ padding: '0 16px 12px' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                                                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '10px', padding: '10px 14px' }}>
-                                                                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, background: 'var(--raco-mid)', border: '1px solid var(--raco-line)', borderRadius: '10px', padding: '10px 14px' }}>
+                                                                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--raco-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                                                                             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
                                                                           </svg>
-                                                                          <input type="text" placeholder="Buscar por nombre, bodega, uva..." value={busqueda} onChange={e => setBusqueda(e.target.value)} style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--text)', fontSize: '14px', fontFamily: 'inherit' }} />
-                                                              {busqueda && <button onClick={() => setBusqueda('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '18px', lineHeight: 1, padding: 0 }}>x</button>}
+                                                                          <input type="text" placeholder="Buscar por nombre, bodega, uva..." value={busqueda} onChange={e => setBusqueda(e.target.value)} style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--raco-text)', fontSize: '14px', fontFamily: 'inherit' }} />
+                                                              {busqueda && <button onClick={() => setBusqueda('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--raco-muted)', fontSize: '18px', lineHeight: 1, padding: 0 }}>x</button>}
                                                           </div>
-                                                          <button onClick={() => setFiltrosAbiertos(v => !v)} style={{ background: (filtrosAbiertos || filtroPais || filtroTipo || filtroOrden) ? 'var(--gold)' : 'var(--card)', border: '1px solid var(--border)', borderRadius: '10px', padding: '10px 14px', cursor: 'pointer', color: (filtrosAbiertos || filtroPais || filtroTipo || filtroOrden) ? '#1a1a1a' : 'var(--text-muted)', fontSize: '13px', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}>
+                                                          <button onClick={() => setFiltrosAbiertos(v => !v)} style={{ background: (filtrosAbiertos || filtroPais || filtroTipo || filtroOrden) ? 'var(--raco-orange)' : 'var(--raco-mid)', border: '1px solid var(--raco-line)', borderRadius: '10px', padding: '10px 14px', cursor: 'pointer', color: (filtrosAbiertos || filtroPais || filtroTipo || filtroOrden) ? '#1a1a1a' : 'var(--raco-muted)', fontSize: '13px', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}>
                                                                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                                                                             <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/>
                                                                           </svg>
                                                                           Filtros
                                                               {[filtroPais, filtroTipo, filtroOrden].filter(Boolean).length > 0 && (
-                                            <span style={{ background: '#1a1a1a', color: 'var(--gold)', borderRadius: '50%', width: '16px', height: '16px', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+                                            <span style={{ background: '#1a1a1a', color: 'var(--raco-orange)', borderRadius: '50%', width: '16px', height: '16px', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
                                                 {[filtroPais, filtroTipo, filtroOrden].filter(Boolean).length}
                                             </span>
                                                                           )}
@@ -164,7 +165,7 @@ export default function App() {
                                             </div>
                                 
                                     {filtrosAbiertos && (
-                                        <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '10px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '8px' }}>
+                                        <div style={{ background: 'var(--raco-mid)', border: '1px solid var(--raco-line)', borderRadius: '10px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '8px' }}>
                                                         <div style={{ display: 'flex', gap: '8px' }}>
                                                                           <select value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)} style={selectStyle}>
                                                                                               <option value="">Tipo: todos</option>
@@ -183,7 +184,7 @@ export default function App() {
                                                                                               <option value="nombre_asc">Nombre: A-Z</option>
                                                                           </select>
                                                             {hayFiltrosActivos && (
-                                                                <button onClick={limpiarFiltros} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: '8px', padding: '7px 12px', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '12px', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+                                                                <button onClick={limpiarFiltros} style={{ background: 'none', border: '1px solid var(--raco-line)', borderRadius: '8px', padding: '7px 12px', cursor: 'pointer', color: 'var(--raco-muted)', fontSize: '12px', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
                                                                                       Limpiar todo
                                                                 </button>
                                                                           )}
@@ -193,7 +194,7 @@ export default function App() {
                                 
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
                                                 {(busqueda || filtroPais || filtroTipo) ? (
-                                          <p style={{ color: 'var(--text-muted)', fontSize: '12px', letterSpacing: '0.05em' }}>
+                                          <p style={{ color: 'var(--raco-muted)', fontSize: '12px', letterSpacing: '0.05em' }}>
                                               {bebidasFiltradas.length} resultado{bebidasFiltradas.length !== 1 ? 's' : ''}{busqueda ? ' para "' + busqueda + '"' : ''}
                                           </p>
                                         ) : <div />}
@@ -203,17 +204,17 @@ export default function App() {
                           { id: 'grid-sm', icon: '\u229e', title: 'Cuadricula pequena' },
                           { id: 'grid-lg', icon: '\u25a1', title: 'Cuadricula grande' },
                                           ].map(v => (
-                                                                <button key={v.id} onClick={() => setModoVista(v.id)} title={v.title} style={{ background: modoVista === v.id ? 'var(--gold-dim)' : 'transparent', border: '1px solid ' + (modoVista === v.id ? 'var(--gold)' : 'var(--border)'), borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', color: modoVista === v.id ? 'var(--gold)' : 'var(--text-muted)', fontSize: '16px', lineHeight: 1 }}>
+                                                                <button key={v.id} onClick={() => setModoVista(v.id)} title={v.title} style={{ background: modoVista === v.id ? 'rgba(160,80,20,0.5)' : 'transparent', border: '1px solid ' + (modoVista === v.id ? 'var(--raco-orange)' : 'var(--raco-line)'), borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', color: modoVista === v.id ? 'var(--raco-orange)' : 'var(--raco-muted)', fontSize: '16px', lineHeight: 1 }}>
                                                                     {v.icon}
                                                                 </button>
                                                               ))}
                                                               {favoritos.length > 0 && (
-                                            <button onClick={() => setModoVista(modoVista === 'favoritos' ? 'lista' : 'favoritos')} style={{ background: modoVista === 'favoritos' ? 'var(--gold-dim)' : 'transparent', border: '1px solid ' + (modoVista === 'favoritos' ? 'var(--gold)' : 'var(--border)'), borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', color: modoVista === 'favoritos' ? 'var(--gold)' : 'var(--text-muted)', fontSize: '14px' }} title="Favoritos">
+                                            <button onClick={() => setModoVista(modoVista === 'favoritos' ? 'lista' : 'favoritos')} style={{ background: modoVista === 'favoritos' ? 'rgba(160,80,20,0.5)' : 'transparent', border: '1px solid ' + (modoVista === 'favoritos' ? 'var(--raco-orange)' : 'var(--raco-line)'), borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', color: modoVista === 'favoritos' ? 'var(--raco-orange)' : 'var(--raco-muted)', fontSize: '14px' }} title="Favoritos">
                                                 {'\u2665'} {favoritos.length}
                                             </button>
                                                                           )}
                                                               {comparador.length > 0 && (
-                                            <button onClick={() => setMostrarComparador(true)} style={{ background: 'var(--gold-dim)', border: '1px solid var(--gold)', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', color: 'var(--gold)', fontSize: '12px', letterSpacing: '0.05em' }}>
+                                            <button onClick={() => setMostrarComparador(true)} style={{ background: 'rgba(160,80,20,0.5)', border: '1px solid var(--raco-orange)', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', color: 'var(--raco-orange)', fontSize: '12px', letterSpacing: '0.05em' }}>
                                                 {'\u2696'} {comparador.length}/2
                                             </button>
                                                                           )}
@@ -269,16 +270,16 @@ function ComparadorModal({ bebida1, bebida2, onCerrar }) {
           
             return (
                     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 1000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={e => e.target === e.currentTarget && onCerrar()}>
-                          <div style={{ background: 'var(--bg2)', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: '480px', maxHeight: '90vh', overflow: 'auto', padding: '24px 20px 40px' }}>
+                          <div style={{ background: 'var(--raco-mid)', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: '480px', maxHeight: '90vh', overflow: 'auto', padding: '24px 20px 40px' }}>
                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                                            <p style={{ fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Comparador</p>
-                                            <button onClick={onCerrar} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '22px', lineHeight: 1 }}>{'\u00d7'}</button>
+                                            <p style={{ fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--raco-muted)' }}>Comparador</p>
+                                            <button onClick={onCerrar} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--raco-muted)', fontSize: '22px', lineHeight: 1 }}>{'\u00d7'}</button>
                                   </div>
                                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
                                       {[bebida1, bebida2].map(b => (
                                     <div key={b.id} style={{ textAlign: 'center' }}>
-                                                  <p style={{ fontSize: '13px', color: 'var(--gold)', fontWeight: 'normal', marginBottom: '2px' }}>{b.nombre}</p>
-                                                  <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{b.bodega}</p>
+                                                  <p style={{ fontSize: '13px', color: 'var(--raco-orange)', fontWeight: 'normal', marginBottom: '2px' }}>{b.nombre}</p>
+                                                  <p style={{ fontSize: '11px', color: 'var(--raco-muted)' }}>{b.bodega}</p>
                                     </div>
                                   ))}
                                   </div>
@@ -288,10 +289,10 @@ function ComparadorModal({ bebida1, bebida2, onCerrar }) {
                                                 const v2 = c.fmt ? c.fmt(bebida2[c.key]) : (bebida2[c.key] || '-')
                                                               const igual = String(v1) === String(v2)
                                                                             return (
-                                                                                            <div key={c.key} style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '8px', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
-                                                                                                          <p style={{ fontSize: '12px', color: igual ? 'var(--text-dim)' : 'var(--text)', textAlign: 'right' }}>{v1}</p>
-                                                                                                          <p style={{ fontSize: '9px', color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', textAlign: 'center', minWidth: '60px' }}>{c.label}</p>
-                                                                                                          <p style={{ fontSize: '12px', color: igual ? 'var(--text-dim)' : 'var(--text)' }}>{v2}</p>
+                                                                                            <div key={c.key} style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '8px', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--raco-line)' }}>
+                                                                                                          <p style={{ fontSize: '12px', color: igual ? 'var(--raco-dim)' : 'var(--raco-text)', textAlign: 'right' }}>{v1}</p>
+                                                                                                          <p style={{ fontSize: '9px', color: 'var(--raco-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', textAlign: 'center', minWidth: '60px' }}>{c.label}</p>
+                                                                                                          <p style={{ fontSize: '12px', color: igual ? 'var(--raco-dim)' : 'var(--raco-text)' }}>{v2}</p>
                                                                                                 </div>
                                                                                           )
                     })}
@@ -332,7 +333,7 @@ function RadarComparador({ b1, b2 }) {
                                                                                                         const pts2 = getPoints(b2)
                                                                                                           return (
                                                                                                               <div style={{ marginBottom: '20px' }}>
-                                                                                                                    <p style={{ fontSize: '9px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '10px', textAlign: 'center' }}>Perfil comparativo</p>
+                                                                                                                    <p style={{ fontSize: '9px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--raco-muted)', marginBottom: '10px', textAlign: 'center' }}>Perfil comparativo</p>
                                                                                                                           <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', alignItems: 'center', marginBottom: '8px' }}>
                                                                                                                                   <span style={{ fontSize: '10px', color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                                                                                                                             <span style={{ width: '10px', height: '2px', background: '#f59e0b', display: 'inline-block', borderRadius: '1px' }}></span>
@@ -350,15 +351,15 @@ function RadarComparador({ b1, b2 }) {
                                                                                                                                                                                                                                                           const angle = (Math.PI * 2 * i / n) - Math.PI / 2
                                                                                                                                                                                                                                                                         return [cx + r * lv * Math.cos(angle), cy + r * lv * Math.sin(angle)]
                                                                                                                                                                                                                                                                                     })
-                                                                                                                                                                                                                                                                                                return <polygon key={gi} points={gpts.map(p => p.join(',')).join(' ')} fill="none" stroke="var(--border)" strokeWidth="0.5" />
+                                                                                                                                                                                                                                                                                                return <polygon key={gi} points={gpts.map(p => p.join(',')).join(' ')} fill="none" stroke="var(--raco-line)" strokeWidth="0.5" />
                                                                                                                                                                                                                                                                                                           })}
                                                                                                                                                                                                                                                                                                                     {axisPoints.map((p, i) => (
-                                                                                                                                                                                                                                                                                                                                <line key={i} x1={cx} y1={cy} x2={p[0]} y2={p[1]} stroke="var(--border)" strokeWidth="0.5" />
+                                                                                                                                                                                                                                                                                                                                <line key={i} x1={cx} y1={cy} x2={p[0]} y2={p[1]} stroke="var(--raco-line)" strokeWidth="0.5" />
                                                                                                                                                                                                                                                                                                                                           ))}
                                                                                                                                                                                                                                                                                                                                                     <polygon points={pts1.map(p => p.join(',')).join(' ')} fill="rgba(245,158,11,0.15)" stroke="#f59e0b" strokeWidth="1.5" />
                                                                                                                                                                                                                                                                                                                                                               <polygon points={pts2.map(p => p.join(',')).join(' ')} fill="rgba(96,165,250,0.15)" stroke="#60a5fa" strokeWidth="1.5" />
                                                                                                                                                                                                                                                                                                                                                                         {labelPoints.map((lp, i) => (
-                                                                                                                                                                                                                                                                                                                                                                                    <text key={i} x={lp.x} y={lp.y} textAnchor="middle" dominantBaseline="middle" fontSize="8" fill="var(--text-muted)" letterSpacing="0.03em">{lp.label}</text>
+                                                                                                                                                                                                                                                                                                                                                                                    <text key={i} x={lp.x} y={lp.y} textAnchor="middle" dominantBaseline="middle" fontSize="8" fill="var(--raco-muted)" letterSpacing="0.03em">{lp.label}</text>
                                                                                                                                                                                                                                                                                                                                                                                               ))}
                                                                                                                                                                                                                                                                                                                                                                                                       </svg>
                                                                                                                                                                                                                                                                                                                                                                                                             </div>

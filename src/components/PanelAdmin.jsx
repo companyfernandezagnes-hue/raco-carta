@@ -25,6 +25,24 @@ function multiplicadorProgresivo(precioCoste) {
   return Math.max(1.8, Math.min(3.8, parseFloat(raw.toFixed(2))))
 }
 
+// Redondeo psicologico de precios
+function redondearPrecio(precio, modo) {
+  const p = parseFloat(precio)
+  if (!p || p <= 0) return precio
+  switch(modo) {
+    case 'half': return (Math.round(p * 2) / 2).toFixed(2)
+    case 'euro': return Math.round(p).toFixed(2)
+    case 'charm': {
+      const floor = Math.floor(p)
+      if (p - floor < 0.26) return (floor - 0.05).toFixed(2)
+      if (p - floor < 0.76) return (floor + 0.50).toFixed(2)
+      return (floor + 0.95).toFixed(2)
+    }
+    case 'charm95': return (Math.ceil(p) - 0.05).toFixed(2)
+    default: return p.toFixed(2)
+  }
+}
+
 async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading, setIaError }) {
   setIaLoading(true)
   setIaError('')
@@ -79,7 +97,8 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
     mlBotella: '750',
     mlCopa: '150',
     modoMulti: 'auto',
-    multiplicador: '3'
+    multiplicador: '3',
+    redondeo: 'charm'
   })
   const [mostrarCalc, setMostrarCalc] = useState(false)
   const fotoInputRef = useRef(null)
@@ -300,8 +319,8 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
                 const costeBotVal = pIva
                 const multiCopa = calc.modoMulti === 'auto' ? multiplicadorProgresivo(costeCopaVal) : multiManual
                 const multiBot = calc.modoMulti === 'auto' ? multiplicadorProgresivo(costeBotVal) : multiManual
-                const precioCopa = costeCopaVal > 0 ? (costeCopaVal * multiCopa).toFixed(2) : null
-                const precioBotella = costeBotVal > 0 ? (costeBotVal * multiBot).toFixed(2) : null
+                const precioCopa = costeCopaVal > 0 ? redondearPrecio(costeCopaVal * multiCopa, calc.redondeo) : null
+                const precioBotella = costeBotVal > 0 ? redondearPrecio(costeBotVal * multiBot, calc.redondeo) : null
                 const inpCalc = {...inp, background:'#162016', fontSize:'13px'}
                 const lbl2 = { display:'block', fontSize:'11px', color:'#7ec87e', marginBottom:'3px', marginTop:'10px' }
 
@@ -329,6 +348,17 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
                           onChange={e=>setCalc(p=>({...p,modoMulti:e.target.value}))}>
                           <option value="auto">Progresivo (anti-diferencias)</option>
                           <option value="manual">Multiplicador fijo</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label style={lbl2}>Redondeo de precio</label>
+                        <select style={inpCalc} value={calc.redondeo}
+                          onChange={e=>setCalc(p=>({...p,redondeo:e.target.value}))}>
+                          <option value="exact">Sin redondeo (exacto)</option>
+                          <option value="half">Al 0.50 mas cercano</option>
+                          <option value="euro">Al euro entero</option>
+                          <option value="charm">Precio atractivo (x.50 / x.95)</option>
+                          <option value="charm95">Siempre x.95</option>
                         </select>
                       </div>
                     </div>

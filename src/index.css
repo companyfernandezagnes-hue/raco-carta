@@ -2,281 +2,367 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Josefin+Sans:wght@300;400;600&display=swap');
 
 *, *::before, *::after {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 :root {
-    /* Paleta RACO Mediterráneo */
-  --raco-cream:   #EDE5D0;  /* fondo crema cálido */
-  --raco-khaki:   #6B7A3E;  /* verde oliva mediterráneo */
-  --raco-black:   #1C1C0E;  /* negro profundo cálido */
-  --raco-sand:    #D4C9A8;  /* arena / separadores */
-  --raco-stone:   #A09070;  /* piedra / texto secundario */
-  --raco-paper:   #F7F2E8;  /* tarjetas elevadas */
-  --raco-khaki-lt:#8A9A52;  /* khaki claro / hover */
-  --raco-earth:   #4A3728;  /* tierra / acento cálido */
+  --raco-cream:    #EDE5D0;
+  --raco-khaki:    #6B7A3E;
+  --raco-black:    #1C1C0E;
+  --raco-sand:     #D4C9A8;
+  --raco-stone:    #A09070;
+  --raco-paper:    #F7F2E8;
+  --raco-khaki-lt: #8A9A52;
+  --raco-earth:    #4A3728;
 
-  /* Aliases funcionales */
-  --bg:           var(--raco-cream);
-    --bg2:          var(--raco-paper);
-    --bg3:          #E6DDC6;
-    --card:         var(--raco-paper);
-    --border:       var(--raco-sand);
-    --gold:         var(--raco-khaki);
-    --gold-dim:     var(--raco-khaki-lt);
-    --text:         var(--raco-black);
-    --text-dim:     var(--raco-stone);
-    --text-muted:   #B0A080;
-    --accent:       var(--raco-khaki);
+  --bg:         var(--raco-cream);
+  --bg2:        var(--raco-paper);
+  --bg3:        #E6DDC6;
+  --card:       var(--raco-paper);
+  --border:     var(--raco-sand);
+  --gold:       var(--raco-khaki);
+  --gold-dim:   var(--raco-khaki-lt);
+  --text:       var(--raco-black);
+  --text-dim:   var(--raco-stone);
+  --text-muted: #B0A080;
+  --accent:     var(--raco-khaki);
 
-  /* Tipografía */
-  --font-brand:   'DM Serif Display', 'Georgia', serif;
-    --font-body:    'Josefin Sans', 'Helvetica Neue', Arial, sans-serif;
+  --font-brand: 'DM Serif Display', 'Georgia', serif;
+  --font-body:  'Josefin Sans', 'Helvetica Neue', Arial, sans-serif;
 
-  /* Geometría */
   --radius:    14px;
-    --radius-sm: 8px;
+  --radius-sm: 8px;
+
+  /* Duraciones de animacion */
+  --t-fast:   0.15s;
+  --t-mid:    0.25s;
+  --t-slow:   0.4s;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 html, body, #root {
-    height: 100%;
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--font-body);
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    font-weight: 300;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-weight: 300;
 }
 
 button {
-    cursor: pointer;
-    font-family: var(--font-body);
-    border: none;
-    background: none;
+  cursor: pointer;
+  font-family: var(--font-body);
+  border: none;
+  background: none;
 }
 
 img { display: block; max-width: 100%; }
-a { color: inherit; text-decoration: none; }
+a   { color: inherit; text-decoration: none; }
 
 /* ===== SCROLLBAR ===== */
-::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar       { width: 3px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--raco-sand); border-radius: 2px; }
 
-/* ===== LOGO RACO ===== */
+/* ===== KEYFRAMES ===== */
+
+/* Entrada suave desde abajo — tarjetas, secciones */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Entrada ligera desde arriba — header, tabs */
+@keyframes fadeDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Fundido simple — detalles, modales */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Escala desde centro — badges, pills */
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.88); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* Spin — loading */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Shimmer — skeleton loading */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+/* ===== CLASES DE ANIMACION ===== */
+
+/* Tarjetas de la lista: aparecen una a una con delay escalonado */
+.raco-card-anim {
+  animation: fadeUp var(--t-slow) var(--ease-out) both;
+}
+
+/* Cascada: aplica delay a los primeros N hijos */
+.raco-card-anim:nth-child(1)  { animation-delay: 0ms; }
+.raco-card-anim:nth-child(2)  { animation-delay: 40ms; }
+.raco-card-anim:nth-child(3)  { animation-delay: 80ms; }
+.raco-card-anim:nth-child(4)  { animation-delay: 120ms; }
+.raco-card-anim:nth-child(5)  { animation-delay: 160ms; }
+.raco-card-anim:nth-child(6)  { animation-delay: 200ms; }
+.raco-card-anim:nth-child(7)  { animation-delay: 240ms; }
+.raco-card-anim:nth-child(8)  { animation-delay: 280ms; }
+.raco-card-anim:nth-child(n+9){ animation-delay: 320ms; }
+
+/* Vista detalle */
+.raco-detalle-anim {
+  animation: fadeUp var(--t-slow) var(--ease-out) both;
+}
+
+/* Header */
+.raco-header-anim {
+  animation: fadeDown var(--t-mid) var(--ease-out) both;
+}
+
+/* Categorias tabs */
+.raco-tabs-anim {
+  animation: fadeDown 0.3s var(--ease-out) 0.05s both;
+}
+
+/* Badges y pills */
+.raco-badge-anim {
+  animation: popIn var(--t-fast) var(--ease-out) both;
+}
+
+/* Seccion con linea (aparece deslizando la linea) */
+.raco-seccion-line {
+  transform-origin: left center;
+  animation: expandLine 0.5s var(--ease-out) 0.1s both;
+}
+@keyframes expandLine {
+  from { transform: scaleX(0); opacity: 0; }
+  to   { transform: scaleX(1); opacity: 1; }
+}
+
+/* ===== LOGO ===== */
 .raco-logo {
-    font-family: var(--font-brand);
-    font-weight: 400;
-    font-size: 36px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--raco-black);
-    line-height: 1;
+  font-family: var(--font-brand);
+  font-weight: 400;
+  font-size: 36px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--raco-black);
+  line-height: 1;
 }
 .raco-logo-accent { color: var(--raco-khaki); }
 
 .raco-subtitle {
-    font-family: var(--font-body);
-    font-weight: 300;
-    font-size: 10px;
-    letter-spacing: 0.38em;
-    text-transform: uppercase;
-    color: var(--raco-stone);
-    margin-top: 4px;
+  font-family: var(--font-body);
+  font-weight: 300;
+  font-size: 10px;
+  letter-spacing: 0.38em;
+  text-transform: uppercase;
+  color: var(--raco-stone);
+  margin-top: 4px;
 }
 
 /* ===== HEADER ===== */
 .raco-header {
-    background: var(--raco-cream);
-    border-bottom: 1px solid var(--raco-sand);
-    padding: 20px 20px 16px;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+  background: var(--raco-cream);
+  border-bottom: 1px solid var(--raco-sand);
+  padding: 20px 20px 16px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
-/* ===== TARJETA BEBIDA ===== */
+/* ===== TARJETA ===== */
 .raco-card {
-    background: var(--raco-paper);
-    border: 1px solid var(--raco-sand);
-    border-radius: var(--radius);
-    transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+  background: var(--raco-paper);
+  border: 1px solid var(--raco-sand);
+  border-radius: var(--radius);
+  transition:
+    border-color var(--t-mid) ease,
+    box-shadow   var(--t-mid) ease,
+    transform    var(--t-fast) var(--ease-out);
 }
 .raco-card:hover {
-    border-color: var(--raco-khaki);
-    box-shadow: 0 4px 20px rgba(107,122,62,0.10);
-    transform: translateY(-1px);
+  border-color: var(--raco-khaki);
+  box-shadow: 0 4px 20px rgba(107,122,62,0.10);
+  transform: translateY(-2px);
+}
+.raco-card:active {
+  transform: translateY(0px) scale(0.99);
+  transition-duration: 0.08s;
 }
 .raco-card-destacado {
-    border-color: var(--raco-khaki) !important;
-    box-shadow: 0 0 0 1px rgba(107,122,62,0.18), 0 6px 28px rgba(107,122,62,0.08);
+  border-color: var(--raco-khaki) !important;
+  box-shadow: 0 0 0 1px rgba(107,122,62,0.18), 0 6px 28px rgba(107,122,62,0.08);
 }
 
 /* ===== PRECIO ===== */
 .raco-precio {
-    font-family: var(--font-brand);
-    font-weight: 400;
-    font-size: 22px;
-    color: var(--raco-khaki);
-    letter-spacing: 0.02em;
+  font-family: var(--font-brand);
+  font-weight: 400;
+  font-size: 22px;
+  color: var(--raco-black);
+  letter-spacing: -0.01em;
 }
 
 /* ===== CATEGORIAS TABS ===== */
 .raco-cat-tab {
-    font-family: var(--font-body);
-    font-weight: 400;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    font-size: 11px;
-    border-radius: 20px;
-    padding: 7px 18px;
-    border: 1px solid var(--raco-sand);
-    color: var(--raco-stone);
-    background: transparent;
-    transition: all 0.2s;
-    white-space: nowrap;
+  font-family: var(--font-body);
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-size: 11px;
+  border-radius: 20px;
+  padding: 7px 18px;
+  border: 1px solid var(--raco-sand);
+  color: var(--raco-stone);
+  background: transparent;
+  transition:
+    border-color var(--t-fast) ease,
+    color        var(--t-fast) ease,
+    background   var(--t-fast) ease,
+    transform    var(--t-fast) var(--ease-out);
+  white-space: nowrap;
 }
 .raco-cat-tab:hover {
-    border-color: var(--raco-khaki);
-    color: var(--raco-khaki);
+  border-color: var(--raco-khaki);
+  color: var(--raco-khaki);
+  transform: translateY(-1px);
 }
 .raco-cat-tab.activa {
-    background: var(--raco-khaki);
-    border-color: var(--raco-khaki);
-    color: var(--raco-paper);
+  background: var(--raco-khaki);
+  border-color: var(--raco-khaki);
+  color: var(--raco-paper);
+  transform: translateY(0);
 }
 
 /* ===== BADGE RECOMENDADO ===== */
 .raco-badge-rec {
-    font-family: var(--font-body);
-    font-weight: 600;
-    font-size: 9px;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--raco-khaki);
-    border: 1px solid rgba(107,122,62,0.4);
-    border-radius: 4px;
-    padding: 2px 7px;
-    background: rgba(107,122,62,0.07);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--raco-khaki);
+  border: 1px solid rgba(107,122,62,0.4);
+  border-radius: 4px;
+  padding: 2px 7px;
+  background: rgba(107,122,62,0.07);
+  transition: background var(--t-fast) ease;
 }
 
-/* ===== TAG TIPO/UVA ===== */
+/* ===== TAG ===== */
 .raco-tag {
-    font-size: 10px;
-    padding: 3px 9px;
-    border-radius: 4px;
-    background: rgba(107,122,62,0.08);
-    color: var(--raco-stone);
-    border: 1px solid var(--raco-sand);
-    font-family: var(--font-body);
-    font-weight: 400;
-    letter-spacing: 0.06em;
+  font-size: 10px;
+  padding: 3px 9px;
+  border-radius: 4px;
+  background: rgba(107,122,62,0.07);
+  color: var(--raco-stone);
+  border: 1px solid var(--raco-sand);
+  font-family: var(--font-body);
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  transition: background var(--t-fast) ease, border-color var(--t-fast) ease;
+}
+.raco-tag:hover {
+  background: rgba(107,122,62,0.13);
+  border-color: rgba(107,122,62,0.35);
 }
 
 /* ===== INPUTS ===== */
 .raco-input {
-    background: var(--raco-paper);
-    border: 1px solid var(--raco-sand);
-    border-radius: var(--radius-sm);
-    color: var(--raco-black);
-    font-family: var(--font-body);
-    font-weight: 300;
-    outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s;
+  background: var(--raco-paper);
+  border: 1px solid var(--raco-sand);
+  border-radius: var(--radius-sm);
+  color: var(--raco-black);
+  font-family: var(--font-body);
+  font-weight: 300;
+  outline: none;
+  transition:
+    border-color var(--t-fast) ease,
+    box-shadow   var(--t-fast) ease;
 }
 .raco-input:focus {
-    border-color: var(--raco-khaki);
-    box-shadow: 0 0 0 3px rgba(107,122,62,0.10);
+  border-color: var(--raco-khaki);
+  box-shadow: 0 0 0 3px rgba(107,122,62,0.10);
 }
 
-/* ===== BOTÓN PRIMARIO ===== */
+/* ===== BOTÓN ===== */
 .raco-btn {
-    font-family: var(--font-body);
-    font-weight: 600;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    font-size: 11px;
-    border-radius: var(--radius-sm);
-    padding: 10px 20px;
-    background: var(--raco-khaki);
-    color: var(--raco-paper);
-    border: none;
-    transition: all 0.2s;
+  font-family: var(--font-body);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-size: 11px;
+  border-radius: var(--radius-sm);
+  padding: 10px 20px;
+  background: var(--raco-khaki);
+  color: var(--raco-paper);
+  border: none;
+  transition:
+    background  var(--t-fast) ease,
+    transform   var(--t-fast) var(--ease-out),
+    box-shadow  var(--t-fast) ease;
 }
 .raco-btn:hover {
-    background: var(--raco-black);
+  background: var(--raco-black);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(28,28,14,0.15);
+}
+.raco-btn:active {
+  transform: translateY(0);
+  box-shadow: none;
+  transition-duration: 0.08s;
 }
 
-/* ===== LOADING ===== */
-@keyframes spin { to { transform: rotate(360deg); } }
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to   { opacity: 1; transform: translateY(0); }
+/* ===== SKELETON (placeholder mientras carga imagen) ===== */
+.raco-skeleton {
+  background: linear-gradient(90deg, var(--raco-sand) 25%, var(--raco-cream) 50%, var(--raco-sand) 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite linear;
+  border-radius: 8px;
 }
-.raco-fade { animation: fadeIn 0.3s ease forwards; }
 
 /* ===== DIVIDER ===== */
 .raco-divider {
-    width: 32px;
-    height: 1px;
-    background: var(--raco-khaki);
-    opacity: 0.4;
-    margin: 12px 0;
+  width: 32px;
+  height: 1px;
+  background: var(--raco-khaki);
+  opacity: 0.4;
+  margin: 12px 0;
 }
 
-/* ===== SECCIÓN HEADER ===== */
-.raco-section-title {
-    font-family: var(--font-body);
-    font-weight: 300;
-    font-size: 10px;
-    letter-spacing: 0.28em;
-    text-transform: uppercase;
-    color: var(--raco-stone);
+/* ===== MODAL / BOTTOM SHEET ===== */
+.raco-overlay-anim {
+  animation: fadeIn var(--t-mid) ease both;
+}
+.raco-sheet-anim {
+  animation: slideUp 0.35s var(--ease-out) both;
+}
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0.6; }
+  to   { transform: translateY(0);    opacity: 1; }
 }
 
-/* ===== DETALLE BEBIDA ===== */
-.raco-detail-name {
-    font-family: var(--font-brand);
-    font-size: 28px;
-    font-weight: 400;
-    color: var(--raco-black);
-    line-height: 1.15;
-}
-
-/* ===== MARIDAJE CHIP ===== */
-.raco-maridaje-chip {
-    background: rgba(107,122,62,0.10);
-    border: 1px solid rgba(107,122,62,0.25);
-    color: var(--raco-khaki);
-    border-radius: 20px;
-    padding: 4px 12px;
-    font-size: 11px;
-    font-family: var(--font-body);
-    letter-spacing: 0.06em;
-}
-
-/* ===== PUNTUACION CRITICO ===== */
-.raco-score-badge {
-    background: rgba(107,122,62,0.10);
-    border: 1px solid rgba(107,122,62,0.30);
-    color: var(--raco-black);
-    border-radius: 6px;
-    padding: 4px 10px;
-    font-size: 12px;
-    font-family: var(--font-body);
-    font-weight: 600;
-}
-
-/* ===== BOTTOM SHEET / MODAL ===== */
-.raco-modal-bg {
-    background: rgba(28,28,14,0.55);
-    backdrop-filter: blur(4px);
-}
-.raco-modal-sheet {
-    background: var(--raco-paper);
-    border-top: 1px solid var(--raco-sand);
+/* ===== REDUCIR MOVIMIENTO (accesibilidad) ===== */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

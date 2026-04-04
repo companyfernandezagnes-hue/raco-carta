@@ -153,7 +153,8 @@ function TarjetaBebida({ bebida, onSeleccionar, destacado, esFavorito, onToggleF
         transition: 'border-color 0.2s, box-shadow 0.2s, transform 0.15s',
         display: 'flex', gap: '14px', alignItems: 'center',
         position: 'relative',
-        animation: 'fadeIn 0.3s ease forwards',
+        animation: 'fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) both',
+
       }}
       onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--raco-khaki)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(107,122,62,0.10)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
       onMouseLeave={e => { e.currentTarget.style.borderColor = destacado ? 'rgba(107,122,62,0.45)' : 'var(--raco-sand)'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)' }}
@@ -226,7 +227,8 @@ function TarjetaBebida({ bebida, onSeleccionar, destacado, esFavorito, onToggleF
 function TarjetaGrid({ bebida, onSeleccionar, destacado, esPequena, esFavorito, onToggleFavorito, enComparador, onToggleComparador }) {
   return (
     <div
-      style={{ position: 'relative', background: 'var(--raco-paper)', border: '1px solid ' + (destacado ? 'rgba(107,122,62,0.45)' : 'var(--raco-sand)'), borderRadius: '12px', overflow: 'hidden', cursor: 'pointer', transition: 'all 0.2s', animation: 'fadeIn 0.3s ease forwards' }}
+      style={{ position: 'relative', background: 'var(--raco-paper)', border: '1px solid ' + (destacado ? 'rgba(107,122,62,0.45)' : 'var(--raco-sand)'), borderRadius: '12px', overflow: 'hidden', cursor: 'pointer', transition: 'all 0.2s', animation: 'fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) both' }}143
+      
       onClick={() => onSeleccionar(bebida)}
       onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--raco-khaki)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(107,122,62,0.10)'; e.currentTarget.style.transform = 'translateY(-2px)' }}
       onMouseLeave={e => { e.currentTarget.style.borderColor = destacado ? 'rgba(107,122,62,0.45)' : 'var(--raco-sand)'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)' }}

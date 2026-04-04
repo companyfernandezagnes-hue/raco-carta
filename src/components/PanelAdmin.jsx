@@ -173,6 +173,7 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
 
   async function guardar() {
     setGuardando(true)
+    const precioCosteVal = calc.precioIva ? parseFloat(calc.precioIva) : (form.precio_coste ? parseFloat(form.precio_coste) : null)
     const datos = {
       ...form,
       anada: form.anada ? parseInt(form.anada) : null,
@@ -180,16 +181,26 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
       precio_copa: form.precio_copa ? parseFloat(form.precio_copa) : null,
       precio_botella: form.precio_botella ? parseFloat(form.precio_botella) : null,
       // MEJORA 2: guardar precio_coste en Supabase
-      precio_coste: calc.precioIva ? parseFloat(calc.precioIva) : (form.precio_coste ? parseFloat(form.precio_coste) : null),
+      precio_coste: precioCosteVal,
       orden: form.orden ? parseInt(form.orden) : 0,
       maridajes: form.maridajes ? form.maridajes.split(',').map(s => s.trim()).filter(Boolean) : [],
       puntuaciones: Array.isArray(form.puntuaciones) ? form.puntuaciones.filter(p => p.critico && p.nota) : [],
       updated_at: new Date().toISOString()
     }
+    let result
     if (bebida) {
-      await supabaseAdmin.from('carta_bebidas').update(datos).eq('id', bebida.id)
+      result = await supabaseAdmin.from('carta_bebidas').update(datos).eq('id', bebida.id)
     } else {
-      await supabaseAdmin.from('carta_bebidas').insert([datos])
+      result = await supabaseAdmin.from('carta_bebidas').insert([datos])
+    }
+    // Si falla por columna precio_coste inexistente, reintentar sin ella
+    if (result && result.error && result.error.message && result.error.message.includes('precio_coste')) {
+      const { precio_coste: _, ...datosSinCoste } = datos
+      if (bebida) {
+        await supabaseAdmin.from('carta_bebidas').update(datosSinCoste).eq('id', bebida.id)
+      } else {
+        await supabaseAdmin.from('carta_bebidas').insert([datosSinCoste])
+      }
     }
     setGuardando(false)
     onActualizar()

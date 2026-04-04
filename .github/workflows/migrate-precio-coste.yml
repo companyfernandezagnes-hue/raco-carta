@@ -7,22 +7,54 @@ jobs:
   migrate:
     runs-on: ubuntu-latest
     steps:
-      - name: Add precio_coste column via Supabase Management API
+      - name: Install Supabase CLI and run migration
         run: |
-          # Use the Supabase Management API with service key to run SQL
-          # The service key allows DDL operations
-          HTTP_CODE=$(curl -s -o /tmp/result.json -w "%{http_code}" \
-            -X POST "https://api.supabase.com/v1/projects/xdnqctumnqxtfolmexcu/database/query" \
-            -H "Authorization: Bearer $SERVICE_KEY" \
-            -H "Content-Type: application/json" \
-            -d '{"query":"ALTER TABLE carta_bebidas ADD COLUMN IF NOT EXISTS precio_coste NUMERIC;"}')
-          echo "HTTP $HTTP_CODE"
-          cat /tmp/result.json
+          # Install Supabase CLI
+          npm install -g supabase@latest 2>/dev/null || npx supabase --version
 
-          echo "--- Verify column exists ---"
-          curl -s -X POST "https://api.supabase.com/v1/projects/xdnqctumnqxtfolmexcu/database/query" \
-            -H "Authorization: Bearer $SERVICE_KEY" \
-            -H "Content-Type: application/json" \
-            -d '{"query":"SELECT column_name, data_type FROM information_schema.columns WHERE table_name = \u0027carta_bebidas\u0027 AND column_name = \u0027precio_coste\u0027;"}'
+          # Check what the service key looks like
+          echo "Service key prefix: $(echo $SERVICE_KEY | cut -c1-20)..."
+          
+          # Try to use it as anon key with supabase client
+          # Use node to call the Supabase REST API properly
+          node << 'EOF'
+          const https = require('https');
+          
+          const key = process.env.SERVICE_KEY;
+          console.log('Key type:', key.startsWith('eyJ') ? 'JWT' : key.startsWith('sb_') ? 'sb_format' : 'unknown');
+          console.log('Key length:', key.length);
+          
+          // Try the PostgREST endpoint with the key
+          function doRequest(path, method, body, callback) {
+            const options = {
+              hostname: 'xdnqctumnqxtfolmexcu.supabase.co',
+              port: 443,
+              path: path,
+              method: method || 'GET',
+              headers: {
+                'apikey': key,
+                'Authorization': 'Bearer ' + key,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=minimal'
+              }
+            };
+            if (body) options.headers['Content-Length'] = Buffer.byteLength(body);
+            
+            const req = https.request(options, res => {
+              let data = '';
+              res.on('data', c => data += c);
+              res.on('end', () => callback(res.statusCode, data));
+            });
+            req.on('error', e => callback(0, e.message));
+            if (body) req.write(body);
+            req.end();
+          }
+          
+          // Check if column exists
+          doRequest('/rest/v1/carta_bebidas?select=precio_coste&limit=1', 'GET', null, (status, data) => {
+            console.log('Check column status:', status);
+            console.log('Check data:', data.substring(0, 200));
+          });
+          EOF
         env:
           SERVICE_KEY: ${{ secrets.VITE_SUPABASE_SERVICE_KEY }}

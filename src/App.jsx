@@ -52,6 +52,7 @@ export default function App() {
   const [filtroPais, setFiltroPais] = useState('')
   const [filtroTipo, setFiltroTipo] = useState('')
   const [filtroOrden, setFiltroOrden] = useState('')
+  const [filtroGraduacion, setFiltroGraduacion] = useState('')
   const [filtrosAbiertos, setFiltrosAbiertos] = useState(false)
   const [modoVista, setModoVista] = useState('lista')
   const [favoritos, setFavoritos] = useState(() => { try { return JSON.parse(localStorage.getItem('favoritos') || '[]') } catch { return [] } })
@@ -69,14 +70,15 @@ export default function App() {
   function abrirDetalle(bebida) { setBebidaseleccionada(bebida); setVista('detalle') }
   function volverODetalle(accion, rel) { if (accion === 'relacionado' && rel) { setBebidaseleccionada(rel) } else { setBebidaseleccionada(null); setVista('carta') } }
   function volver() { setBebidaseleccionada(null); setVista('carta') }
-  function limpiarFiltros() { setBusqueda(''); setFiltroPais(''); setFiltroTipo(''); setFiltroOrden('') }
+  function limpiarFiltros() { setBusqueda(''); setFiltroPais(''); setFiltroTipo(''); setFiltroOrden(''); setFiltroGraduacion('') }
 
   const paises = [...new Set(bebidas.map(b => b.pais).filter(Boolean))].sort()
   const tipos = [...new Set(bebidas.map(b => b.subcategoria).filter(Boolean))].sort()
-  const hayFiltrosActivos = busqueda || filtroPais || filtroTipo || filtroOrden
-  const numFiltros = [filtroPais, filtroTipo, filtroOrden].filter(Boolean).length
+  const hayFiltrosActivos = busqueda || filtroPais || filtroTipo || filtroOrden || filtroGraduacion
+  const numFiltros = [filtroPais, filtroTipo, filtroOrden, filtroGraduacion].filter(Boolean).length
   const opcionesTipo = [{ value: '', label: 'Tipo: todos' }, ...tipos.map(t => ({ value: t, label: t }))]
   const opcionesPais = [{ value: '', label: 'País: todos' }, ...paises.map(p => ({ value: p, label: p }))]
+  const opcionesGraduacion = [{ value: '', label: 'Graduación: todas' }, { value: 'baja', label: '< 12% (ligero)' }, { value: 'media', label: '12–14% (medio)' }, { value: 'alta', label: '> 14% (potente)' }]
   const opcionesOrden = [{ value: '', label: 'Orden: por defecto' }, { value: 'precio_asc', label: 'Precio: menor a mayor' }, { value: 'precio_desc', label: 'Precio: mayor a menor' }, { value: 'nombre_asc', label: 'Nombre: A–Z' }]
 
   let bebidasFiltradas = bebidas.filter(b => {
@@ -84,6 +86,7 @@ export default function App() {
     if (q && ![(b.nombre||''),(b.bodega||''),(b.descripcion||''),(b.uvas||''),(b.region||'')].some(s => s.toLowerCase().includes(q))) return false
     if (filtroPais && b.pais !== filtroPais) return false
     if (filtroTipo && b.subcategoria !== filtroTipo) return false
+    if (filtroGraduacion) { const g = parseFloat(b.graduacion); if (isNaN(g)) return false; if (filtroGraduacion === 'baja' && g >= 12) return false; if (filtroGraduacion === 'media' && (g < 12 || g > 14)) return false; if (filtroGraduacion === 'alta' && g <= 14) return false; }
     if (categoriaActiva === 'todas') return true
     if (categoriaActiva === 'vino') { if (subcategoriaActiva) return b.categoria === 'vino' && b.subcategoria === subcategoriaActiva; return b.categoria === 'vino' }
     return b.categoria === categoriaActiva
@@ -124,6 +127,9 @@ export default function App() {
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <SelectRaco value={filtroTipo} onChange={setFiltroTipo} options={opcionesTipo} placeholder="Tipo: todos" />
                   <SelectRaco value={filtroPais} onChange={setFiltroPais} options={opcionesPais} placeholder="País: todos" />
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <SelectRaco value={filtroGraduacion} onChange={setFiltroGraduacion} options={opcionesGraduacion} placeholder="Graduación: todas" />
                 </div>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <SelectRaco value={filtroOrden} onChange={setFiltroOrden} options={opcionesOrden} placeholder="Orden: por defecto" />

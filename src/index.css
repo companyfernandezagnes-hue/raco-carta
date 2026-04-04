@@ -1,235 +1,282 @@
-/* ===== RACO · BRAND IDENTITY ===== */
-@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@200;300;400;500;600&family=Inter:wght@300;400;500&display=swap');
+/* ===== RACO · BRAND IDENTITY — MEDITERRÁNEO ===== */
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Josefin+Sans:wght@300;400;600&display=swap');
 
 *, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
 }
 
 :root {
-  /* Paleta RACO */
-  --raco-khaki:   #C4A96A;   /* dorado cálido marca */
-  --raco-orange:  #D4883A;   /* ámbar/terracota marca */
-  --raco-dark:    #0F0E0B;   /* negro profundo */
-  --raco-mid:     #1A1812;   /* fondo cards */
-  --raco-deep:    #221F16;   /* superficies elevadas */
-  --raco-line:    #2E2A1E;   /* bordes sutiles */
-  --raco-text:    #F0E8D5;   /* texto principal cálido */
-  --raco-dim:     #B8A882;   /* texto secundario */
-  --raco-muted:   #6A5F48;   /* texto terciario */
+    /* Paleta RACO Mediterráneo */
+  --raco-cream:   #EDE5D0;  /* fondo crema cálido */
+  --raco-khaki:   #6B7A3E;  /* verde oliva mediterráneo */
+  --raco-black:   #1C1C0E;  /* negro profundo cálido */
+  --raco-sand:    #D4C9A8;  /* arena / separadores */
+  --raco-stone:   #A09070;  /* piedra / texto secundario */
+  --raco-paper:   #F7F2E8;  /* tarjetas elevadas */
+  --raco-khaki-lt:#8A9A52;  /* khaki claro / hover */
+  --raco-earth:   #4A3728;  /* tierra / acento cálido */
 
-  /* Aliases para compatibilidad con el código existente */
-  --bg:           var(--raco-dark);
-  --bg2:          var(--raco-mid);
-  --bg3:          var(--raco-deep);
-  --card:         var(--raco-mid);
-  --border:       var(--raco-line);
-  --gold:         var(--raco-orange);
-  --gold-dim:     #A06A20;
-  --text:         var(--raco-text);
-  --text-dim:     var(--raco-dim);
-  --text-muted:   var(--raco-muted);
-  --accent:       var(--raco-khaki);
+  /* Aliases funcionales */
+  --bg:           var(--raco-cream);
+    --bg2:          var(--raco-paper);
+    --bg3:          #E6DDC6;
+    --card:         var(--raco-paper);
+    --border:       var(--raco-sand);
+    --gold:         var(--raco-khaki);
+    --gold-dim:     var(--raco-khaki-lt);
+    --text:         var(--raco-black);
+    --text-dim:     var(--raco-stone);
+    --text-muted:   #B0A080;
+    --accent:       var(--raco-khaki);
 
   /* Tipografía */
-  --font-brand:   'Barlow Condensed', 'Arial Narrow', sans-serif;
-  --font-body:    'Inter', 'Helvetica Neue', Arial, sans-serif;
+  --font-brand:   'DM Serif Display', 'Georgia', serif;
+    --font-body:    'Josefin Sans', 'Helvetica Neue', Arial, sans-serif;
 
   /* Geometría */
-  --radius:       14px;
-  --radius-sm:    8px;
+  --radius:    14px;
+    --radius-sm: 8px;
 }
 
 html, body, #root {
-  height: 100%;
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font-body);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  font-weight: 300;
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-weight: 300;
 }
 
 button {
-  cursor: pointer;
-  font-family: var(--font-body);
-  border: none;
-  background: none;
+    cursor: pointer;
+    font-family: var(--font-body);
+    border: none;
+    background: none;
 }
 
-img {
-  display: block;
-  max-width: 100%;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
+img { display: block; max-width: 100%; }
+a { color: inherit; text-decoration: none; }
 
 /* ===== SCROLLBAR ===== */
 ::-webkit-scrollbar { width: 3px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
-::-webkit-scrollbar-thumb { background: var(--raco-line); border-radius: 2px; }
+::-webkit-scrollbar-thumb { background: var(--raco-sand); border-radius: 2px; }
 
 /* ===== LOGO RACO ===== */
 .raco-logo {
-  font-family: var(--font-brand);
-  font-weight: 200;
-  font-size: 36px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--raco-text);
-  line-height: 1;
+    font-family: var(--font-brand);
+    font-weight: 400;
+    font-size: 36px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--raco-black);
+    line-height: 1;
 }
-
-.raco-logo-accent {
-  color: var(--raco-khaki);
-}
+.raco-logo-accent { color: var(--raco-khaki); }
 
 .raco-subtitle {
-  font-family: var(--font-brand);
-  font-weight: 300;
-  font-size: 11px;
-  letter-spacing: 0.35em;
-  text-transform: uppercase;
-  color: var(--raco-khaki);
-  margin-top: 3px;
+    font-family: var(--font-body);
+    font-weight: 300;
+    font-size: 10px;
+    letter-spacing: 0.38em;
+    text-transform: uppercase;
+    color: var(--raco-stone);
+    margin-top: 4px;
 }
 
 /* ===== HEADER ===== */
 .raco-header {
-  background: linear-gradient(180deg, var(--raco-dark) 0%, rgba(15,14,11,0.98) 100%);
-  border-bottom: 1px solid var(--raco-line);
-  padding: 20px 20px 16px;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+    background: var(--raco-cream);
+    border-bottom: 1px solid var(--raco-sand);
+    padding: 20px 20px 16px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
 }
 
 /* ===== TARJETA BEBIDA ===== */
 .raco-card {
-  background: var(--raco-mid);
-  border: 1px solid var(--raco-line);
-  border-radius: var(--radius);
-  transition: border-color 0.2s, transform 0.15s;
+    background: var(--raco-paper);
+    border: 1px solid var(--raco-sand);
+    border-radius: var(--radius);
+    transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
 }
-
 .raco-card:hover {
-  border-color: var(--raco-khaki);
+    border-color: var(--raco-khaki);
+    box-shadow: 0 4px 20px rgba(107,122,62,0.10);
+    transform: translateY(-1px);
 }
-
 .raco-card-destacado {
-  border-color: var(--raco-orange) !important;
-  box-shadow: 0 0 0 1px rgba(240,168,90,0.15), 0 4px 24px rgba(240,168,90,0.06);
+    border-color: var(--raco-khaki) !important;
+    box-shadow: 0 0 0 1px rgba(107,122,62,0.18), 0 6px 28px rgba(107,122,62,0.08);
 }
 
 /* ===== PRECIO ===== */
 .raco-precio {
-  font-family: var(--font-brand);
-  font-weight: 300;
-  font-size: 22px;
-  color: var(--raco-orange);
-  letter-spacing: 0.02em;
+    font-family: var(--font-brand);
+    font-weight: 400;
+    font-size: 22px;
+    color: var(--raco-khaki);
+    letter-spacing: 0.02em;
 }
 
 /* ===== CATEGORIAS TABS ===== */
 .raco-cat-tab {
-  font-family: var(--font-brand);
-  font-weight: 400;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  font-size: 13px;
-  border-radius: 20px;
-  padding: 7px 16px;
-  border: 1px solid var(--raco-line);
-  color: var(--raco-dim);
-  transition: all 0.2s;
-  white-space: nowrap;
+    font-family: var(--font-body);
+    font-weight: 400;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-size: 11px;
+    border-radius: 20px;
+    padding: 7px 18px;
+    border: 1px solid var(--raco-sand);
+    color: var(--raco-stone);
+    background: transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
 }
-
+.raco-cat-tab:hover {
+    border-color: var(--raco-khaki);
+    color: var(--raco-khaki);
+}
 .raco-cat-tab.activa {
-  background: var(--raco-orange);
-  border-color: var(--raco-orange);
-  color: var(--raco-dark);
+    background: var(--raco-khaki);
+    border-color: var(--raco-khaki);
+    color: var(--raco-paper);
 }
 
 /* ===== BADGE RECOMENDADO ===== */
 .raco-badge-rec {
-  font-family: var(--font-brand);
-  font-weight: 500;
-  font-size: 9px;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--raco-orange);
-  border: 1px solid rgba(240,168,90,0.4);
-  border-radius: 4px;
-  padding: 2px 7px;
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--raco-khaki);
+    border: 1px solid rgba(107,122,62,0.4);
+    border-radius: 4px;
+    padding: 2px 7px;
+    background: rgba(107,122,62,0.07);
 }
 
 /* ===== TAG TIPO/UVA ===== */
 .raco-tag {
-  font-size: 11px;
-  padding: 3px 9px;
-  border-radius: 4px;
-  background: var(--raco-deep);
-  color: var(--raco-dim);
-  border: 1px solid var(--raco-line);
-  font-family: var(--font-body);
-  font-weight: 400;
+    font-size: 10px;
+    padding: 3px 9px;
+    border-radius: 4px;
+    background: rgba(107,122,62,0.08);
+    color: var(--raco-stone);
+    border: 1px solid var(--raco-sand);
+    font-family: var(--font-body);
+    font-weight: 400;
+    letter-spacing: 0.06em;
 }
 
 /* ===== INPUTS ===== */
 .raco-input {
-  background: var(--raco-mid);
-  border: 1px solid var(--raco-line);
-  border-radius: var(--radius-sm);
-  color: var(--raco-text);
-  font-family: var(--font-body);
-  font-weight: 300;
-  outline: none;
-  transition: border-color 0.2s;
+    background: var(--raco-paper);
+    border: 1px solid var(--raco-sand);
+    border-radius: var(--radius-sm);
+    color: var(--raco-black);
+    font-family: var(--font-body);
+    font-weight: 300;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
 }
-
 .raco-input:focus {
-  border-color: var(--raco-khaki);
+    border-color: var(--raco-khaki);
+    box-shadow: 0 0 0 3px rgba(107,122,62,0.10);
 }
 
 /* ===== BOTÓN PRIMARIO ===== */
 .raco-btn {
-  font-family: var(--font-brand);
-  font-weight: 400;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  font-size: 12px;
-  border-radius: var(--radius-sm);
-  padding: 10px 18px;
-  background: var(--raco-orange);
-  color: var(--raco-dark);
-  border: none;
-  transition: all 0.2s;
+    font-family: var(--font-body);
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-size: 11px;
+    border-radius: var(--radius-sm);
+    padding: 10px 20px;
+    background: var(--raco-khaki);
+    color: var(--raco-paper);
+    border: none;
+    transition: all 0.2s;
 }
-
 .raco-btn:hover {
-  background: var(--raco-khaki);
+    background: var(--raco-black);
 }
 
 /* ===== LOADING ===== */
 @keyframes spin { to { transform: rotate(360deg); } }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-
-.raco-fade {
-  animation: fadeIn 0.3s ease forwards;
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
+.raco-fade { animation: fadeIn 0.3s ease forwards; }
 
 /* ===== DIVIDER ===== */
 .raco-divider {
-  width: 32px;
-  height: 1px;
-  background: var(--raco-orange);
-  opacity: 0.5;
-  margin: 12px 0;
+    width: 32px;
+    height: 1px;
+    background: var(--raco-khaki);
+    opacity: 0.4;
+    margin: 12px 0;
+}
+
+/* ===== SECCIÓN HEADER ===== */
+.raco-section-title {
+    font-family: var(--font-body);
+    font-weight: 300;
+    font-size: 10px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--raco-stone);
+}
+
+/* ===== DETALLE BEBIDA ===== */
+.raco-detail-name {
+    font-family: var(--font-brand);
+    font-size: 28px;
+    font-weight: 400;
+    color: var(--raco-black);
+    line-height: 1.15;
+}
+
+/* ===== MARIDAJE CHIP ===== */
+.raco-maridaje-chip {
+    background: rgba(107,122,62,0.10);
+    border: 1px solid rgba(107,122,62,0.25);
+    color: var(--raco-khaki);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 11px;
+    font-family: var(--font-body);
+    letter-spacing: 0.06em;
+}
+
+/* ===== PUNTUACION CRITICO ===== */
+.raco-score-badge {
+    background: rgba(107,122,62,0.10);
+    border: 1px solid rgba(107,122,62,0.30);
+    color: var(--raco-black);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-family: var(--font-body);
+    font-weight: 600;
+}
+
+/* ===== BOTTOM SHEET / MODAL ===== */
+.raco-modal-bg {
+    background: rgba(28,28,14,0.55);
+    backdrop-filter: blur(4px);
+}
+.raco-modal-sheet {
+    background: var(--raco-paper);
+    border-top: 1px solid var(--raco-sand);
 }

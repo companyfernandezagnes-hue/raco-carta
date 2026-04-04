@@ -7,54 +7,59 @@ jobs:
   migrate:
     runs-on: ubuntu-latest
     steps:
-      - name: Install Supabase CLI and run migration
+      - name: Add precio_coste column using supabase-js
         run: |
-          # Install Supabase CLI
-          npm install -g supabase@latest 2>/dev/null || npx supabase --version
-
-          # Check what the service key looks like
-          echo "Service key prefix: $(echo $SERVICE_KEY | cut -c1-20)..."
+          node << 'NODESCRIPT'
+          const { createClient } = require('@supabase/supabase-js');
           
-          # Try to use it as anon key with supabase client
-          # Use node to call the Supabase REST API properly
-          node << 'EOF'
-          const https = require('https');
-          
-          const key = process.env.SERVICE_KEY;
-          console.log('Key type:', key.startsWith('eyJ') ? 'JWT' : key.startsWith('sb_') ? 'sb_format' : 'unknown');
-          console.log('Key length:', key.length);
-          
-          // Try the PostgREST endpoint with the key
-          function doRequest(path, method, body, callback) {
-            const options = {
-              hostname: 'xdnqctumnqxtfolmexcu.supabase.co',
-              port: 443,
-              path: path,
-              method: method || 'GET',
-              headers: {
-                'apikey': key,
-                'Authorization': 'Bearer ' + key,
-                'Content-Type': 'application/json',
-                'Prefer': 'return=minimal'
-              }
-            };
-            if (body) options.headers['Content-Length'] = Buffer.byteLength(body);
+          async function main() {
+            const serviceKey = process.env.SERVICE_KEY;
+            console.log('Key prefix:', serviceKey.substring(0, 20) + '...');
             
-            const req = https.request(options, res => {
-              let data = '';
-              res.on('data', c => data += c);
-              res.on('end', () => callback(res.statusCode, data));
-            });
-            req.on('error', e => callback(0, e.message));
-            if (body) req.write(body);
-            req.end();
+            const supabase = createClient(
+              'https://xdnqctumnqxtfolmexcu.supabase.co',
+              serviceKey,
+              { auth: { persistSession: false } }
+            );
+            
+            // Try to call a Postgres function that executes DDL
+            // Supabase service role can bypass RLS and execute SQL
+            // Use the from() API to check if column exists
+            const { data: check, error: checkErr } = await supabase
+              .from('carta_bebidas')
+              .select('precio_coste')
+              .limit(1);
+            
+            if (checkErr && checkErr.message && checkErr.message.includes('does not exist')) {
+              console.log('Column does not exist, need to create it');
+              
+              // Use rpc to run SQL - need a function that wraps DDL
+              // Since we cannot run arbitrary SQL via REST without a wrapper function,
+              // we need another approach
+              console.log('Service key works:', !checkErr.code || checkErr.code === '42703');
+              
+              // Try using the supabase admin API
+              const res = await fetch('https://xdnqctumnqxtfolmexcu.supabase.co/rest/v1/', {
+                headers: {
+                  'apikey': serviceKey,
+                  'Authorization': 'Bearer ' + serviceKey
+                }
+              });
+              console.log('REST API status:', res.status);
+              const schema = await res.json();
+              console.log('Schema paths:', Object.keys(schema).slice(0, 10).join(', '));
+              
+            } else if (!checkErr) {
+              console.log('SUCCESS: precio_coste column already exists!');
+              console.log('Data sample:', JSON.stringify(check));
+            } else {
+              console.log('Other error:', checkErr.code, checkErr.message);
+            }
           }
           
-          // Check if column exists
-          doRequest('/rest/v1/carta_bebidas?select=precio_coste&limit=1', 'GET', null, (status, data) => {
-            console.log('Check column status:', status);
-            console.log('Check data:', data.substring(0, 200));
-          });
-          EOF
+          // Install and run
+          require('child_process').execSync('npm install @supabase/supabase-js --silent', { stdio: 'inherit' });
+          main().catch(console.error);
+          NODESCRIPT
         env:
           SERVICE_KEY: ${{ secrets.VITE_SUPABASE_SERVICE_KEY }}

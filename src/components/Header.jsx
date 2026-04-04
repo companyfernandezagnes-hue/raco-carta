@@ -2,108 +2,105 @@ import { useRef } from 'react'
 
 export default function Header({ vista, onVolver, onMaridaje, onAdmin }) {
   const pressTimer = useRef(null)
-
-  function startPress() {
-    pressTimer.current = setTimeout(() => { onAdmin?.() }, 5000)
-  }
+  function startPress()  { pressTimer.current = setTimeout(() => onAdmin?.(), 5000) }
   function cancelPress() { clearTimeout(pressTimer.current) }
-  function handleDoubleClick() { onAdmin?.() }
 
   return (
     <header style={{
-      background: 'linear-gradient(180deg, var(--raco-dark) 0%, rgba(28,26,20,0.97) 100%)',
-      borderBottom: '1px solid var(--raco-line)',
-      padding: '18px 20px 14px',
-      position: 'sticky',
-      top: 0,
-      zIndex: 10,
+      background: 'var(--raco-cream)',
+      borderBottom: '1px solid var(--raco-sand)',
+      padding: '22px 24px 18px',
+      position: 'sticky', top: 0, zIndex: 10,
       backdropFilter: 'blur(12px)',
       WebkitBackdropFilter: 'blur(12px)',
     }}>
       {vista === 'carta' ? (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+
+          {/* Logo */}
           <div
-            onDoubleClick={handleDoubleClick}
+            onDoubleClick={() => onAdmin?.()}
             onTouchStart={startPress}
             onTouchEnd={cancelPress}
             onTouchCancel={cancelPress}
             style={{ userSelect: 'none', cursor: 'default' }}
           >
-            {/* Logo RACO con tipografía condensada */}
             <div style={{
               fontFamily: 'var(--font-brand)',
-              fontWeight: 200,
-              fontSize: '34px',
-              letterSpacing: '0.22em',
+              fontWeight: '400',
+              fontSize: '38px',
+              letterSpacing: '0.08em',
               textTransform: 'uppercase',
-              color: 'var(--raco-text)',
+              color: 'var(--raco-black)',
               lineHeight: 1,
-              marginBottom: '5px',
             }}>
-              RAC<span style={{ color: 'var(--raco-orange)' }}>O</span>
+              RAC<span style={{ color: 'var(--raco-khaki)' }}>O</span>
             </div>
             <div style={{
-              fontFamily: 'var(--font-brand)',
-              fontWeight: 300,
-              fontSize: '10px',
-              letterSpacing: '0.35em',
+              fontFamily: 'var(--font-body)',
+              fontWeight: '300',
+              fontSize: '9px',
+              letterSpacing: '0.42em',
               textTransform: 'uppercase',
-              color: 'var(--raco-khaki)',
-              lineHeight: 1,
+              color: 'var(--raco-stone)',
+              marginTop: '5px',
+              paddingLeft: '1px',
             }}>
               Carta de Bebidas
             </div>
           </div>
 
+          {/* Boton Maridaje */}
           <button
             onClick={onMaridaje}
             style={{
-              fontFamily: 'var(--font-brand)',
-              fontWeight: 400,
-              fontSize: '12px',
+              fontFamily: 'var(--font-body)',
+              fontWeight: '400',
+              fontSize: '11px',
               letterSpacing: '0.18em',
               textTransform: 'uppercase',
-              color: 'var(--raco-dim)',
-              border: '1px solid var(--raco-line)',
+              color: 'var(--raco-stone)',
+              border: '1px solid var(--raco-sand)',
               borderRadius: '20px',
-              padding: '8px 16px',
+              padding: '8px 18px',
               background: 'transparent',
               transition: 'all 0.2s',
+              cursor: 'pointer',
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.borderColor = 'var(--raco-orange)'
-              e.currentTarget.style.color = 'var(--raco-orange)'
-              e.currentTarget.style.background = 'rgba(240,168,90,0.06)'
+              e.currentTarget.style.borderColor = 'var(--raco-khaki)'
+              e.currentTarget.style.color = 'var(--raco-khaki)'
+              e.currentTarget.style.background = 'rgba(107,122,62,0.06)'
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.borderColor = 'var(--raco-line)'
-              e.currentTarget.style.color = 'var(--raco-dim)'
+              e.currentTarget.style.borderColor = 'var(--raco-sand)'
+              e.currentTarget.style.color = 'var(--raco-stone)'
               e.currentTarget.style.background = 'transparent'
             }}
           >
             Maridaje
           </button>
         </div>
+
       ) : (
         <button
           onClick={onVolver}
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            color: 'var(--raco-dim)',
-            fontFamily: 'var(--font-brand)',
-            fontWeight: 300,
-            fontSize: '13px',
-            letterSpacing: '0.12em',
+            display: 'flex', alignItems: 'center', gap: '8px',
+            color: 'var(--raco-stone)',
+            fontFamily: 'var(--font-body)',
+            fontWeight: '300',
+            fontSize: '11px',
+            letterSpacing: '0.16em',
             textTransform: 'uppercase',
             transition: 'color 0.2s',
+            cursor: 'pointer',
           }}
-          onMouseEnter={e => e.currentTarget.style.color = 'var(--raco-text)'}
-          onMouseLeave={e => e.currentTarget.style.color = 'var(--raco-dim)'}
+          onMouseEnter={e => e.currentTarget.style.color = 'var(--raco-black)'}
+          onMouseLeave={e => e.currentTarget.style.color = 'var(--raco-stone)'}
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M10 3L5 8L10 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M10 3L5 8L10 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
           Volver
         </button>

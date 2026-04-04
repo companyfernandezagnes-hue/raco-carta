@@ -1,5 +1,9 @@
 name: Migrate DB - add precio_coste
 
+# Run this once to add precio_coste column to carta_bebidas table.
+# Requires: SUPABASE_DB_PASSWORD secret in GitHub Actions.
+# Get it from: Supabase Dashboard > Project Settings > Database > Database password
+
 on:
   workflow_dispatch:
 
@@ -7,70 +11,18 @@ jobs:
   migrate:
     runs-on: ubuntu-latest
     steps:
-      - name: Install supabase-js
-        run: npm install @supabase/supabase-js
-        working-directory: /tmp
+      - name: Install psql
+        run: sudo apt-get install -y postgresql-client
 
-      - name: Add precio_coste column
-        working-directory: /tmp
+      - name: Run ALTER TABLE
         run: |
-          node -e "
-          const { createClient } = require('./node_modules/@supabase/supabase-js');
-
-          async function main() {
-            const serviceKey = process.env.SERVICE_KEY;
-            console.log('Key prefix:', serviceKey.substring(0, 20) + '...');
-
-            const supabase = createClient(
-              'https://xdnqctumnqxtfolmexcu.supabase.co',
-              serviceKey,
-              { auth: { persistSession: false } }
-            );
-
-            // Check if column exists first
-            const { data, error } = await supabase
-              .from('carta_bebidas')
-              .select('precio_coste')
-              .limit(1);
-
-            if (!error) {
-              console.log('OK: precio_coste already exists, nothing to do');
-              return;
-            }
-
-            if (!error.message.includes('does not exist')) {
-              console.log('Unexpected error:', error.message);
-              return;
-            }
-
-            console.log('Column does not exist, creating via RPC...');
-
-            // Use rpc with a direct SQL call - service role allows this via pg functions
-            // Try calling exec_sql if it exists
-            const { data: rpcData, error: rpcErr } = await supabase.rpc('exec_sql', {
-              sql: 'ALTER TABLE carta_bebidas ADD COLUMN IF NOT EXISTS precio_coste NUMERIC;'
-            });
-
-            if (rpcErr) {
-              console.log('RPC error:', rpcErr.message);
-              // Try alternative: use the supabase admin API  
-              const res = await fetch('https://xdnqctumnqxtfolmexcu.supabase.co/rest/v1/rpc/exec_sql', {
-                method: 'POST',
-                headers: {
-                  'apikey': serviceKey,
-                  'Authorization': 'Bearer ' + serviceKey,
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ sql: 'ALTER TABLE carta_bebidas ADD COLUMN IF NOT EXISTS precio_coste NUMERIC;' })
-              });
-              const result = await res.text();
-              console.log('REST RPC status:', res.status, 'result:', result.substring(0, 300));
-            } else {
-              console.log('SUCCESS via RPC:', JSON.stringify(rpcData));
-            }
-          }
-
-          main().catch(e => { console.error(e); process.exit(1); });
-          "
+          PGPASSWORD="$DB_PASS" psql \
+            "host=aws-0-eu-central-1.pooler.supabase.com port=5432 dbname=postgres user=postgres.xdnqctumnqxtfolmexcu sslmode=require" \
+            -c "ALTER TABLE carta_bebidas ADD COLUMN IF NOT EXISTS precio_coste NUMERIC;" \
+            && echo "SUCCESS: Column added"
+          
+          PGPASSWORD="$DB_PASS" psql \
+            "host=aws-0-eu-central-1.pooler.supabase.com port=5432 dbname=postgres user=postgres.xdnqctumnqxtfolmexcu sslmode=require" \
+            -c "SELECT column_name, data_type FROM information_schema.columns WHERE table_name='carta_bebidas' AND column_name='precio_coste';"
         env:
-          SERVICE_KEY: ${{ secrets.VITE_SUPABASE_SERVICE_KEY }}
+          DB_PASS: ${{ secrets.SUPABASE_DB_PASSWORD }}

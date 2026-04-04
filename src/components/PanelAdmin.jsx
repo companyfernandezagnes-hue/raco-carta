@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabaseAdmin } from '../lib/supabaseAdmin'
 
-const PASS_HASH = 'Y21GamJ6SXdNalU9' // v3 - usando Google Gemini API
-
+const PASS_HASH = 'Y21GamJ6SXdNalU9' // v3 - usando Google Gemini AP
 function verificarPassword(input) {
   try { return btoa(btoa(input)) === PASS_HASH } catch { return false }
 }
@@ -69,7 +68,7 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
       parts.push({ text: `Rellena la ficha completa en JSON para esta bebida: ${nombre}` })
     }
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

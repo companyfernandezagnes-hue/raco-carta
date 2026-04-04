@@ -1,0 +1,30 @@
+name: Migrate DB - add precio_coste
+
+on:
+  workflow_dispatch:
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run ALTER TABLE via Supabase REST
+        run: |
+          curl -s -o /tmp/result.json -w "%{http_code}" \
+            -X POST "https://xdnqctumnqxtfolmexcu.supabase.co/rest/v1/rpc/exec_sql" \
+            -H "apikey: ${{ secrets.VITE_SUPABASE_SERVICE_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.VITE_SUPABASE_SERVICE_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"sql":"ALTER TABLE carta_bebidas ADD COLUMN IF NOT EXISTS precio_coste NUMERIC;"}' \
+            || true
+
+          echo "--- direct ALTER via pg-meta ---"
+          curl -s -X POST "https://xdnqctumnqxtfolmexcu.supabase.co/pg-meta/v1/query" \
+            -H "Authorization: Bearer ${{ secrets.VITE_SUPABASE_SERVICE_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"query":"ALTER TABLE carta_bebidas ADD COLUMN IF NOT EXISTS precio_coste NUMERIC;"}' \
+            || true
+
+          echo "--- verify columns ---"
+          curl -s "https://xdnqctumnqxtfolmexcu.supabase.co/rest/v1/carta_bebidas?select=precio_coste&limit=1" \
+            -H "apikey: ${{ secrets.VITE_SUPABASE_SERVICE_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.VITE_SUPABASE_SERVICE_KEY }}"

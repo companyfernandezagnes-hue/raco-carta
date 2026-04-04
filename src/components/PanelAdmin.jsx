@@ -8,7 +8,6 @@ function verificarPassword(input) {
 }
 
 const CRITICOS = ['Decanter', 'Wine Spectator', 'Robert Parker', 'Penin', 'James Suckling', 'Vinous', 'Otro']
-
 const CAMPOS_IA = [
   'nombre','categoria','subcategoria','descripcion','bodega','productor',
   'pais','region','anada','uvas','tipo_uva_secundaria','parcela',
@@ -16,13 +15,24 @@ const CAMPOS_IA = [
   'precio_copa','precio_botella','notas_ia'
 ]
 
-// Baremo progresivo: cuanto mas cara la botella, menor el multiplicador
-// Evita que una botella de 100 salga a 300 y una de 5 a 15
-// La escala comprime las diferencias de precio final
-function multiplicadorProgresivo(precioCoste) {
+// --- MEJORA 4: Multiplicador por categoria ---
+// Destilados, vinos, cervezas, etc. usan baremos distintos
+const MULTIPLICADORES_CATEGORIA = {
+  'Destilado': { base: 4.0, max: 5.0, min: 2.5 },
+  'Cerveza':   { base: 3.5, max: 4.5, min: 2.0 },
+  'Vino':      { base: 3.5, max: 3.8, min: 1.8 },
+  'Coctel':    { base: 4.5, max: 5.5, min: 3.0 },
+  'Refresco':  { base: 4.0, max: 5.0, min: 2.5 },
+  'Agua':      { base: 5.0, max: 7.0, min: 3.0 },
+  'Cafe':      { base: 4.0, max: 5.0, min: 2.5 },
+  'default':   { base: 3.5, max: 3.8, min: 1.8 }
+}
+
+function multiplicadorProgresivo(precioCoste, categoria) {
   if (!precioCoste || precioCoste <= 0) return 3.0
-  const raw = 3.5 - 0.6 * Math.log10(Math.max(precioCoste / 3, 0.1))
-  return Math.max(1.8, Math.min(3.8, parseFloat(raw.toFixed(2))))
+  const cfg = MULTIPLICADORES_CATEGORIA[categoria] || MULTIPLICADORES_CATEGORIA['default']
+  const raw = cfg.base - 0.6 * Math.log10(Math.max(precioCoste / 3, 0.1))
+  return Math.max(cfg.min, Math.min(cfg.max, parseFloat(raw.toFixed(2))))
 }
 
 // Redondeo psicologico de precios
@@ -60,8 +70,14 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
     }
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
-      { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts }], generationConfig: { temperature: 0.2, maxOutputTokens: 1000 } }) }
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts }],
+          generationConfig: { temperature: 0.2, maxOutputTokens: 1000 }
+        })
+      }
     )
     if (!res.ok) throw new Error(`Gemini error: ${res.status}`)
     const data = await res.json()
@@ -92,13 +108,11 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
   const [iaError, setIaError] = useState('')
   const [iaTexto, setIaTexto] = useState('')
   const [mostrarIA, setMostrarIA] = useState(false)
+  // MEJORA 1: precio minimo de copa configurable
+  const [precioMinCopa, setPrecioMinCopa] = useState(2.50)
   const [calc, setCalc] = useState({
-    precioIva: '',
-    mlBotella: '750',
-    mlCopa: '150',
-    modoMulti: 'auto',
-    multiplicador: '3',
-    redondeo: 'charm'
+    precioIva: '', mlBotella: '750', mlCopa: '150',
+    modoMulti: 'auto', multiplicador: '3', redondeo: 'charm'
   })
   const [mostrarCalc, setMostrarCalc] = useState(false)
   const fotoInputRef = useRef(null)
@@ -112,18 +126,27 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
   function abrirEditar(b) {
     setBebida(b)
     setForm({
-      nombre: b.nombre || '', categoria: b.categoria || '', subcategoria: b.subcategoria || '',
-      descripcion: b.descripcion || '', bodega: b.bodega || '', productor: b.productor || '',
-      pais: b.pais || '', region: b.region || '', anada: b.anada || '', uvas: b.uvas || '',
+      nombre: b.nombre || '', categoria: b.categoria || '',
+      subcategoria: b.subcategoria || '', descripcion: b.descripcion || '',
+      bodega: b.bodega || '', productor: b.productor || '',
+      pais: b.pais || '', region: b.region || '',
+      anada: b.anada || '', uvas: b.uvas || '',
       tipo_uva_secundaria: b.tipo_uva_secundaria || '', parcela: b.parcela || '',
       nota_cata: b.nota_cata || '',
       maridajes: Array.isArray(b.maridajes) ? b.maridajes.join(', ') : (b.maridajes || ''),
       temperatura: b.temperatura || '', graduacion: b.graduacion || '',
       precio_copa: b.precio_copa || '', precio_botella: b.precio_botella || '',
+      // MEJORA 2: cargar precio_coste guardado
+      precio_coste: b.precio_coste || '',
       disponible: b.disponible ?? true, destacado: b.destacado ?? false,
-      foto_url: b.foto_url || '', orden: b.orden || 0, notas_ia: b.notas_ia || '',
+      foto_url: b.foto_url || '', orden: b.orden || 0,
+      notas_ia: b.notas_ia || '',
       puntuaciones: Array.isArray(b.puntuaciones) ? b.puntuaciones : []
     })
+    // Si tiene precio_coste guardado, pre-rellenar calculadora
+    if (b.precio_coste) {
+      setCalc(prev => ({ ...prev, precioIva: String(b.precio_coste) }))
+    }
     setFase('editando')
     setIaError('')
     setMostrarIA(false)
@@ -137,9 +160,10 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
       nombre:'',categoria:'',subcategoria:'',descripcion:'',bodega:'',productor:'',
       pais:'Espana',region:'',anada:'',uvas:'',tipo_uva_secundaria:'',parcela:'',
       nota_cata:'',maridajes:'',temperatura:'',graduacion:'',precio_copa:'',
-      precio_botella:'',disponible:true,destacado:false,foto_url:'',orden:0,notas_ia:'',
-      puntuaciones:[]
+      precio_botella:'',precio_coste:'',disponible:true,destacado:false,
+      foto_url:'',orden:0,notas_ia:'',puntuaciones:[]
     })
+    setCalc(prev => ({ ...prev, precioIva: '' }))
     setFase('editando')
     setIaError('')
     setMostrarIA(true)
@@ -155,6 +179,8 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
       graduacion: form.graduacion ? parseFloat(form.graduacion) : null,
       precio_copa: form.precio_copa ? parseFloat(form.precio_copa) : null,
       precio_botella: form.precio_botella ? parseFloat(form.precio_botella) : null,
+      // MEJORA 2: guardar precio_coste en Supabase
+      precio_coste: calc.precioIva ? parseFloat(calc.precioIva) : (form.precio_coste ? parseFloat(form.precio_coste) : null),
       orden: form.orden ? parseInt(form.orden) : 0,
       maridajes: form.maridajes ? form.maridajes.split(',').map(s => s.trim()).filter(Boolean) : [],
       puntuaciones: Array.isArray(form.puntuaciones) ? form.puntuaciones.filter(p => p.critico && p.nota) : [],
@@ -202,8 +228,10 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
     maxWidth:'640px',maxHeight:'90vh',overflowY:'auto',color:'#fff' }
   const inp = { width:'100%',background:'#2a2a2a',border:'1px solid #444',borderRadius:'8px',
     padding:'8px 12px',color:'#fff',fontSize:'14px',boxSizing:'border-box' }
-  const btn = (color='#e8c97e') => ({ background:color,color: color==='#e8c97e'?'#1a1a1a':'#fff',border:'none',
-    borderRadius:'8px',padding:'10px 20px',cursor:'pointer',fontWeight:'600',fontSize:'14px' })
+  const btn = (color='#e8c97e') => ({
+    background:color,color: color==='#e8c97e'?'#1a1a1a':'#fff',border:'none',
+    borderRadius:'8px',padding:'10px 20px',cursor:'pointer',fontWeight:'600',fontSize:'14px'
+  })
   const label = { display:'block',marginBottom:'4px',fontSize:'12px',color:'#aaa',marginTop:'12px' }
 
   return (
@@ -222,6 +250,7 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
           </>
         )}
 
+        {/* MEJORA 3: Vista de precios en lista admin */}
         {fase === 'lista' && (
           <>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'16px'}}>
@@ -231,17 +260,54 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
                 <button style={btn('#444')} onClick={onCerrar}>X</button>
               </div>
             </div>
-            {bebidas.map(b => (
-              <div key={b.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',
-                padding:'10px',marginBottom:'8px',background:'#2a2a2a',borderRadius:'8px'}}>
-                <div>
-                  <span style={{fontWeight:'600'}}>{b.nombre}</span>
-                  <span style={{color:'#aaa',marginLeft:'8px',fontSize:'13px'}}>{b.categoria}</span>
-                  {!b.disponible && <span style={{color:'#f87171',marginLeft:'8px',fontSize:'12px'}}>No disponible</span>}
+            {/* Leyenda de precios */}
+            <div style={{display:'flex',gap:'8px',marginBottom:'12px',flexWrap:'wrap',fontSize:'11px'}}>
+              <span style={{color:'#7ec87e'}}>● con precio</span>
+              <span style={{color:'#f87171'}}>● sin precio</span>
+              <span style={{color:'#fbbf24'}}>● no disponible</span>
+            </div>
+            {bebidas.map(b => {
+              const tienePrecio = b.precio_copa || b.precio_botella
+              const dot = !b.disponible ? '#fbbf24' : tienePrecio ? '#7ec87e' : '#f87171'
+              return (
+                <div key={b.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',
+                  padding:'10px',marginBottom:'8px',background:'#2a2a2a',borderRadius:'8px',
+                  borderLeft: `3px solid ${dot}`}}>
+                  <div style={{flex:1}}>
+                    <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                      <span style={{fontWeight:'600'}}>{b.nombre}</span>
+                      <span style={{color:'#aaa',fontSize:'13px'}}>{b.categoria}</span>
+                      {!b.disponible && <span style={{color:'#fbbf24',fontSize:'12px'}}>No disponible</span>}
+                    </div>
+                    {/* Precios en la lista */}
+                    <div style={{display:'flex',gap:'8px',marginTop:'3px',flexWrap:'wrap'}}>
+                      {b.precio_copa && (
+                        <span style={{fontSize:'12px',color:'#7ec87e',background:'#1a2a1a',
+                          borderRadius:'4px',padding:'1px 7px'}}>
+                          Copa {b.precio_copa}€
+                        </span>
+                      )}
+                      {b.precio_botella && (
+                        <span style={{fontSize:'12px',color:'#7ec87e',background:'#1a2a1a',
+                          borderRadius:'4px',padding:'1px 7px'}}>
+                          Bot. {b.precio_botella}€
+                        </span>
+                      )}
+                      {b.precio_coste && (
+                        <span style={{fontSize:'12px',color:'#888',background:'#222',
+                          borderRadius:'4px',padding:'1px 7px'}}>
+                          Coste {b.precio_coste}€
+                        </span>
+                      )}
+                      {!tienePrecio && (
+                        <span style={{fontSize:'12px',color:'#f87171'}}>Sin precio</span>
+                      )}
+                    </div>
+                  </div>
+                  <button style={btn()} onClick={()=>abrirEditar(b)}>Editar</button>
                 </div>
-                <button style={btn()} onClick={()=>abrirEditar(b)}>Editar</button>
-              </div>
-            ))}
+              )
+            })}
           </>
         )}
 
@@ -293,8 +359,7 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
               ].map(([lbl,key,type],i) => lbl ? (
                 <div key={key}>
                   <label style={label}>{lbl}</label>
-                  <input style={inp} type={type} value={form[key]??''}
-                    onChange={e=>setForm(p=>({...p,[key]:e.target.value}))} />
+                  <input style={inp} type={type} value={form[key]??''} onChange={e=>setForm(p=>({...p,[key]:e.target.value}))} />
                 </div>
               ) : <div key={i} />)}
             </div>
@@ -306,9 +371,8 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
                 <span style={{color:'#7ec87e',fontWeight:'700',fontSize:'13px',letterSpacing:'1px'}}>
                   CALCULADORA DE PRECIO
                 </span>
-                <span style={{color:'#7ec87e',fontSize:'18px'}}>{mostrarCalc ? '\u25b2' : '\u25bc'}</span>
+                <span style={{color:'#7ec87e',fontSize:'18px'}}>{mostrarCalc ? '▲' : '▼'}</span>
               </div>
-
               {mostrarCalc && (() => {
                 const pIva = parseFloat(calc.precioIva) || 0
                 const mlBot = parseFloat(calc.mlBotella) || 750
@@ -317,36 +381,47 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
                 const costePorMl = pIva > 0 && mlBot > 0 ? pIva / mlBot : 0
                 const costeCopaVal = costePorMl * mlCopa
                 const costeBotVal = pIva
-                const multiCopa = calc.modoMulti === 'auto' ? multiplicadorProgresivo(costeCopaVal) : multiManual
-                const multiBot = calc.modoMulti === 'auto' ? multiplicadorProgresivo(costeBotVal) : multiManual
-                const precioCopa = costeCopaVal > 0 ? redondearPrecio(costeCopaVal * multiCopa, calc.redondeo) : null
+                // MEJORA 4: usar categoria del form para el multiplicador
+                const cat = form.categoria || ''
+                const multiCopa = calc.modoMulti === 'auto' ? multiplicadorProgresivo(costeCopaVal, cat) : multiManual
+                const multiBot = calc.modoMulti === 'auto' ? multiplicadorProgresivo(costeBotVal, cat) : multiManual
+                // MEJORA 1: aplicar precio minimo de copa
+                let precioCopa = costeCopaVal > 0 ? redondearPrecio(costeCopaVal * multiCopa, calc.redondeo) : null
+                if (precioCopa && parseFloat(precioCopa) < precioMinCopa) precioCopa = precioMinCopa.toFixed(2)
                 const precioBotella = costeBotVal > 0 ? redondearPrecio(costeBotVal * multiBot, calc.redondeo) : null
                 const inpCalc = {...inp, background:'#162016', fontSize:'13px'}
                 const lbl2 = { display:'block', fontSize:'11px', color:'#7ec87e', marginBottom:'3px', marginTop:'10px' }
-
+                // MEJORA 2: calculo de margen
+                const margenCopa = precioCopa && costeCopaVal > 0 ?
+                  (((parseFloat(precioCopa) - costeCopaVal) / parseFloat(precioCopa)) * 100).toFixed(0) : null
+                const margenBot = precioBotella && costeBotVal > 0 ?
+                  (((parseFloat(precioBotella) - costeBotVal) / parseFloat(precioBotella)) * 100).toFixed(0) : null
                 return (
                   <div>
                     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px'}}>
                       <div>
                         <label style={lbl2}>Precio compra con IVA</label>
                         <input style={inpCalc} type="number" placeholder="ej: 24.50"
-                          value={calc.precioIva} onChange={e=>setCalc(p=>({...p,precioIva:e.target.value}))} />
+                          value={calc.precioIva}
+                          onChange={e=>setCalc(p=>({...p,precioIva:e.target.value}))} />
                       </div>
                       <div>
                         <label style={lbl2}>ml por botella</label>
                         <input style={inpCalc} type="number" placeholder="ej: 750"
-                          value={calc.mlBotella} onChange={e=>setCalc(p=>({...p,mlBotella:e.target.value}))} />
+                          value={calc.mlBotella}
+                          onChange={e=>setCalc(p=>({...p,mlBotella:e.target.value}))} />
                       </div>
                       <div>
                         <label style={lbl2}>ml por copa</label>
                         <input style={inpCalc} type="number" placeholder="ej: 150"
-                          value={calc.mlCopa} onChange={e=>setCalc(p=>({...p,mlCopa:e.target.value}))} />
+                          value={calc.mlCopa}
+                          onChange={e=>setCalc(p=>({...p,mlCopa:e.target.value}))} />
                       </div>
                       <div>
                         <label style={lbl2}>Modo baremo</label>
                         <select style={inpCalc} value={calc.modoMulti}
                           onChange={e=>setCalc(p=>({...p,modoMulti:e.target.value}))}>
-                          <option value="auto">Progresivo (anti-diferencias)</option>
+                          <option value="auto">Progresivo por categoria</option>
                           <option value="manual">Multiplicador fijo</option>
                         </select>
                       </div>
@@ -361,8 +436,14 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
                           <option value="charm95">Siempre x.95</option>
                         </select>
                       </div>
+                      {/* MEJORA 1: precio minimo de copa */}
+                      <div>
+                        <label style={lbl2}>Precio minimo copa (€)</label>
+                        <input style={inpCalc} type="number" step="0.10" placeholder="ej: 2.50"
+                          value={precioMinCopa}
+                          onChange={e=>setPrecioMinCopa(parseFloat(e.target.value) || 0)} />
+                      </div>
                     </div>
-
                     {calc.modoMulti === 'manual' && (
                       <div style={{marginTop:'10px'}}>
                         <label style={lbl2}>Multiplicador fijo: x{parseFloat(calc.multiplicador).toFixed(1)}</label>
@@ -371,23 +452,26 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
                           onChange={e=>setCalc(p=>({...p,multiplicador:e.target.value}))} />
                       </div>
                     )}
-
                     {calc.modoMulti === 'auto' && pIva > 0 && (
                       <div style={{marginTop:'10px',background:'#0f1f0f',borderRadius:'8px',padding:'10px',
                         border:'1px solid #2a4a2a',fontSize:'11px',color:'#7ec87e',lineHeight:'1.6'}}>
-                        <strong>Baremo progresivo:</strong> ajusta el multiplicador segun el coste real para evitar grandes diferencias entre botellas baratas y caras.
+                        <strong>Baremo progresivo</strong> — categoria: <strong>{cat || 'default'}</strong>
                         {costeCopaVal > 0 && <span style={{color:'#aaa'}}> Copa: x{multiCopa.toFixed(2)}</span>}
                         {costeBotVal > 0 && <span style={{color:'#aaa',marginLeft:'8px'}}> Botella: x{multiBot.toFixed(2)}</span>}
                       </div>
                     )}
-
                     {pIva > 0 && (
                       <div style={{marginTop:'14px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px'}}>
                         {precioCopa && (
                           <div style={{background:'#0f1f0f',borderRadius:'10px',padding:'12px',border:'1px solid #3a5a3a'}}>
                             <div style={{color:'#888',fontSize:'11px',marginBottom:'4px'}}>COPA ({mlCopa}ml)</div>
-                            <div style={{color:'#555',fontSize:'11px'}}>Coste: {costeCopaVal.toFixed(2)} x{multiCopa.toFixed(2)}</div>
-                            <div style={{color:'#7ec87e',fontSize:'22px',fontWeight:'700',margin:'4px 0'}}>{precioCopa}</div>
+                            <div style={{color:'#555',fontSize:'11px'}}>Coste: {costeCopaVal.toFixed(2)}€ x{multiCopa.toFixed(2)}</div>
+                            {parseFloat(precioCopa) === precioMinCopa && (
+                              <div style={{color:'#fbbf24',fontSize:'10px',marginBottom:'2px'}}>⚠ Precio minimo aplicado</div>
+                            )}
+                            <div style={{color:'#7ec87e',fontSize:'22px',fontWeight:'700',margin:'4px 0'}}>{precioCopa}€</div>
+                            {/* MEJORA 2: mostrar margen */}
+                            {margenCopa && <div style={{color:'#4ade80',fontSize:'11px'}}>Margen: {margenCopa}%</div>}
                             <button onClick={()=>setForm(p=>({...p,precio_copa:precioCopa}))}
                               style={{...btn('#7ec87e'),fontSize:'11px',padding:'5px 12px',color:'#0f1f0f',width:'100%',marginTop:'6px'}}>
                               Aplicar precio copa
@@ -397,8 +481,10 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
                         {precioBotella && (
                           <div style={{background:'#0f1f0f',borderRadius:'10px',padding:'12px',border:'1px solid #3a5a3a'}}>
                             <div style={{color:'#888',fontSize:'11px',marginBottom:'4px'}}>BOTELLA ({mlBot}ml)</div>
-                            <div style={{color:'#555',fontSize:'11px'}}>Coste: {costeBotVal.toFixed(2)} x{multiBot.toFixed(2)}</div>
-                            <div style={{color:'#7ec87e',fontSize:'22px',fontWeight:'700',margin:'4px 0'}}>{precioBotella}</div>
+                            <div style={{color:'#555',fontSize:'11px'}}>Coste: {costeBotVal.toFixed(2)}€ x{multiBot.toFixed(2)}</div>
+                            <div style={{color:'#7ec87e',fontSize:'22px',fontWeight:'700',margin:'4px 0'}}>{precioBotella}€</div>
+                            {/* MEJORA 2: mostrar margen */}
+                            {margenBot && <div style={{color:'#4ade80',fontSize:'11px'}}>Margen: {margenBot}%</div>}
                             <button onClick={()=>setForm(p=>({...p,precio_botella:precioBotella}))}
                               style={{...btn('#7ec87e'),fontSize:'11px',padding:'5px 12px',color:'#0f1f0f',width:'100%',marginTop:'6px'}}>
                               Aplicar precio botella
@@ -407,24 +493,29 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
                         )}
                       </div>
                     )}
-
                     {(form.precio_copa || form.precio_botella) && (
                       <div style={{marginTop:'10px',display:'flex',gap:'8px',flexWrap:'wrap'}}>
                         {form.precio_copa && (
                           <span style={{background:'#1a3a1a',border:'1px solid #7ec87e',borderRadius:'6px',
                             padding:'4px 10px',fontSize:'12px',color:'#7ec87e'}}>
-                            Copa: {form.precio_copa}
+                            Copa: {form.precio_copa}€
                           </span>
                         )}
                         {form.precio_botella && (
                           <span style={{background:'#1a3a1a',border:'1px solid #7ec87e',borderRadius:'6px',
                             padding:'4px 10px',fontSize:'12px',color:'#7ec87e'}}>
-                            Botella: {form.precio_botella}
+                            Botella: {form.precio_botella}€
+                          </span>
+                        )}
+                        {/* MEJORA 2: mostrar precio coste guardado */}
+                        {calc.precioIva && (
+                          <span style={{background:'#222',border:'1px solid #555',borderRadius:'6px',
+                            padding:'4px 10px',fontSize:'12px',color:'#888'}}>
+                            Coste: {parseFloat(calc.precioIva).toFixed(2)}€ (se guardara)
                           </span>
                         )}
                       </div>
                     )}
-
                     {!pIva && (
                       <div style={{color:'#555',fontSize:'12px',marginTop:'10px',textAlign:'center',paddingBottom:'4px'}}>
                         Introduce el precio de compra con IVA para calcular
@@ -439,30 +530,31 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 16px',marginTop:'4px'}}>
               <div>
                 <label style={label}>Precio copa (editable)</label>
-                <input style={{...inp,border:'1px solid #3a5a3a'}} type="number"
-                  value={form.precio_copa??''} onChange={e=>setForm(p=>({...p,precio_copa:e.target.value}))} />
+                <input style={{...inp,border:'1px solid #3a5a3a'}} type="number" value={form.precio_copa??''}
+                  onChange={e=>setForm(p=>({...p,precio_copa:e.target.value}))} />
               </div>
               <div>
                 <label style={label}>Precio botella (editable)</label>
-                <input style={{...inp,border:'1px solid #3a5a3a'}} type="number"
-                  value={form.precio_botella??''} onChange={e=>setForm(p=>({...p,precio_botella:e.target.value}))} />
+                <input style={{...inp,border:'1px solid #3a5a3a'}} type="number" value={form.precio_botella??''}
+                  onChange={e=>setForm(p=>({...p,precio_botella:e.target.value}))} />
               </div>
             </div>
 
             <label style={label}>Descripcion</label>
-            <textarea style={{...inp,minHeight:'60px',resize:'vertical'}}
-              value={form.descripcion||''} onChange={e=>setForm(p=>({...p,descripcion:e.target.value}))} />
+            <textarea style={{...inp,minHeight:'60px',resize:'vertical'}} value={form.descripcion||''}
+              onChange={e=>setForm(p=>({...p,descripcion:e.target.value}))} />
 
             <label style={label}>Nota de cata</label>
-            <textarea style={{...inp,minHeight:'60px',resize:'vertical'}}
-              value={form.nota_cata||''} onChange={e=>setForm(p=>({...p,nota_cata:e.target.value}))} />
+            <textarea style={{...inp,minHeight:'60px',resize:'vertical'}} value={form.nota_cata||''}
+              onChange={e=>setForm(p=>({...p,nota_cata:e.target.value}))} />
 
             <label style={label}>Maridajes (separados por coma)</label>
-            <input style={inp} value={form.maridajes||''} onChange={e=>setForm(p=>({...p,maridajes:e.target.value}))} />
+            <input style={inp} value={form.maridajes||''}
+              onChange={e=>setForm(p=>({...p,maridajes:e.target.value}))} />
 
             <label style={label}>Notas IA (analisis automatico)</label>
-            <textarea style={{...inp,minHeight:'50px',resize:'vertical',color:'#a78bfa'}}
-              value={form.notas_ia||''} onChange={e=>setForm(p=>({...p,notas_ia:e.target.value}))} />
+            <textarea style={{...inp,minHeight:'50px',resize:'vertical',color:'#a78bfa'}} value={form.notas_ia||''}
+              onChange={e=>setForm(p=>({...p,notas_ia:e.target.value}))} />
 
             <div style={{marginTop:'16px',background:'#1e2a1e',border:'1px solid #4ade80',borderRadius:'10px',padding:'14px'}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'10px'}}>
@@ -475,9 +567,7 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
                 </button>
               </div>
               {(!form.puntuaciones || form.puntuaciones.length === 0) && (
-                <p style={{color:'#666',fontSize:'13px',margin:0,textAlign:'center'}}>
-                  Sin puntuaciones aun
-                </p>
+                <p style={{color:'#666',fontSize:'13px',margin:0,textAlign:'center'}}>Sin puntuaciones aun</p>
               )}
               {(form.puntuaciones || []).map((p, i) => (
                 <div key={i} style={{display:'flex',gap:'8px',alignItems:'center',marginBottom:'8px'}}>
@@ -535,4 +625,4 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
       </div>
     </div>
   )
-}
+      }

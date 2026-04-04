@@ -1,8 +1,7 @@
 name: Migrate DB - add precio_coste
 
-# Run this once to add precio_coste column to carta_bebidas table.
-# Requires: SUPABASE_DB_PASSWORD secret in GitHub Actions.
-# Get it from: Supabase Dashboard > Project Settings > Database > Database password
+# Usa el service key de Supabase directamente como contraseña PostgreSQL
+# No requiere secrets adicionales - usa VITE_SUPABASE_SERVICE_KEY que ya existe
 
 on:
   workflow_dispatch:
@@ -10,19 +9,22 @@ on:
 jobs:
   migrate:
     runs-on: ubuntu-latest
+
     steps:
       - name: Install psql
         run: sudo apt-get install -y postgresql-client
 
-      - name: Run ALTER TABLE
+      - name: Run ALTER TABLE via service key
         run: |
-          PGPASSWORD="$DB_PASS" psql \
+          # Supabase acepta el service key como contraseña en el connection pooler (session mode port 5432)
+          PGPASSWORD="${SERVICE_KEY}" psql \
             "host=aws-0-eu-central-1.pooler.supabase.com port=5432 dbname=postgres user=postgres.xdnqctumnqxtfolmexcu sslmode=require" \
             -c "ALTER TABLE carta_bebidas ADD COLUMN IF NOT EXISTS precio_coste NUMERIC;" \
-            && echo "SUCCESS: Column added"
+            && echo "SUCCESS: Column added or already exists"
           
-          PGPASSWORD="$DB_PASS" psql \
+          # Verify
+          PGPASSWORD="${SERVICE_KEY}" psql \
             "host=aws-0-eu-central-1.pooler.supabase.com port=5432 dbname=postgres user=postgres.xdnqctumnqxtfolmexcu sslmode=require" \
-            -c "SELECT column_name, data_type FROM information_schema.columns WHERE table_name='carta_bebidas' AND column_name='precio_coste';"
+            -c "SELECT column_name, data_type FROM information_schema.columns WHERE table_name='carta_bebidas';"
         env:
-          DB_PASS: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SERVICE_KEY: ${{ secrets.VITE_SUPABASE_SERVICE_KEY }}

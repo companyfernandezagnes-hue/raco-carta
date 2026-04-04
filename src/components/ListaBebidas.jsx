@@ -6,7 +6,7 @@ export default function ListaBebidas({ bebidas, onSeleccionar, modoVista = 'list
   )
 
   const destacados = bebidas.filter(b => b.destacado)
-  const resto      = bebidas.filter(b => !b.destacado)
+  const resto = bebidas.filter(b => !b.destacado)
 
   if (modoVista === 'grid-sm' || modoVista === 'grid-lg') {
     const cols = modoVista === 'grid-sm' ? 3 : 2
@@ -54,7 +54,7 @@ export default function ListaBebidas({ bebidas, onSeleccionar, modoVista = 'list
   )
 }
 
-// ── Cabecera de sección ──────────────────────────────────────────────
+// Cabecera de sección
 function SeccionHeader({ children }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '4px 0 14px' }}>
@@ -66,37 +66,22 @@ function SeccionHeader({ children }) {
   )
 }
 
-// ── Precio con carácter ──────────────────────────────────────────────
+// Precio con carácter
 function Precio({ botella, copa, grande = false }) {
   if (!botella && !copa) return null
   return (
     <div style={{ textAlign: 'right', flexShrink: 0 }}>
       {botella && (
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'flex-end', gap: '2px', lineHeight: 1 }}>
-          <span style={{
-            fontFamily: 'var(--font-brand)',
-            fontSize: grande ? '28px' : '22px',
-            fontWeight: '400',
-            color: 'var(--raco-black)',
-            letterSpacing: '-0.01em',
-          }}>
+          <span style={{ fontFamily: 'var(--font-brand)', fontSize: grande ? '28px' : '22px', fontWeight: '400', color: 'var(--raco-black)', letterSpacing: '-0.01em' }}>
             {Number(botella).toFixed(0)}
           </span>
-          <span style={{
-            fontFamily: 'var(--font-body)',
-            fontSize: grande ? '13px' : '11px',
-            fontWeight: '300',
-            color: 'var(--raco-stone)',
-            letterSpacing: '0.04em',
-            marginBottom: '2px',
-          }}>€</span>
+          <span style={{ fontFamily: 'var(--font-body)', fontSize: grande ? '13px' : '11px', fontWeight: '300', color: 'var(--raco-stone)', letterSpacing: '0.04em', marginBottom: '2px' }}>€</span>
         </div>
       )}
       {copa && (
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'flex-end', gap: '2px', marginTop: '2px' }}>
-          <span style={{ fontFamily: 'var(--font-body)', fontSize: '10px', color: 'var(--raco-stone)', letterSpacing: '0.06em' }}>
-            copa&nbsp;
-          </span>
+          <span style={{ fontFamily: 'var(--font-body)', fontSize: '10px', color: 'var(--raco-stone)', letterSpacing: '0.06em' }}>copa&nbsp;</span>
           <span style={{ fontFamily: 'var(--font-brand)', fontSize: grande ? '15px' : '13px', color: 'var(--raco-stone)', fontWeight: '400' }}>
             {Number(copa).toFixed(0)}
           </span>
@@ -107,29 +92,23 @@ function Precio({ botella, copa, grande = false }) {
   )
 }
 
-// ── Placeholder sin foto ─────────────────────────────────────────────
+// Placeholder sin foto
 function FotoPlaceholder({ bebida, width = 56, height = 72, fontSize = 20 }) {
   const coloresCat = {
-    vino:      { bg: '#E8DFC8', text: '#6B5A3E' },
-    tinto:     { bg: '#DDD0C0', text: '#6B3E3E' },
-    blanco:    { bg: '#EDE8D5', text: '#5A6B3E' },
-    rosado:    { bg: '#F0DDD8', text: '#8B4A4A' },
-    cava:      { bg: '#E8EDD5', text: '#4A5E3E' },
-    destilado: { bg: '#D8DDE8', text: '#3E4A6B' },
-    coctel:    { bg: '#EDD8E8', text: '#6B3E6B' },
-    cerveza:   { bg: '#E8E0D0', text: '#6B5A30' },
+    vino:     { bg: '#E8DFC8', text: '#6B5A3E' },
+    tinto:    { bg: '#DDD0C0', text: '#6B3E3E' },
+    blanco:   { bg: '#EDE8D5', text: '#5A6B3E' },
+    rosado:   { bg: '#F0DDD8', text: '#8B4A4A' },
+    cava:     { bg: '#E8EDD5', text: '#4A5E3E' },
+    destilado:{ bg: '#D8DDE8', text: '#3E4A6B' },
+    coctel:   { bg: '#EDD8E8', text: '#6B3E6B' },
+    cerveza:  { bg: '#E8E0D0', text: '#6B5A30' },
   }
   const cat = (bebida.subcategoria || bebida.categoria || '').toLowerCase()
   const color = Object.entries(coloresCat).find(([k]) => cat.includes(k))?.[1] || { bg: '#E6DFC8', text: '#8A7A5A' }
   const inicial = (bebida.nombre || '?').charAt(0).toUpperCase()
-
   return (
-    <div style={{
-      width, height, flexShrink: 0, borderRadius: '8px',
-      background: color.bg,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      border: '1px solid rgba(0,0,0,0.06)',
-    }}>
+    <div style={{ width, height, flexShrink: 0, borderRadius: '8px', background: color.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(0,0,0,0.06)' }}>
       <span style={{ fontFamily: 'var(--font-brand)', fontSize, color: color.text, fontWeight: '400', userSelect: 'none', opacity: 0.85 }}>
         {inicial}
       </span>
@@ -137,29 +116,23 @@ function FotoPlaceholder({ bebida, width = 56, height = 72, fontSize = 20 }) {
   )
 }
 
-// ── Tarjeta lista ────────────────────────────────────────────────────
+// Tarjeta lista
 function TarjetaBebida({ bebida, onSeleccionar, destacado, esFavorito, onToggleFavorito, enComparador, onToggleComparador }) {
   const puntuaciones = Array.isArray(bebida.puntuaciones) ? bebida.puntuaciones.filter(p => p.critico && p.nota) : []
-
   return (
     <div
       onClick={() => onSeleccionar(bebida)}
       style={{
         background: 'var(--raco-paper)',
         border: '1px solid ' + (destacado ? 'rgba(107,122,62,0.45)' : 'var(--raco-sand)'),
-        borderRadius: '14px',
-        padding: '14px',
-        cursor: 'pointer',
+        borderRadius: '14px', padding: '14px', cursor: 'pointer',
         transition: 'border-color 0.2s, box-shadow 0.2s, transform 0.15s',
-        display: 'flex', gap: '14px', alignItems: 'center',
-        position: 'relative',
+        display: 'flex', gap: '14px', alignItems: 'center', position: 'relative',
         animation: 'fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) both',
-
       }}
       onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--raco-khaki)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(107,122,62,0.10)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
       onMouseLeave={e => { e.currentTarget.style.borderColor = destacado ? 'rgba(107,122,62,0.45)' : 'var(--raco-sand)'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)' }}
     >
-      {/* Foto o placeholder */}
       {bebida.foto_url ? (
         <div style={{ width: '56px', height: '72px', flexShrink: 0, borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--raco-sand)' }}>
           <img src={bebida.foto_url} alt={bebida.nombre} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -168,9 +141,7 @@ function TarjetaBebida({ bebida, onSeleccionar, destacado, esFavorito, onToggleF
         <FotoPlaceholder bebida={bebida} />
       )}
 
-      {/* Contenido central */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        {/* Badge recomendado */}
         {destacado && (
           <div style={{ marginBottom: '5px' }}>
             <span style={{ fontFamily: 'var(--font-body)', fontWeight: '600', fontSize: '9px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--raco-khaki)', border: '1px solid rgba(107,122,62,0.35)', borderRadius: '4px', padding: '2px 7px', background: 'rgba(107,122,62,0.06)' }}>
@@ -178,24 +149,16 @@ function TarjetaBebida({ bebida, onSeleccionar, destacado, esFavorito, onToggleF
             </span>
           </div>
         )}
-
-        {/* Nombre */}
         <h3 style={{ fontFamily: 'var(--font-brand)', fontSize: '16px', fontWeight: '400', color: 'var(--raco-black)', marginBottom: '3px', lineHeight: '1.2', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {bebida.nombre}
         </h3>
-
-        {/* Bodega · Región · Añada */}
         <p style={{ fontFamily: 'var(--font-body)', fontSize: '11px', fontWeight: '300', color: 'var(--raco-stone)', marginBottom: '8px', letterSpacing: '0.03em' }}>
           {[bebida.bodega, bebida.region, bebida.anada].filter(Boolean).join(' · ')}
         </p>
-
-        {/* Tags */}
         <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', alignItems: 'center' }}>
           {bebida.subcategoria && <Tag>{bebida.subcategoria}</Tag>}
           {bebida.uvas && <Tag>{bebida.uvas.split(',')[0].trim()}</Tag>}
         </div>
-
-        {/* Puntuaciones críticos */}
         {puntuaciones.length > 0 && (
           <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', marginTop: '8px' }}>
             {puntuaciones.map((p, i) => <BadgeCritico key={i} nota={p.nota} critico={p.critico} />)}
@@ -203,7 +166,6 @@ function TarjetaBebida({ bebida, onSeleccionar, destacado, esFavorito, onToggleF
         )}
       </div>
 
-      {/* Precio + acciones */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
         <Precio botella={bebida.precio_botella} copa={bebida.precio_copa} />
         <div style={{ display: 'flex', gap: '4px' }}>
@@ -223,17 +185,22 @@ function TarjetaBebida({ bebida, onSeleccionar, destacado, esFavorito, onToggleF
   )
 }
 
-// ── Tarjeta grid ─────────────────────────────────────────────────────
+// Tarjeta grid
 function TarjetaGrid({ bebida, onSeleccionar, destacado, esPequena, esFavorito, onToggleFavorito, enComparador, onToggleComparador }) {
   return (
     <div
-      style={{ position: 'relative', background: 'var(--raco-paper)', border: '1px solid ' + (destacado ? 'rgba(107,122,62,0.45)' : 'var(--raco-sand)'), borderRadius: '12px', overflow: 'hidden', cursor: 'pointer', transition: 'all 0.2s', animation: 'fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) both' }}143
-      
+      style={{
+        position: 'relative',
+        background: 'var(--raco-paper)',
+        border: '1px solid ' + (destacado ? 'rgba(107,122,62,0.45)' : 'var(--raco-sand)'),
+        borderRadius: '12px', overflow: 'hidden', cursor: 'pointer',
+        transition: 'all 0.2s',
+        animation: 'fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) both',
+      }}
       onClick={() => onSeleccionar(bebida)}
       onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--raco-khaki)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(107,122,62,0.10)'; e.currentTarget.style.transform = 'translateY(-2px)' }}
       onMouseLeave={e => { e.currentTarget.style.borderColor = destacado ? 'rgba(107,122,62,0.45)' : 'var(--raco-sand)'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)' }}
     >
-      {/* Imagen / placeholder */}
       <div style={{ width: '100%', aspectRatio: esPequena ? '2/3' : '3/4', overflow: 'hidden', background: '#EAE4D4' }}>
         {bebida.foto_url ? (
           <img src={bebida.foto_url} alt={bebida.nombre} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -244,7 +211,6 @@ function TarjetaGrid({ bebida, onSeleccionar, destacado, esPequena, esFavorito, 
         )}
       </div>
 
-      {/* Info */}
       <div style={{ padding: esPequena ? '7px 8px' : '10px 12px' }}>
         <p style={{ fontFamily: 'var(--font-brand)', fontSize: esPequena ? '12px' : '14px', color: 'var(--raco-black)', lineHeight: '1.2', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
           {bebida.nombre}
@@ -269,7 +235,6 @@ function TarjetaGrid({ bebida, onSeleccionar, destacado, esPequena, esFavorito, 
         )}
       </div>
 
-      {/* Botón favorito */}
       {onToggleFavorito && (
         <button onClick={e => { e.stopPropagation(); onToggleFavorito(bebida) }} style={{ position: 'absolute', top: '6px', right: '6px', background: 'rgba(237,229,208,0.85)', backdropFilter: 'blur(4px)', border: 'none', borderRadius: '50%', width: '26px', height: '26px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', color: esFavorito ? '#C4786A' : 'var(--raco-stone)', transition: 'all 0.2s' }}>
           {esFavorito ? '♥' : '♡'}
@@ -279,16 +244,16 @@ function TarjetaGrid({ bebida, onSeleccionar, destacado, esPequena, esFavorito, 
   )
 }
 
-// ── Placeholder grid con inicial grande ──────────────────────────────
+// Placeholder grid con inicial grande
 function PlaceholderGrid({ bebida, esPequena }) {
   const coloresCat = {
-    vino:      { bg: '#DDD0BC', text: '#6B5A3E' },
-    tinto:     { bg: '#D8C8B8', text: '#6B3E3E' },
-    blanco:    { bg: '#E5E0CC', text: '#5A6B3E' },
-    rosado:    { bg: '#EDD4CC', text: '#8B4A4A' },
-    cava:      { bg: '#E0E5CC', text: '#4A5E3E' },
-    destilado: { bg: '#CCCED8', text: '#3E4A6B' },
-    coctel:    { bg: '#E0CCDC', text: '#6B3E6B' },
+    vino:     { bg: '#DDD0BC', text: '#6B5A3E' },
+    tinto:    { bg: '#D8C8B8', text: '#6B3E3E' },
+    blanco:   { bg: '#E5E0CC', text: '#5A6B3E' },
+    rosado:   { bg: '#EDD4CC', text: '#8B4A4A' },
+    cava:     { bg: '#E0E5CC', text: '#4A5E3E' },
+    destilado:{ bg: '#CCCED8', text: '#3E4A6B' },
+    coctel:   { bg: '#E0CCDC', text: '#6B3E6B' },
   }
   const cat = (bebida.subcategoria || bebida.categoria || '').toLowerCase()
   const color = Object.entries(coloresCat).find(([k]) => cat.includes(k))?.[1] || { bg: '#DDD8C8', text: '#7A6A4A' }
@@ -300,16 +265,16 @@ function PlaceholderGrid({ bebida, esPequena }) {
   )
 }
 
-// ── Badge crítico ────────────────────────────────────────────────────
+// Badge crítico
 function BadgeCritico({ nota, critico, mini }) {
   const colores = {
-    'Decanter':        { bg: 'rgba(124,58,237,0.08)', border: 'rgba(124,58,237,0.3)', text: '#6B4AAA' },
-    'Wine Spectator':  { bg: 'rgba(180,30,30,0.07)',  border: 'rgba(180,30,30,0.25)', text: '#8B3A3A' },
-    'Robert Parker':   { bg: 'rgba(180,80,20,0.07)',  border: 'rgba(180,80,20,0.25)', text: '#8B5A2A' },
-    'Penin':           { bg: 'rgba(40,120,60,0.08)',  border: 'rgba(40,120,60,0.25)', text: '#3A7A4A' },
-    'James Suckling':  { bg: 'rgba(30,80,160,0.07)',  border: 'rgba(30,80,160,0.25)', text: '#3A5A8B' },
-    'Vinous':          { bg: 'rgba(160,120,20,0.07)', border: 'rgba(160,120,20,0.25)','text': '#7A6A2A' },
-    'Otro':            { bg: 'rgba(107,122,62,0.07)', border: 'rgba(107,122,62,0.25)', text: 'var(--raco-stone)' },
+    'Decanter':       { bg: 'rgba(124,58,237,0.08)', border: 'rgba(124,58,237,0.3)',  text: '#6B4AAA' },
+    'Wine Spectator': { bg: 'rgba(180,30,30,0.07)',  border: 'rgba(180,30,30,0.25)',  text: '#8B3A3A' },
+    'Robert Parker':  { bg: 'rgba(180,80,20,0.07)',  border: 'rgba(180,80,20,0.25)',  text: '#8B5A2A' },
+    'Penin':          { bg: 'rgba(40,120,60,0.08)',  border: 'rgba(40,120,60,0.25)',  text: '#3A7A4A' },
+    'James Suckling': { bg: 'rgba(30,80,160,0.07)',  border: 'rgba(30,80,160,0.25)', text: '#3A5A8B' },
+    'Vinous':         { bg: 'rgba(160,120,20,0.07)', border: 'rgba(160,120,20,0.25)',text: '#7A6A2A' },
+    'Otro':           { bg: 'rgba(107,122,62,0.07)', border: 'rgba(107,122,62,0.25)',text: 'var(--raco-stone)' },
   }
   const c = colores[critico] || colores['Otro']
   return (
@@ -320,7 +285,7 @@ function BadgeCritico({ nota, critico, mini }) {
   )
 }
 
-// ── Tag tipo/uva ─────────────────────────────────────────────────────
+// Tag tipo/uva
 function Tag({ children }) {
   return (
     <span style={{ fontFamily: 'var(--font-body)', fontSize: '10px', padding: '3px 9px', borderRadius: '4px', background: 'rgba(107,122,62,0.07)', color: 'var(--raco-stone)', border: '1px solid var(--raco-sand)', letterSpacing: '0.05em', textTransform: 'capitalize' }}>

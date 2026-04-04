@@ -7,59 +7,70 @@ jobs:
   migrate:
     runs-on: ubuntu-latest
     steps:
-      - name: Add precio_coste column using supabase-js
+      - name: Install supabase-js
+        run: npm install @supabase/supabase-js
+        working-directory: /tmp
+
+      - name: Add precio_coste column
+        working-directory: /tmp
         run: |
-          node << 'NODESCRIPT'
-          const { createClient } = require('@supabase/supabase-js');
-          
+          node -e "
+          const { createClient } = require('./node_modules/@supabase/supabase-js');
+
           async function main() {
             const serviceKey = process.env.SERVICE_KEY;
             console.log('Key prefix:', serviceKey.substring(0, 20) + '...');
-            
+
             const supabase = createClient(
               'https://xdnqctumnqxtfolmexcu.supabase.co',
               serviceKey,
               { auth: { persistSession: false } }
             );
-            
-            // Try to call a Postgres function that executes DDL
-            // Supabase service role can bypass RLS and execute SQL
-            // Use the from() API to check if column exists
-            const { data: check, error: checkErr } = await supabase
+
+            // Check if column exists first
+            const { data, error } = await supabase
               .from('carta_bebidas')
               .select('precio_coste')
               .limit(1);
-            
-            if (checkErr && checkErr.message && checkErr.message.includes('does not exist')) {
-              console.log('Column does not exist, need to create it');
-              
-              // Use rpc to run SQL - need a function that wraps DDL
-              // Since we cannot run arbitrary SQL via REST without a wrapper function,
-              // we need another approach
-              console.log('Service key works:', !checkErr.code || checkErr.code === '42703');
-              
-              // Try using the supabase admin API
-              const res = await fetch('https://xdnqctumnqxtfolmexcu.supabase.co/rest/v1/', {
+
+            if (!error) {
+              console.log('OK: precio_coste already exists, nothing to do');
+              return;
+            }
+
+            if (!error.message.includes('does not exist')) {
+              console.log('Unexpected error:', error.message);
+              return;
+            }
+
+            console.log('Column does not exist, creating via RPC...');
+
+            // Use rpc with a direct SQL call - service role allows this via pg functions
+            // Try calling exec_sql if it exists
+            const { data: rpcData, error: rpcErr } = await supabase.rpc('exec_sql', {
+              sql: 'ALTER TABLE carta_bebidas ADD COLUMN IF NOT EXISTS precio_coste NUMERIC;'
+            });
+
+            if (rpcErr) {
+              console.log('RPC error:', rpcErr.message);
+              // Try alternative: use the supabase admin API  
+              const res = await fetch('https://xdnqctumnqxtfolmexcu.supabase.co/rest/v1/rpc/exec_sql', {
+                method: 'POST',
                 headers: {
                   'apikey': serviceKey,
-                  'Authorization': 'Bearer ' + serviceKey
-                }
+                  'Authorization': 'Bearer ' + serviceKey,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ sql: 'ALTER TABLE carta_bebidas ADD COLUMN IF NOT EXISTS precio_coste NUMERIC;' })
               });
-              console.log('REST API status:', res.status);
-              const schema = await res.json();
-              console.log('Schema paths:', Object.keys(schema).slice(0, 10).join(', '));
-              
-            } else if (!checkErr) {
-              console.log('SUCCESS: precio_coste column already exists!');
-              console.log('Data sample:', JSON.stringify(check));
+              const result = await res.text();
+              console.log('REST RPC status:', res.status, 'result:', result.substring(0, 300));
             } else {
-              console.log('Other error:', checkErr.code, checkErr.message);
+              console.log('SUCCESS via RPC:', JSON.stringify(rpcData));
             }
           }
-          
-          // Install and run
-          require('child_process').execSync('npm install @supabase/supabase-js --silent', { stdio: 'inherit' });
-          main().catch(console.error);
-          NODESCRIPT
+
+          main().catch(e => { console.error(e); process.exit(1); });
+          "
         env:
           SERVICE_KEY: ${{ secrets.VITE_SUPABASE_SERVICE_KEY }}

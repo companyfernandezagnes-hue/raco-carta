@@ -7,24 +7,22 @@ jobs:
   migrate:
     runs-on: ubuntu-latest
     steps:
-      - name: Run ALTER TABLE via Supabase REST
+      - name: Add precio_coste column via Supabase Management API
         run: |
-          curl -s -o /tmp/result.json -w "%{http_code}" \
-            -X POST "https://xdnqctumnqxtfolmexcu.supabase.co/rest/v1/rpc/exec_sql" \
-            -H "apikey: ${{ secrets.VITE_SUPABASE_SERVICE_KEY }}" \
-            -H "Authorization: Bearer ${{ secrets.VITE_SUPABASE_SERVICE_KEY }}" \
+          # Use the Supabase Management API with service key to run SQL
+          # The service key allows DDL operations
+          HTTP_CODE=$(curl -s -o /tmp/result.json -w "%{http_code}" \
+            -X POST "https://api.supabase.com/v1/projects/xdnqctumnqxtfolmexcu/database/query" \
+            -H "Authorization: Bearer $SERVICE_KEY" \
             -H "Content-Type: application/json" \
-            -d '{"sql":"ALTER TABLE carta_bebidas ADD COLUMN IF NOT EXISTS precio_coste NUMERIC;"}' \
-            || true
+            -d '{"query":"ALTER TABLE carta_bebidas ADD COLUMN IF NOT EXISTS precio_coste NUMERIC;"}')
+          echo "HTTP $HTTP_CODE"
+          cat /tmp/result.json
 
-          echo "--- direct ALTER via pg-meta ---"
-          curl -s -X POST "https://xdnqctumnqxtfolmexcu.supabase.co/pg-meta/v1/query" \
-            -H "Authorization: Bearer ${{ secrets.VITE_SUPABASE_SERVICE_KEY }}" \
+          echo "--- Verify column exists ---"
+          curl -s -X POST "https://api.supabase.com/v1/projects/xdnqctumnqxtfolmexcu/database/query" \
+            -H "Authorization: Bearer $SERVICE_KEY" \
             -H "Content-Type: application/json" \
-            -d '{"query":"ALTER TABLE carta_bebidas ADD COLUMN IF NOT EXISTS precio_coste NUMERIC;"}' \
-            || true
-
-          echo "--- verify columns ---"
-          curl -s "https://xdnqctumnqxtfolmexcu.supabase.co/rest/v1/carta_bebidas?select=precio_coste&limit=1" \
-            -H "apikey: ${{ secrets.VITE_SUPABASE_SERVICE_KEY }}" \
-            -H "Authorization: Bearer ${{ secrets.VITE_SUPABASE_SERVICE_KEY }}"
+            -d '{"query":"SELECT column_name, data_type FROM information_schema.columns WHERE table_name = \u0027carta_bebidas\u0027 AND column_name = \u0027precio_coste\u0027;"}'
+        env:
+          SERVICE_KEY: ${{ secrets.VITE_SUPABASE_SERVICE_KEY }}

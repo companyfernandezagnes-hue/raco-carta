@@ -1,13 +1,18 @@
 import { useRef } from 'react'
 
 export default function Header({ vista, onVolver, onMaridaje, onAdmin }) {
-  const pressTimer = useRef(null)
+  const tapCount = useRef(0)
+  const tapTimer = useRef(null)
 
-  function startPress() {
-    pressTimer.current = setTimeout(() => onAdmin?.(), 5000)
-  }
-  function cancelPress() {
-    clearTimeout(pressTimer.current)
+  function handleLogoTap() {
+    tapCount.current += 1
+    clearTimeout(tapTimer.current)
+    if (tapCount.current >= 3) {
+      tapCount.current = 0
+      onAdmin?.()
+      return
+    }
+    tapTimer.current = setTimeout(() => { tapCount.current = 0 }, 700)
   }
 
   return (
@@ -22,70 +27,28 @@ export default function Header({ vista, onVolver, onMaridaje, onAdmin }) {
       WebkitBackdropFilter: 'blur(12px)',
     }}>
       {vista === 'carta' ? (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ width: '80px' }} />
-
-          <div
-            onDoubleClick={() => onAdmin?.()}
-            onTouchStart={startPress}
-            onTouchEnd={cancelPress}
-            onTouchCancel={cancelPress}
-            style={{ userSelect: 'none', cursor: 'default', textAlign: 'center' }}
-          >
-            <div style={{
-              fontFamily: 'var(--font-brand)',
-              fontWeight: '400',
-              fontSize: '38px',
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              color: 'var(--raco-black)',
-              lineHeight: 1,
-            }}>
-              RAC<span style={{ color: 'var(--raco-khaki)' }}>O</span>
-            </div>
-            <div style={{
-              fontFamily: 'var(--font-body)',
-              fontWeight: '300',
-              fontSize: '9px',
-              letterSpacing: '0.42em',
-              textTransform: 'uppercase',
-              color: 'var(--raco-stone)',
-              marginTop: '5px',
-              paddingLeft: '1px',
-            }}>
-              Carta de Bebidas
-            </div>
+        <div
+          onClick={handleLogoTap}
+          style={{ userSelect: 'none', cursor: 'default', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}
+        >
+          <img
+            src={`${import.meta.env.BASE_URL}logo-raco.png`}
+            alt="RACO"
+            draggable={false}
+            style={{ height: '92px', width: 'auto', display: 'block' }}
+          />
+          <div style={{
+            fontFamily: 'var(--font-body)',
+            fontWeight: '300',
+            fontSize: '10px',
+            letterSpacing: '0.42em',
+            textTransform: 'uppercase',
+            color: 'var(--raco-stone)',
+            paddingLeft: '1px',
+            marginTop: '2px',
+          }}>
+            Carta de Bebidas
           </div>
-
-          <button
-            onClick={onMaridaje}
-            style={{
-              fontFamily: 'var(--font-body)',
-              fontWeight: '400',
-              fontSize: '11px',
-              letterSpacing: '0.18em',
-              textTransform: 'uppercase',
-              color: 'var(--raco-stone)',
-              border: '1px solid var(--raco-sand)',
-              borderRadius: '20px',
-              padding: '8px 18px',
-              background: 'transparent',
-              transition: 'all 0.2s',
-              cursor: 'pointer',
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.borderColor = 'var(--raco-khaki)'
-              e.currentTarget.style.color = 'var(--raco-khaki)'
-              e.currentTarget.style.background = 'rgba(107,122,62,0.06)'
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.borderColor = 'var(--raco-sand)'
-              e.currentTarget.style.color = 'var(--raco-stone)'
-              e.currentTarget.style.background = 'transparent'
-            }}
-          >
-            Maridaje
-          </button>
         </div>
       ) : (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative' }}>
@@ -119,17 +82,12 @@ export default function Header({ vista, onVolver, onMaridaje, onAdmin }) {
           </button>
 
           <div style={{ textAlign: 'center' }}>
-            <div style={{
-              fontFamily: 'var(--font-brand)',
-              fontWeight: '400',
-              fontSize: '28px',
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              color: 'var(--raco-black)',
-              lineHeight: 1,
-            }}>
-              RAC<span style={{ color: 'var(--raco-khaki)' }}>O</span>
-            </div>
+            <img
+              src={`${import.meta.env.BASE_URL}logo-raco.png`}
+              alt="RACO"
+              draggable={false}
+              style={{ height: '60px', width: 'auto', display: 'block' }}
+            />
           </div>
         </div>
       )}

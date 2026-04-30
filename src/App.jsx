@@ -53,6 +53,7 @@ export default function App() {
   const [filtroTipo, setFiltroTipo] = useState('')
   const [filtroOrden, setFiltroOrden] = useState('')
   const [filtroGraduacion, setFiltroGraduacion] = useState('')
+  const [filtroFormato, setFiltroFormato] = useState('') // '', 'copa', 'botella', 'ambos'
   const [filtrosAbiertos, setFiltrosAbiertos] = useState(false)
   const [modoVista, setModoVista] = useState('lista')
   const [favoritos, setFavoritos] = useState(() => { try { return JSON.parse(localStorage.getItem('favoritos') || '[]') } catch { return [] } })
@@ -60,9 +61,14 @@ export default function App() {
   const [mostrarComparador, setMostrarComparador] = useState(false)
 
   async function cargar() {
-    const { data, error } = await supabase.from('carta_bebidas').select('*').eq('disponible', true).order('orden', { ascending: true })
-    if (!error) setBebidas(data)
-    setLoading(false)
+    try {
+      const { data, error } = await supabase.from('carta_bebidas').select('*').eq('disponible', true).order('orden', { ascending: true })
+      if (!error && Array.isArray(data)) setBebidas(data)
+    } catch (e) {
+      console.error('Error cargando carta:', e)
+    } finally {
+      setLoading(false)
+    }
   }
   useEffect(() => { cargar() }, [])
   function toggleFavorito(bebida) { setFavoritos(prev => { const n = prev.includes(bebida.id) ? prev.filter(id => id !== bebida.id) : [...prev, bebida.id]; localStorage.setItem('favoritos', JSON.stringify(n)); return n }) }
@@ -70,15 +76,16 @@ export default function App() {
   function abrirDetalle(bebida) { setBebidaseleccionada(bebida); setVista('detalle') }
   function volverODetalle(accion, rel) { if (accion === 'relacionado' && rel) { setBebidaseleccionada(rel) } else { setBebidaseleccionada(null); setVista('carta') } }
   function volver() { setBebidaseleccionada(null); setVista('carta') }
-  function limpiarFiltros() { setBusqueda(''); setFiltroPais(''); setFiltroTipo(''); setFiltroOrden(''); setFiltroGraduacion('') }
+  function limpiarFiltros() { setBusqueda(''); setFiltroPais(''); setFiltroTipo(''); setFiltroOrden(''); setFiltroGraduacion(''); setFiltroFormato('') }
 
   const paises = [...new Set(bebidas.map(b => b.pais).filter(Boolean))].sort()
   const tipos = [...new Set(bebidas.map(b => b.subcategoria).filter(Boolean))].sort()
-  const hayFiltrosActivos = busqueda || filtroPais || filtroTipo || filtroOrden || filtroGraduacion
-  const numFiltros = [filtroPais, filtroTipo, filtroOrden, filtroGraduacion].filter(Boolean).length
+  const hayFiltrosActivos = busqueda || filtroPais || filtroTipo || filtroOrden || filtroGraduacion || filtroFormato
+  const numFiltros = [filtroPais, filtroTipo, filtroOrden, filtroGraduacion, filtroFormato].filter(Boolean).length
   const opcionesTipo = [{ value: '', label: 'Tipo: todos' }, ...tipos.map(t => ({ value: t, label: t }))]
   const opcionesPais = [{ value: '', label: 'País: todos' }, ...paises.map(p => ({ value: p, label: p }))]
   const opcionesGraduacion = [{ value: '', label: 'Graduación: todas' }, { value: 'baja', label: '< 12% (ligero)' }, { value: 'media', label: '12–14% (medio)' }, { value: 'alta', label: '> 14% (potente)' }]
+  const opcionesFormato = [{ value: '', label: 'Formato: todos' }, { value: 'copa', label: 'Solo por copa' }, { value: 'botella', label: 'Solo por botella' }, { value: 'ambos', label: 'Copa y botella' }]
   const opcionesOrden = [{ value: '', label: 'Orden: por defecto' }, { value: 'precio_asc', label: 'Precio: menor a mayor' }, { value: 'precio_desc', label: 'Precio: mayor a menor' }, { value: 'nombre_asc', label: 'Nombre: A–Z' }]
 
   let bebidasFiltradas = bebidas.filter(b => {
@@ -87,9 +94,29 @@ export default function App() {
     if (filtroPais && b.pais !== filtroPais) return false
     if (filtroTipo && b.subcategoria !== filtroTipo) return false
     if (filtroGraduacion) { const g = parseFloat(b.graduacion); if (isNaN(g)) return false; if (filtroGraduacion === 'baja' && g >= 12) return false; if (filtroGraduacion === 'media' && (g < 12 || g > 14)) return false; if (filtroGraduacion === 'alta' && g <= 14) return false; }
+    if (filtroFormato) {
+      const tieneCopa = b.precio_copa != null && b.precio_copa !== '' && Number(b.precio_copa) > 0
+      const tieneBot = b.precio_botella != null && b.precio_botella !== '' && Number(b.precio_botella) > 0
+      if (filtroFormato === 'copa' && !(tieneCopa && !tieneBot)) return false
+      if (filtroFormato === 'botella' && !(tieneBot && !tieneCopa)) return false
+      if (filtroFormato === 'ambos' && !(tieneCopa && tieneBot)) return false
+    }
     if (categoriaActiva === 'todas') return true
-    if (categoriaActiva === 'vino') { if (subcategoriaActiva) return b.categoria === 'vino' && b.subcategoria === subcategoriaActiva; return b.categoria === 'vino' }
-    return b.categoria === categoriaActiva
+    const sub = (b.subcategoria || '').toLowerCase()
+    // Match grupo principal (espumoso, blanco, rosado, tinto, dulce)
+    let okGrupo = false
+    if (categoriaActiva === 'espumoso') okGrupo = sub === 'espumoso'
+    else if (categoriaActiva === 'blanco') okGrupo = sub.startsWith('blanco')
+    else if (categoriaActiva === 'rosado') okGrupo = sub === 'rosado'
+    else if (categoriaActiva === 'tinto') okGrupo = sub.startsWith('tinto')
+    else if (categoriaActiva === 'dulce') okGrupo = sub === 'dulce'
+    else okGrupo = b.categoria === categoriaActiva
+    if (!okGrupo) return false
+    // Origen (mallorca / nacional / internacional) — solo aplica a blancos y tintos
+    if (subcategoriaActiva && (categoriaActiva === 'blanco' || categoriaActiva === 'tinto')) {
+      return sub.includes(subcategoriaActiva)
+    }
+    return true
   })
   if (filtroOrden === 'precio_asc') bebidasFiltradas = [...bebidasFiltradas].sort((a,b) => (a.precio_botella||0)-(b.precio_botella||0))
   if (filtroOrden === 'precio_desc') bebidasFiltradas = [...bebidasFiltradas].sort((a,b) => (b.precio_botella||0)-(a.precio_botella||0))
@@ -122,6 +149,21 @@ export default function App() {
                 {numFiltros > 0 && <span style={{ background: 'var(--raco-paper)', color: 'var(--raco-khaki)', borderRadius: '50%', width: '16px', height: '16px', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>{numFiltros}</span>}
               </button>
             </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
+              <button onClick={() => setVista('maridaje')} style={{
+                fontFamily: 'var(--font-body)', fontWeight: '300', fontSize: '10px',
+                letterSpacing: '0.20em', textTransform: 'uppercase',
+                color: 'var(--raco-stone)', border: '1px solid var(--raco-sand)',
+                borderRadius: '14px', padding: '5px 14px', background: 'transparent',
+                cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--raco-khaki)'; e.currentTarget.style.color = 'var(--raco-khaki)' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--raco-sand)'; e.currentTarget.style.color = 'var(--raco-stone)' }}>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v6"/><path d="M5 8a7 7 0 1 0 14 0"/><path d="M12 14v8"/></svg>
+                Maridaje
+              </button>
+            </div>
             {filtrosAbiertos && (
               <div style={{ background: 'var(--raco-paper)', border: '1px solid var(--raco-sand)', borderRadius: '10px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '8px', animation: 'fadeDown 0.18s ease both' }}>
                 <div style={{ display: 'flex', gap: '8px' }}>
@@ -129,6 +171,7 @@ export default function App() {
                   <SelectRaco value={filtroPais} onChange={setFiltroPais} options={opcionesPais} placeholder="País: todos" />
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
+                  <SelectRaco value={filtroFormato} onChange={setFiltroFormato} options={opcionesFormato} placeholder="Formato: todos" />
                   <SelectRaco value={filtroGraduacion} onChange={setFiltroGraduacion} options={opcionesGraduacion} placeholder="Graduación: todas" />
                 </div>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -150,12 +193,36 @@ export default function App() {
           </div>
           <ListaBebidas bebidas={modoVista==='favoritos'?bebidasFiltradas.filter(b=>favoritos.includes(b.id)):bebidasFiltradas} onSeleccionar={abrirDetalle} modoVista={modoVista==='favoritos'?'lista':modoVista} favoritos={favoritos} onToggleFavorito={toggleFavorito} comparador={comparador} onToggleComparador={toggleComparador} />
           {mostrarComparador && comparador.length===2 && <ComparadorModal bebida1={comparador[0]} bebida2={comparador[1]} onCerrar={() => setMostrarComparador(false)} />}
+          <FooterRaco />
         </div>
       )}
       {vista==='detalle' && bebidaseleccionada && <DetalleBebida bebida={bebidaseleccionada} onVolver={volverODetalle} todasBebidas={bebidas} />}
       {vista==='maridaje' && <Maridaje bebidas={bebidas} onSeleccionar={abrirDetalle} onVolver={volver} />}
       {adminAbierto && <PanelAdmin bebidas={bebidas} onCerrar={() => setAdminAbierto(false)} onActualizar={cargar} />}
     </div>
+  )
+}
+
+function FooterRaco() {
+  return (
+    <footer style={{ padding: '32px 16px 40px', textAlign: 'center', borderTop: '1px solid var(--raco-sand)', marginTop: '20px' }}>
+      <a
+        href="https://instagram.com/racoblanquerna"
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: 'var(--raco-stone)', textDecoration: 'none', fontFamily: 'var(--font-body)', fontSize: '12px', letterSpacing: '0.18em', textTransform: 'uppercase', transition: 'color 0.2s' }}
+        onMouseEnter={e => e.currentTarget.style.color = 'var(--raco-khaki)'}
+        onMouseLeave={e => e.currentTarget.style.color = 'var(--raco-stone)'}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="5" ry="5"/>
+          <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+          <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+        </svg>
+        @racoblanquerna
+      </a>
+      <p style={{ fontFamily: 'var(--font-body)', fontSize: '10px', letterSpacing: '0.24em', color: 'var(--raco-stone)', marginTop: '14px', opacity: 0.6 }}>RACO · Palma de Mallorca</p>
+    </footer>
   )
 }
 

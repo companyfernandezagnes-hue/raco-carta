@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabaseAdmin } from '../lib/supabaseAdmin'
 
-const PASS_HASH = 'Y21GamJ6SXdNalU9' // v3 - usando Google Gemini AP
+const PASS_HASH = 'TVRJek5BPT0=' // v4 - contraseña actual: 1234
 function verificarPassword(input) {
   try { return btoa(btoa(input)) === PASS_HASH } catch { return false }
 }
@@ -67,20 +67,36 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
     } else {
       parts.push({ text: `Rellena la ficha completa en JSON para esta bebida: ${nombre}` })
     }
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts }],
-          generationConfig: { temperature: 0.2, maxOutputTokens: 1000 }
-        })
-      }
-    )
-    if (!res.ok) throw new Error(`Gemini error: ${res.status}`)
+    // Probamos modelos en orden: 2.5-flash (actual), 2.0-flash (fallback)
+    const modelos = ['gemini-2.5-flash', 'gemini-2.0-flash']
+    let res, errorBody
+    for (const modelo of modelos) {
+      res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts }],
+            generationConfig: { temperature: 0.2, maxOutputTokens: 1000, responseMimeType: 'application/json' }
+          })
+        }
+      )
+      if (res.ok) break
+      errorBody = await res.text()
+      console.warn(`Modelo ${modelo} falló (${res.status}):`, errorBody)
+    }
+    if (!res.ok) {
+      let detalle = ''
+      try {
+        const j = JSON.parse(errorBody || '{}')
+        detalle = j?.error?.message || errorBody || ''
+      } catch { detalle = errorBody || '' }
+      throw new Error(`Gemini ${res.status}: ${detalle.slice(0, 200)}`)
+    }
     const data = await res.json()
-    const text = data.candidates[0].content.parts[0].text.trim()
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim()
+    if (!text) throw new Error('Respuesta vacía de Gemini')
     const json = JSON.parse(text.replace(/```json?/g,'').replace(/```/g,'').trim())
     setForm(prev => ({
       ...prev,
@@ -115,7 +131,25 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
   })
   const [mostrarCalc, setMostrarCalc] = useState(false)
   const fotoInputRef = useRef(null)
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY
+  // API key Gemini: prioridad localStorage > variable de entorno
+  const [apiKey, setApiKey] = useState(() => {
+    try { return localStorage.getItem('gemini_api_key') || import.meta.env.VITE_GEMINI_API_KEY || '' }
+    catch { return import.meta.env.VITE_GEMINI_API_KEY || '' }
+  })
+  const [mostrarConfigKey, setMostrarConfigKey] = useState(false)
+  const [apiKeyInput, setApiKeyInput] = useState('')
+  function guardarApiKey() {
+    const k = (apiKeyInput || '').trim()
+    if (!k) return
+    try { localStorage.setItem('gemini_api_key', k) } catch {}
+    setApiKey(k)
+    setApiKeyInput('')
+    setMostrarConfigKey(false)
+  }
+  function borrarApiKey() {
+    try { localStorage.removeItem('gemini_api_key') } catch {}
+    setApiKey(import.meta.env.VITE_GEMINI_API_KEY || '')
+  }
 
   function login() {
     if (verificarPassword(pass)) { setFase('lista'); setError('') }
@@ -271,11 +305,38 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
               </div>
             </div>
             {/* Leyenda de precios */}
-            <div style={{display:'flex',gap:'8px',marginBottom:'12px',flexWrap:'wrap',fontSize:'11px'}}>
+            <div style={{display:'flex',gap:'8px',marginBottom:'12px',flexWrap:'wrap',fontSize:'11px',alignItems:'center'}}>
               <span style={{color:'#7ec87e'}}>● con precio</span>
               <span style={{color:'#f87171'}}>● sin precio</span>
               <span style={{color:'#fbbf24'}}>● no disponible</span>
+              <span style={{flex:1}} />
+              <button style={{...btn(apiKey?'#2a2a2a':'#7c3aed'),fontSize:'11px',padding:'4px 10px'}}
+                onClick={()=>setMostrarConfigKey(v=>!v)}>
+                {apiKey ? '🔑 API key OK' : '⚠ Configurar API key'}
+              </button>
             </div>
+            {mostrarConfigKey && (
+              <div style={{background:'#2a2a2a',padding:'12px',borderRadius:'8px',marginBottom:'12px'}}>
+                <p style={{margin:'0 0 8px',fontSize:'12px',color:'#aaa'}}>
+                  Pega tu API key de Gemini (la guardo en este dispositivo, en localStorage).
+                  Consíguela en <span style={{color:'#7c3aed'}}>aistudio.google.com/app/apikey</span>
+                </p>
+                <div style={{display:'flex',gap:'8px'}}>
+                  <input
+                    type="password"
+                    placeholder="AIzaSy..."
+                    value={apiKeyInput}
+                    onChange={e=>setApiKeyInput(e.target.value)}
+                    style={{flex:1,padding:'8px',background:'#1a1a1a',border:'1px solid #444',borderRadius:'6px',color:'#fff',fontSize:'13px'}}
+                  />
+                  <button style={btn('#7c3aed')} onClick={guardarApiKey}>Guardar</button>
+                  {apiKey && <button style={btn('#444')} onClick={borrarApiKey}>Borrar</button>}
+                </div>
+                {apiKey && <p style={{margin:'6px 0 0',fontSize:'11px',color:'#7ec87e'}}>
+                  Actual: {apiKey.slice(0,6)}…{apiKey.slice(-4)}
+                </p>}
+              </div>
+            )}
             {bebidas.map(b => {
               const tienePrecio = b.precio_copa || b.precio_botella
               const dot = !b.disponible ? '#fbbf24' : tienePrecio ? '#7ec87e' : '#f87171'

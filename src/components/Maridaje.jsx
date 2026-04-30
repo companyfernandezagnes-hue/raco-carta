@@ -1,289 +1,315 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { supabase } from '../lib/supabase'
 
-// Secciones del menú del Racó — estructura idéntica a la carta
-// Cuando tengáis la app de Madisa conectada, estos platos vendrán de esa API
-// y llevarán su foto real. Por ahora: secciones fijas con emoji de placeholder.
-
-const SECCIONES_MENU = [
-  {
-    id: 'entrantes',
-    label: 'Entrantes',
-    emoji: '🥗',
-    platos: [
-      { id: 'ensalada', label: 'Ensaladas', emoji: '🥗' },
-      { id: 'verduras', label: 'Verduras', emoji: '🥦' },
-      { id: 'quesos', label: 'Quesos', emoji: '🧀' },
-      { id: 'aperitivo', label: 'Aperitivos', emoji: '🫒' },
-    ],
-  },
-  {
-    id: 'mar',
-    label: 'Del mar',
-    emoji: '🐟',
-    platos: [
-      { id: 'pescado', label: 'Pescado', emoji: '🐟' },
-      { id: 'marisco', label: 'Marisco', emoji: '🦞' },
-      { id: 'sushi', label: 'Sushi / Crudo', emoji: '🍣' },
-    ],
-  },
-  {
-    id: 'arroces',
-    label: 'Arroces y pasta',
-    emoji: '🍚',
-    platos: [
-      { id: 'arroces', label: 'Arroces', emoji: '🍚' },
-      { id: 'pasta', label: 'Pasta', emoji: '🍝' },
-    ],
-  },
-  {
-    id: 'carnes',
-    label: 'Carnes',
-    emoji: '🥩',
-    platos: [
-      { id: 'carne_blanca', label: 'Carne blanca', emoji: '🍗' },
-      { id: 'carne_roja', label: 'Carne roja', emoji: '🥩' },
-      { id: 'caza', label: 'Caza', emoji: '🦌' },
-    ],
-  },
-  {
-    id: 'postres',
-    label: 'Postres',
-    emoji: '🍮',
-    platos: [
-      { id: 'postres', label: 'Postres', emoji: '🍮' },
-    ],
-  },
+const CATEGORIAS = [
+  { id: 'entrantes',       label: 'Entrantes' },
+  { id: 'ensaladas',       label: 'Ensaladas' },
+  { id: 'arroces_pastas',  label: 'Arroces y Pastas' },
+  { id: 'principales',     label: 'Principales' },
 ]
 
-// Todos los platos aplanados (para la búsqueda)
-const TODOS_PLATOS = SECCIONES_MENU.flatMap(s => s.platos)
+// Calcula puntuación de maridaje entre un plato y un vino (0-100)
+function calcularMaridaje(plato, vino) {
+  const pp = plato.perfil || {}
+  const cv = vino.caracteristicas || {}
+  const sub = (vino.subcategoria || '').toLowerCase()
+  let score = 50
+
+  // 1) Equilibrio de potencia (plato potente → vino potente)
+  score -= Math.abs((pp.potencia || 5) - (cv.potencia || 5)) * 3
+
+  // 2) Grasa alta → taninos del vino limpian
+  if ((pp.grasa || 0) >= 6 && sub.includes('tinto')) score += (cv.taninos || 0) * 1.2
+  if ((pp.grasa || 0) >= 6 && sub.includes('espumoso')) score += (cv.acidez || 0) * 0.8
+
+  // 3) Acidez del plato necesita acidez del vino
+  if ((pp.acidez || 0) >= 6) score += (cv.acidez || 0) * 1.0
+
+  // 4) Dulzor en plato → vino frutal o dulce
+  if ((pp.dulzor || 0) >= 5) score += (cv.afrutado || 0) * 0.6
+  if ((pp.dulzor || 0) >= 7 && sub.includes('dulce')) score += 15
+
+  // 5) Picante → vinos con dulzor sutil o aromáticos
+  if ((pp.picante || 0) >= 4) {
+    if (sub.includes('rosado') || sub.includes('espumoso')) score += 6
+    if (sub.includes('blanco')) score += (cv.afrutado || 0) * 0.4
+  }
+
+  // 6) Ahumado → vinos con barrica o crianza
+  if ((pp.ahumado || 0) >= 4 && sub.includes('tinto')) score += 4
+
+  // 7) Reglas por tipo de ingrediente principal
+  const ing = (plato.ingredientes || []).join(' ').toLowerCase()
+  const mar = ['pescado','lubina','bacalao','gambas','gambón','centollo','marisco','pulpo']
+  const carne = ['ternera','solomillo','cordero','carrillera','pato','magret']
+  const cerdo = ['ibérico','jamón','secreto','papada']
+  const queso = ['queso','burrata','parmesano']
+
+  if (mar.some(m => ing.includes(m))) {
+    if (sub.includes('blanco') || sub.includes('espumoso')) score += 12
+    if (sub.includes('rosado')) score += 6
+    if (sub.includes('tinto')) score -= 8
+  }
+  if (carne.some(c => ing.includes(c))) {
+    if (sub.includes('tinto')) score += 12
+    if (sub.includes('blanco')) score -= 6
+  }
+  if (cerdo.some(c => ing.includes(c))) {
+    if (sub.includes('tinto')) score += 6
+    if (sub.includes('rosado')) score += 4
+  }
+  if (queso.some(q => ing.includes(q))) {
+    if (plato.vegetariano) {
+      if (sub.includes('blanco') || sub.includes('rosado')) score += 7
+    }
+  }
+
+  // 8) Vegetariano → blanco/rosado preferido
+  if (plato.vegetariano) {
+    if (sub.includes('blanco') || sub.includes('rosado') || sub.includes('espumoso')) score += 4
+    if (sub.includes('tinto') && (cv.taninos || 0) >= 6) score -= 5
+  }
+
+  // Bonus si tiene precio (vinos disponibles)
+  if (vino.precio_botella || vino.precio_copa) score += 1
+  // Penaliza vinos del depósito (precios altos) en sugerencias generales
+  if ((vino.precio_botella || 0) > 200) score -= 10
+
+  return Math.max(0, Math.min(100, Math.round(score)))
+}
+
+function razonMaridaje(plato, vino, score) {
+  const pp = plato.perfil || {}
+  const sub = (vino.subcategoria || '').toLowerCase()
+  const razones = []
+  if ((pp.grasa || 0) >= 6 && sub.includes('tinto')) razones.push('los taninos limpian la grasa')
+  if ((pp.acidez || 0) >= 6 && (vino.caracteristicas?.acidez || 0) >= 6) razones.push('acidez equilibrada')
+  if ((pp.potencia || 0) >= 7 && (vino.caracteristicas?.potencia || 0) >= 6) razones.push('cuerpos en consonancia')
+  if (sub.includes('espumoso') && (pp.grasa || 0) >= 5) razones.push('las burbujas refrescan')
+  if (plato.vegetariano && (sub.includes('blanco') || sub.includes('rosado'))) razones.push('frescura para platos vegetales')
+  return razones.slice(0, 2).join(' · ')
+}
+
 
 export default function Maridaje({ bebidas, onSeleccionar, onVolver }) {
-  const [seleccionados, setSeleccionados] = useState([])
-  const [resultado, setResultado] = useState(null)
+  const [platos, setPlatos] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [seleccionado, setSeleccionado] = useState(null)
+  const [categoriaAbierta, setCategoriaAbierta] = useState('entrantes')
 
-  function togglePlato(id) {
-    setSeleccionados(prev =>
-      prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
-    )
-    setResultado(null)
-  }
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data, error } = await supabase.from('platos_comida').select('*').eq('disponible', true).order('orden', { ascending: true })
+        if (!error && Array.isArray(data)) setPlatos(data)
+      } catch(e) { console.error('Error cargando platos:', e) }
+      finally { setLoading(false) }
+    })()
+  }, [])
 
-  function buscar() {
-    if (seleccionados.length === 0) return
-    const coincidencias = bebidas.filter(b => {
-      if (!b.maridajes) return false
-      const maridajesNorm = b.maridajes.map(m => m.toLowerCase())
-      return seleccionados.some(s => {
-        const platoBuscado = TODOS_PLATOS.find(p => p.id === s)?.label.toLowerCase()
-        return maridajesNorm.some(m => m.includes(platoBuscado) || platoBuscado?.includes(m))
-      })
-    })
-    setResultado(coincidencias)
-  }
+  // Calcular vinos sugeridos para el plato seleccionado
+  const sugerencias = seleccionado
+    ? bebidas
+        .filter(b => b.disponible !== false && (b.precio_botella || b.precio_copa))
+        .map(b => ({ ...b, score: calcularMaridaje(seleccionado, b) }))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 6)
+    : []
 
   return (
-    <div style={{ padding: '24px 20px', paddingBottom: '40px' }}>
-
-      {/* Cabecera */}
-      <div style={{ marginBottom: '28px' }}>
-        <p style={{
-          fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase',
-          color: 'var(--text-muted)', marginBottom: '8px',
-        }}>
+    <div style={{ padding: '24px 20px 48px' }}>
+      <div style={{ marginBottom: '24px' }}>
+        <p style={{ fontFamily: 'var(--font-body)', fontSize: '10px', letterSpacing: '0.28em', textTransform: 'uppercase', color: 'var(--raco-stone)', marginBottom: '8px' }}>
           Asistente de maridaje
         </p>
-        <h2 style={{ fontSize: '22px', fontWeight: 'normal', color: 'var(--text)', marginBottom: '6px' }}>
+        <h2 style={{ fontFamily: 'var(--font-brand)', fontSize: '26px', fontWeight: '400', color: 'var(--raco-black)', marginBottom: '6px' }}>
           ¿Qué vas a comer?
         </h2>
-        <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: '1.6' }}>
-          Selecciona uno o varios platos y te sugerimos los mejores vinos.
+        <p style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'var(--raco-stone)', fontWeight: '300', lineHeight: '1.55' }}>
+          Elige un plato de la carta y te recomendamos los vinos que mejor casan.
         </p>
       </div>
 
-      {/* Secciones del menú */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '28px' }}>
-        {SECCIONES_MENU.map(seccion => (
-          <div key={seccion.id}>
-            {/* Título de sección */}
-            <p style={{
-              fontSize: '10px', letterSpacing: '0.18em', textTransform: 'uppercase',
-              color: 'var(--gold-dim)', marginBottom: '10px',
-              borderBottom: '1px solid var(--border)', paddingBottom: '6px',
-            }}>
-              {seccion.label}
-            </p>
-
-            {/* Platos de la sección — scroll horizontal si hay muchos */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: `repeat(${Math.min(seccion.platos.length, 3)}, 1fr)`,
-              gap: '8px',
-            }}>
-              {seccion.platos.map(plato => {
-                const activo = seleccionados.includes(plato.id)
-                return (
-                  <button
-                    key={plato.id}
-                    onClick={() => togglePlato(plato.id)}
-                    style={{
-                      background: activo ? 'var(--bg3)' : 'var(--bg2)',
-                      border: `1px solid ${activo ? 'var(--gold-dim)' : 'var(--border)'}`,
-                      borderRadius: 'var(--radius-sm)',
-                      padding: '14px 8px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '8px',
-                      transition: 'all 0.2s',
-                      position: 'relative',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    {/* Placeholder foto — cuando venga de Madisa será un <img> */}
-                    <div style={{
-                      width: '48px', height: '48px',
-                      borderRadius: '50%',
-                      background: activo ? 'var(--gold-dim)' : 'var(--border)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: '22px',
-                      transition: 'background 0.2s',
-                    }}>
-                      {plato.emoji}
-                    </div>
-                    <span style={{
-                      fontSize: '11px',
-                      color: activo ? 'var(--gold)' : 'var(--text-muted)',
-                      letterSpacing: '0.04em',
-                      textAlign: 'center',
-                      lineHeight: '1.3',
-                    }}>
-                      {plato.label}
-                    </span>
-                    {/* Check de selección */}
-                    {activo && (
-                      <div style={{
-                        position: 'absolute', top: '6px', right: '6px',
-                        width: '16px', height: '16px',
-                        background: 'var(--gold)',
-                        borderRadius: '50%',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}>
-                        <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
-                          <path d="M1.5 4L3 5.5L6.5 2" stroke="#0f0d0a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      </div>
-                    )}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Seleccionados — chips resumen */}
-      {seleccionados.length > 0 && (
-        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '16px' }}>
-          {seleccionados.map(id => {
-            const plato = TODOS_PLATOS.find(p => p.id === id)
-            return (
-              <button
-                key={id}
-                onClick={() => togglePlato(id)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '4px',
-                  fontSize: '12px', padding: '4px 10px',
-                  background: 'var(--gold)', color: 'var(--bg)',
-                  borderRadius: '20px', border: 'none',
-                  letterSpacing: '0.04em',
-                }}
-              >
-                {plato?.emoji} {plato?.label}
-                <span style={{ marginLeft: '2px', opacity: 0.7 }}>×</span>
-              </button>
-            )
-          })}
-          <button
-            onClick={() => { setSeleccionados([]); setResultado(null) }}
-            style={{
-              fontSize: '12px', padding: '4px 10px',
-              border: '1px solid var(--border)', color: 'var(--text-muted)',
-              borderRadius: '20px', background: 'transparent',
-              letterSpacing: '0.04em',
-            }}
-          >
-            Limpiar
-          </button>
-        </div>
+      {loading && (
+        <p style={{ textAlign: 'center', color: 'var(--raco-stone)', fontSize: '12px', padding: '40px' }}>Cargando carta…</p>
       )}
 
-      {/* Botón buscar */}
-      <button
-        onClick={buscar}
-        disabled={seleccionados.length === 0}
-        style={{
-          width: '100%', padding: '14px',
-          borderRadius: 'var(--radius)',
-          background: seleccionados.length > 0 ? 'var(--gold)' : 'var(--bg3)',
-          color: seleccionados.length > 0 ? 'var(--bg)' : 'var(--text-muted)',
-          fontSize: '13px', letterSpacing: '0.15em', textTransform: 'uppercase',
-          border: 'none', transition: 'all 0.2s', marginBottom: '28px',
-          fontFamily: 'inherit',
-        }}
-      >
-        Ver sugerencias
-      </button>
-
-      {/* Resultados */}
-      {resultado !== null && (
-        <div>
-          <p style={{
-            fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase',
-            color: 'var(--text-muted)', marginBottom: '12px',
-          }}>
-            {resultado.length > 0
-              ? `${resultado.length} sugerencia${resultado.length > 1 ? 's' : ''}`
-              : 'Sin coincidencias'}
-          </p>
-
-          {resultado.length === 0 && (
-            <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: '1.6' }}>
-              No hay bebidas que maridemos específicamente con tu selección.
-              Pregunta al equipo de sala, estarán encantados de ayudarte.
-            </p>
-          )}
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {resultado.map(b => (
-              <div
-                key={b.id}
-                onClick={() => onSeleccionar(b)}
-                style={{
-                  background: 'var(--bg2)', border: '1px solid var(--border)',
-                  borderRadius: 'var(--radius)', padding: '16px',
-                  cursor: 'pointer', transition: 'border-color 0.2s',
-                }}
-                onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--gold-dim)'}
-                onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div>
-                    <h3 style={{ fontSize: '16px', fontWeight: 'normal', color: 'var(--text)', marginBottom: '4px' }}>
-                      {b.nombre}
-                    </h3>
-                    <p style={{ fontSize: '13px', color: 'var(--text-dim)' }}>
-                      {[b.bodega, b.region, b.anada].filter(Boolean).join(' · ')}
-                    </p>
-                  </div>
-                  <p style={{ fontSize: '18px', color: 'var(--gold)', flexShrink: 0, marginLeft: '12px' }}>
-                    {b.precio_botella ? `${b.precio_botella.toFixed(0)} €` : `${b.precio_copa?.toFixed(0)} €`}
-                  </p>
+      {!loading && (
+        <>
+          {/* Acordeón de categorías */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '24px' }}>
+            {CATEGORIAS.map(cat => {
+              const items = platos.filter(p => p.categoria === cat.id)
+              if (items.length === 0) return null
+              const abierta = categoriaAbierta === cat.id
+              return (
+                <div key={cat.id} style={{
+                  background: 'var(--raco-paper)',
+                  border: '1px solid var(--raco-sand)',
+                  borderRadius: '12px',
+                  overflow: 'hidden',
+                }}>
+                  <button onClick={() => setCategoriaAbierta(abierta ? null : cat.id)} style={{
+                    width: '100%', padding: '14px 16px',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    background: 'transparent', border: 'none', cursor: 'pointer',
+                  }}>
+                    <span style={{
+                      fontFamily: 'var(--font-body)', fontSize: '11px',
+                      letterSpacing: '0.24em', textTransform: 'uppercase',
+                      color: abierta ? 'var(--raco-khaki)' : 'var(--raco-stone)',
+                      fontWeight: '500',
+                    }}>{cat.label}</span>
+                    <span style={{
+                      fontSize: '11px', color: 'var(--raco-stone)',
+                      transform: abierta ? 'rotate(180deg)' : 'none',
+                      transition: 'transform 0.2s',
+                    }}>▼</span>
+                  </button>
+                  {abierta && (
+                    <div style={{ padding: '0 8px 12px' }}>
+                      {items.map(plato => {
+                        const sel = seleccionado?.id === plato.id
+                        return (
+                          <button
+                            key={plato.id}
+                            onClick={() => setSeleccionado(sel ? null : plato)}
+                            style={{
+                              width: '100%', textAlign: 'left',
+                              padding: '12px 14px', marginBottom: '4px',
+                              background: sel ? 'rgba(182,154,106,0.12)' : 'var(--raco-cream)',
+                              border: '1px solid ' + (sel ? 'var(--raco-khaki)' : 'transparent'),
+                              borderRadius: '10px', cursor: 'pointer',
+                              transition: 'all 0.18s',
+                            }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <p style={{
+                                  fontFamily: 'var(--font-brand)', fontSize: '15px',
+                                  color: sel ? 'var(--raco-khaki)' : 'var(--raco-black)',
+                                  lineHeight: 1.25, marginBottom: '3px',
+                                }}>{plato.nombre}</p>
+                                {plato.descripcion && (
+                                  <p style={{
+                                    fontFamily: 'var(--font-body)', fontSize: '11px',
+                                    color: 'var(--raco-stone)', fontWeight: '300', lineHeight: 1.4,
+                                  }}>{plato.descripcion}</p>
+                                )}
+                                {plato.vegetariano && (
+                                  <span style={{
+                                    display: 'inline-block', marginTop: '4px',
+                                    fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase',
+                                    color: 'var(--raco-khaki)',
+                                    border: '1px solid rgba(182,154,106,0.4)',
+                                    borderRadius: '4px', padding: '1px 6px',
+                                  }}>Vegetariano</span>
+                                )}
+                              </div>
+                              {sel && (
+                                <div style={{
+                                  flexShrink: 0, width: '20px', height: '20px',
+                                  borderRadius: '50%', background: 'var(--raco-khaki)',
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                }}>
+                                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+                                    <path d="M2 6 L5 9 L10 3" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                                  </svg>
+                                </div>
+                              )}
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
-        </div>
+
+          {/* Sugerencias de vinos */}
+          {seleccionado && (
+            <div style={{ marginTop: '20px', animation: 'fadeUp 0.3s ease both' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
+                <span style={{
+                  fontFamily: 'var(--font-body)', fontSize: '10px',
+                  letterSpacing: '0.28em', textTransform: 'uppercase',
+                  color: 'var(--raco-khaki)', fontWeight: '500',
+                }}>Maridaje sugerido</span>
+                <span style={{ flex: 1, height: '1px', background: 'var(--raco-sand)' }} />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {sugerencias.map((vino, i) => (
+                  <div key={vino.id}
+                    onClick={() => onSeleccionar?.(vino)}
+                    style={{
+                      background: 'var(--raco-paper)',
+                      border: '1px solid ' + (i === 0 ? 'var(--raco-khaki)' : 'var(--raco-sand)'),
+                      borderRadius: '12px', padding: '14px 16px',
+                      cursor: 'pointer', transition: 'all 0.2s',
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px',
+                      position: 'relative', overflow: 'hidden',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--raco-khaki)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = i === 0 ? 'var(--raco-khaki)' : 'var(--raco-sand)'; e.currentTarget.style.transform = 'translateY(0)' }}>
+                    {i === 0 && (
+                      <span style={{
+                        position: 'absolute', top: '8px', right: '8px',
+                        fontFamily: 'var(--font-body)', fontSize: '9px',
+                        letterSpacing: '0.2em', textTransform: 'uppercase',
+                        color: 'var(--raco-khaki)', fontWeight: '600',
+                        background: 'rgba(182,154,106,0.12)',
+                        padding: '2px 8px', borderRadius: '4px',
+                      }}>Top match</span>
+                    )}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{
+                        fontFamily: 'var(--font-brand)', fontSize: '16px',
+                        color: 'var(--raco-black)', lineHeight: 1.2, marginBottom: '4px',
+                        paddingRight: i === 0 ? '70px' : 0,
+                      }}>{vino.nombre}</p>
+                      <p style={{
+                        fontFamily: 'var(--font-body)', fontSize: '11px',
+                        color: 'var(--raco-stone)', marginBottom: '6px', fontWeight: '300',
+                      }}>{[vino.bodega, vino.region].filter(Boolean).join(' · ')}</p>
+                      {(() => {
+                        const r = razonMaridaje(seleccionado, vino, vino.score)
+                        return r ? (
+                          <p style={{
+                            fontFamily: 'var(--font-body)', fontSize: '11px',
+                            color: 'var(--raco-khaki)', fontStyle: 'italic',
+                            fontWeight: '300', lineHeight: 1.4,
+                          }}>{r}</p>
+                        ) : null
+                      })()}
+                    </div>
+                    <div style={{ flexShrink: 0, textAlign: 'right' }}>
+                      {vino.precio_botella && (
+                        <p style={{
+                          fontFamily: 'var(--font-brand)', fontSize: '20px',
+                          color: 'var(--raco-black)', lineHeight: 1,
+                        }}>{Number(vino.precio_botella).toFixed(0)}<span style={{ fontSize: '11px', color: 'var(--raco-stone)' }}> €</span></p>
+                      )}
+                      {vino.precio_copa && (
+                        <p style={{
+                          fontFamily: 'var(--font-body)', fontSize: '11px',
+                          color: 'var(--raco-stone)', marginTop: '2px',
+                        }}>copa {Number(vino.precio_copa).toFixed(0)} €</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {sugerencias.length === 0 && (
+                  <p style={{ color: 'var(--raco-stone)', fontSize: '12px', padding: '20px', textAlign: 'center' }}>
+                    No tenemos vinos disponibles para este plato.
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   )

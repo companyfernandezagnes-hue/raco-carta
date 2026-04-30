@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from './lib/supabase'
+import { IDIOMAS, leerIdiomaGuardado, guardarIdioma } from './lib/idioma'
 import Header from './components/Header.jsx'
 import Categorias from './components/Categorias.jsx'
 import ListaBebidas from './components/ListaBebidas.jsx'
@@ -59,18 +60,43 @@ export default function App() {
   const [favoritos, setFavoritos] = useState(() => { try { return JSON.parse(localStorage.getItem('favoritos') || '[]') } catch { return [] } })
   const [comparador, setComparador] = useState([])
   const [mostrarComparador, setMostrarComparador] = useState(false)
+  const [idioma, setIdioma] = useState(() => leerIdiomaGuardado())
+
+  function cambiarIdioma(code) { setIdioma(code); guardarIdioma(code) }
 
   async function cargar() {
     try {
       const { data, error } = await supabase.from('carta_bebidas').select('*').eq('disponible', true).order('orden', { ascending: true })
-      if (!error && Array.isArray(data)) setBebidas(data)
+      if (!error && Array.isArray(data)) {
+        // Si no es español, cargar traducciones y fusionar con cada bebida
+        if (idioma !== 'es') {
+          try {
+            const { data: trads } = await supabase.from('bebidas_traducciones').select('*').eq('idioma', idioma)
+            if (Array.isArray(trads)) {
+              const mapa = Object.fromEntries(trads.map(t => [t.bebida_id, t]))
+              const camposTraducibles = ['nombre','descripcion','nota_cata','nota_visual','nota_nariz','nota_boca','maridajes','historia','curiosidad']
+              setBebidas(data.map(b => {
+                const t = mapa[b.id]
+                if (!t) return b
+                const merged = { ...b, _idioma_original: 'es' }
+                for (const c of camposTraducibles) {
+                  if (t[c]) merged[c] = t[c]
+                }
+                return merged
+              }))
+              return
+            }
+          } catch (e) { console.warn('Sin traducciones disponibles', e) }
+        }
+        setBebidas(data)
+      }
     } catch (e) {
       console.error('Error cargando carta:', e)
     } finally {
       setLoading(false)
     }
   }
-  useEffect(() => { cargar() }, [])
+  useEffect(() => { cargar() }, [idioma])
   function toggleFavorito(bebida) { setFavoritos(prev => { const n = prev.includes(bebida.id) ? prev.filter(id => id !== bebida.id) : [...prev, bebida.id]; localStorage.setItem('favoritos', JSON.stringify(n)); return n }) }
   function toggleComparador(bebida) { setComparador(prev => { if (prev.find(b => b.id === bebida.id)) return prev.filter(b => b.id !== bebida.id); if (prev.length >= 2) return [prev[1], bebida]; return [...prev, bebida] }) }
   function abrirDetalle(bebida) { setBebidaseleccionada(bebida); setVista('detalle') }
@@ -132,7 +158,7 @@ export default function App() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--raco-cream)', maxWidth: '900px', margin: '0 auto' }}>
-      <Header vista={vista} onVolver={volver} onMaridaje={() => setVista('maridaje')} onAdmin={() => setAdminAbierto(true)} />
+      <Header vista={vista} onVolver={volver} onMaridaje={() => setVista('maridaje')} onAdmin={() => setAdminAbierto(true)} idioma={idioma} onIdioma={cambiarIdioma} />
       {vista === 'carta' && (
         <div>
           <Categorias categoriaActiva={categoriaActiva} subcategoriaActiva={subcategoriaActiva} onCategoria={cat => { setCategoriaActiva(cat); setSubcategoriaActiva(null) }} onSubcategoria={setSubcategoriaActiva} bebidas={bebidas} />

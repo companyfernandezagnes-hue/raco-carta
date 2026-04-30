@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabaseAdmin } from '../lib/supabaseAdmin'
+import AdminPlatos from './AdminPlatos.jsx'
 
 const PASS_HASH = 'TVRJek5BPT0=' // v4 - contraseña actual: 1234
 function verificarPassword(input) {
@@ -52,51 +53,48 @@ function redondearPrecio(precio, modo) {
   }
 }
 
+async function llamarGroq({ systemPrompt, userPrompt, apiKey, modelo = 'llama-3.3-70b-versatile', json = true }) {
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: modelo,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user',   content: userPrompt },
+      ],
+      temperature: 0.2,
+      max_tokens: 1500,
+      ...(json ? { response_format: { type: 'json_object' } } : {}),
+    }),
+  })
+  if (!res.ok) {
+    const txt = await res.text()
+    let detalle = txt
+    try { detalle = JSON.parse(txt)?.error?.message || txt } catch {}
+    throw new Error(`Groq ${res.status}: ${detalle.slice(0, 300)}`)
+  }
+  const data = await res.json()
+  return data.choices?.[0]?.message?.content?.trim() || ''
+}
+
 async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading, setIaError }) {
   setIaLoading(true)
   setIaError('')
   try {
-    const parts = []
-    const systemPrompt = `Eres un experto en vinos y bebidas de restaurante. Dado el nombre o la foto de una bebida, rellenas una ficha completa en JSON con estos campos exactos: nombre, categoria (Vino/Cerveza/Coctel/Refresco/Agua/Cafe/Destilado/Otro), subcategoria, descripcion, bodega, productor, pais, region (denominacion de origen), anada (año numero o null), uvas (uva principal), tipo_uva_secundaria, parcela, nota_cata, maridajes (array de strings), temperatura, graduacion (numero o null), precio_copa (numero o null), precio_botella (numero o null), notas_ia. IMPORTANTE: Solo rellena con datos reales y conocidos. Si no sabes un campo, pon null. No inventes datos. Devuelve SOLO el JSON, sin texto extra.`
-    parts.push({ text: systemPrompt })
     if (fotoBase64) {
-      const base64Data = fotoBase64.split(',')[1]
-      const mimeType = fotoBase64.split(';')[0].split(':')[1]
-      parts.push({ inline_data: { mime_type: mimeType, data: base64Data } })
-      parts.push({ text: 'Analiza esta bebida y rellena la ficha completa en JSON.' })
-    } else {
-      parts.push({ text: `Rellena la ficha completa en JSON para esta bebida: ${nombre}` })
+      throw new Error('Análisis de foto no disponible con Groq. Escribe el nombre del vino y la IA rellenará el resto.')
     }
-    // Probamos modelos en orden: 2.5-flash (actual), 2.0-flash (fallback)
-    const modelos = ['gemini-2.5-flash', 'gemini-2.0-flash']
-    let res, errorBody
-    for (const modelo of modelos) {
-      res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts }],
-            generationConfig: { temperature: 0.2, maxOutputTokens: 1000, responseMimeType: 'application/json' }
-          })
-        }
-      )
-      if (res.ok) break
-      errorBody = await res.text()
-      console.warn(`Modelo ${modelo} falló (${res.status}):`, errorBody)
-    }
-    if (!res.ok) {
-      let detalle = ''
-      try {
-        const j = JSON.parse(errorBody || '{}')
-        detalle = j?.error?.message || errorBody || ''
-      } catch { detalle = errorBody || '' }
-      throw new Error(`Gemini ${res.status}: ${detalle.slice(0, 200)}`)
-    }
-    const data = await res.json()
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim()
-    if (!text) throw new Error('Respuesta vacía de Gemini')
+    const systemPrompt = `Eres un sumiller experto. Dado el nombre de un vino/bebida, devuelves una ficha completa en JSON puro con estos campos: nombre, categoria (Vino/Cerveza/Coctel/Refresco/Agua/Cafe/Destilado/Otro), subcategoria (espumoso/blanco mallorca/blanco nacional/blanco internacional/rosado/tinto mallorca/tinto nacional/tinto internacional/dulce), descripcion (frase comercial corta), bodega, productor, pais, region (denominación de origen), anada (año o null), uvas, tipo_uva_secundaria, parcela, nota_cata, maridajes (array), temperatura, graduacion (número o null), precio_copa (null), precio_botella (null), notas_ia (historia + curiosidad). REGLAS: solo datos reales y conocidos; si no sabes algo, null; NO inventes; devuelve SOLO JSON sin texto extra.`
+    const text = await llamarGroq({
+      systemPrompt,
+      userPrompt: `Rellena la ficha completa de este vino: ${nombre}`,
+      apiKey,
+    })
+    if (!text) throw new Error('Respuesta vacía de Groq')
     const json = JSON.parse(text.replace(/```json?/g,'').replace(/```/g,'').trim())
     setForm(prev => ({
       ...prev,
@@ -112,8 +110,21 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
   }
 }
 
+async function traducirConGroq({ vinoData, apiKey }) {
+  const systemPrompt = `Eres un traductor experto en vinos y gastronomía. Traduces fichas de vino del español a tres idiomas: catalán (ca), inglés (en) y alemán (de). Mantén el tono comercial y elegante. Devuelve JSON puro con esta estructura: {"ca": {...}, "en": {...}, "de": {...}}, donde cada idioma tiene los campos: nombre, descripcion, nota_cata, nota_visual, nota_nariz, nota_boca, maridajes (array), historia, curiosidad. NO inventes información — solo traduce.`
+  const campos = ['nombre','descripcion','nota_cata','nota_visual','nota_nariz','nota_boca','maridajes','historia','curiosidad']
+  const datos = Object.fromEntries(campos.map(c => [c, vinoData[c]]).filter(([k,v]) => v))
+  const text = await llamarGroq({
+    systemPrompt,
+    userPrompt: `Traduce esta ficha de vino del español a CA/EN/DE:\n\n${JSON.stringify(datos, null, 2)}`,
+    apiKey,
+  })
+  return JSON.parse(text.replace(/```json?/g,'').replace(/```/g,'').trim())
+}
+
 export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
   const [fase, setFase] = useState('login')
+  const [tabAdmin, setTabAdmin] = useState('bebidas')   // 'bebidas' | 'platos'
   const [pass, setPass] = useState('')
   const [error, setError] = useState('')
   const [bebida, setBebida] = useState(null)
@@ -131,24 +142,28 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
   })
   const [mostrarCalc, setMostrarCalc] = useState(false)
   const fotoInputRef = useRef(null)
-  // API key Gemini: prioridad localStorage > variable de entorno
+  // API key Groq: prioridad localStorage > variable de entorno
+  // Migración suave: si existe la antigua "gemini_api_key" la borramos.
+  useEffect(() => {
+    try { localStorage.removeItem('gemini_api_key') } catch {}
+  }, [])
   const [apiKey, setApiKey] = useState(() => {
-    try { return localStorage.getItem('gemini_api_key') || import.meta.env.VITE_GEMINI_API_KEY || '' }
-    catch { return import.meta.env.VITE_GEMINI_API_KEY || '' }
+    try { return localStorage.getItem('groq_api_key') || import.meta.env.VITE_GROQ_API_KEY || '' }
+    catch { return import.meta.env.VITE_GROQ_API_KEY || '' }
   })
   const [mostrarConfigKey, setMostrarConfigKey] = useState(false)
   const [apiKeyInput, setApiKeyInput] = useState('')
   function guardarApiKey() {
     const k = (apiKeyInput || '').trim()
     if (!k) return
-    try { localStorage.setItem('gemini_api_key', k) } catch {}
+    try { localStorage.setItem('groq_api_key', k) } catch {}
     setApiKey(k)
     setApiKeyInput('')
     setMostrarConfigKey(false)
   }
   function borrarApiKey() {
-    try { localStorage.removeItem('gemini_api_key') } catch {}
-    setApiKey(import.meta.env.VITE_GEMINI_API_KEY || '')
+    try { localStorage.removeItem('groq_api_key') } catch {}
+    setApiKey(import.meta.env.VITE_GROQ_API_KEY || '')
   }
 
   function login() {
@@ -213,26 +228,55 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
       graduacion: form.graduacion ? parseFloat(form.graduacion) : null,
       precio_copa: form.precio_copa ? parseFloat(form.precio_copa) : null,
       precio_botella: form.precio_botella ? parseFloat(form.precio_botella) : null,
-      // MEJORA 2: guardar precio_coste en Supabase
       precio_coste: precioCosteVal,
       orden: form.orden ? parseInt(form.orden) : 0,
       maridajes: form.maridajes ? form.maridajes.split(',').map(s => s.trim()).filter(Boolean) : [],
       puntuaciones: Array.isArray(form.puntuaciones) ? form.puntuaciones.filter(p => p.critico && p.nota) : [],
       updated_at: new Date().toISOString()
     }
-    let result
+    let result, bebidaId = bebida?.id
     if (bebida) {
       result = await supabaseAdmin.from('carta_bebidas').update(datos).eq('id', bebida.id)
     } else {
-      result = await supabaseAdmin.from('carta_bebidas').insert([datos])
+      result = await supabaseAdmin.from('carta_bebidas').insert([datos]).select()
+      if (result?.data?.[0]?.id) bebidaId = result.data[0].id
     }
-    // Si falla por columna precio_coste inexistente, reintentar sin ella
     if (result && result.error && result.error.message && result.error.message.includes('precio_coste')) {
       const { precio_coste: _, ...datosSinCoste } = datos
       if (bebida) {
         await supabaseAdmin.from('carta_bebidas').update(datosSinCoste).eq('id', bebida.id)
       } else {
-        await supabaseAdmin.from('carta_bebidas').insert([datosSinCoste])
+        const r = await supabaseAdmin.from('carta_bebidas').insert([datosSinCoste]).select()
+        if (r?.data?.[0]?.id) bebidaId = r.data[0].id
+      }
+    }
+    // Auto-traducción CA/EN/DE con Groq (no bloquea: si falla, solo se queda sin traducción)
+    if (bebidaId && apiKey) {
+      try {
+        setIaError('')
+        const traducciones = await traducirConGroq({ vinoData: datos, apiKey })
+        for (const idioma of ['ca','en','de']) {
+          const t = traducciones[idioma]
+          if (!t) continue
+          const trad = {
+            bebida_id: bebidaId,
+            idioma,
+            nombre: t.nombre || null,
+            descripcion: t.descripcion || null,
+            nota_cata: t.nota_cata || null,
+            nota_visual: t.nota_visual || null,
+            nota_nariz: t.nota_nariz || null,
+            nota_boca: t.nota_boca || null,
+            maridajes: Array.isArray(t.maridajes) ? t.maridajes : null,
+            historia: t.historia || null,
+            curiosidad: t.curiosidad || null,
+            actualizado_en: new Date().toISOString(),
+          }
+          await supabaseAdmin.from('bebidas_traducciones').upsert(trad, { onConflict: 'bebida_id,idioma' })
+        }
+      } catch(e) {
+        console.warn('No se pudo traducir:', e.message)
+        setIaError('Guardado, pero no se tradujo: ' + e.message)
       }
     }
     setGuardando(false)
@@ -297,12 +341,22 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
         {/* MEJORA 3: Vista de precios en lista admin */}
         {fase === 'lista' && (
           <>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'16px'}}>
-              <h2 style={{margin:0}}>Bebidas ({bebidas.length})</h2>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'12px'}}>
+              <div style={{display:'flex',gap:'4px'}}>
+                <button style={{...btn(tabAdmin==='bebidas'?'#7c3aed':'#2a2a2a'),padding:'6px 14px',fontSize:'13px'}}
+                  onClick={()=>setTabAdmin('bebidas')}>🍷 Bebidas</button>
+                <button style={{...btn(tabAdmin==='platos'?'#7c3aed':'#2a2a2a'),padding:'6px 14px',fontSize:'13px'}}
+                  onClick={()=>setTabAdmin('platos')}>🍽 Platos</button>
+              </div>
               <div style={{display:'flex',gap:'8px'}}>
-                <button style={btn('#7c3aed')} onClick={abrirNueva}>+ Nueva IA</button>
+                {tabAdmin === 'bebidas' && <button style={btn('#7c3aed')} onClick={abrirNueva}>+ Nueva IA</button>}
                 <button style={btn('#444')} onClick={onCerrar}>X</button>
               </div>
+            </div>
+            {tabAdmin === 'platos' && <AdminPlatos />}
+            {tabAdmin === 'bebidas' && (<>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'12px'}}>
+              <h2 style={{margin:0,fontSize:'18px'}}>Bebidas ({bebidas.length})</h2>
             </div>
             {/* Leyenda de precios */}
             <div style={{display:'flex',gap:'8px',marginBottom:'12px',flexWrap:'wrap',fontSize:'11px',alignItems:'center'}}>
@@ -318,13 +372,13 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
             {mostrarConfigKey && (
               <div style={{background:'#2a2a2a',padding:'12px',borderRadius:'8px',marginBottom:'12px'}}>
                 <p style={{margin:'0 0 8px',fontSize:'12px',color:'#aaa'}}>
-                  Pega tu API key de Gemini (la guardo en este dispositivo, en localStorage).
-                  Consíguela en <span style={{color:'#7c3aed'}}>aistudio.google.com/app/apikey</span>
+                  Pega tu API key de Groq (se guarda en este dispositivo, en localStorage).
+                  Consíguela GRATIS en <span style={{color:'#7c3aed'}}>console.groq.com/keys</span> · Empieza por <code>gsk_</code>
                 </p>
                 <div style={{display:'flex',gap:'8px'}}>
                   <input
                     type="password"
-                    placeholder="AIzaSy..."
+                    placeholder="gsk_..."
                     value={apiKeyInput}
                     onChange={e=>setApiKeyInput(e.target.value)}
                     style={{flex:1,padding:'8px',background:'#1a1a1a',border:'1px solid #444',borderRadius:'6px',color:'#fff',fontSize:'13px'}}
@@ -379,6 +433,7 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
                 </div>
               )
             })}
+            </>)}
           </>
         )}
 
@@ -411,7 +466,7 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
                     {iaLoading ? 'Analizando con IA...' : 'Subir foto de la botella'}
                   </button>
                   {iaError && <p style={{color:'#f87171',margin:0,fontSize:'13px'}}>{iaError}</p>}
-                  {!apiKey && <p style={{color:'#fbbf24',margin:0,fontSize:'12px'}}>VITE_GEMINI_API_KEY no configurada en Vercel</p>}
+                  {!apiKey && <p style={{color:'#fbbf24',margin:0,fontSize:'12px'}}>API key Groq no configurada (botón 🔑 arriba)</p>}
                 </div>
               )}
             </div>

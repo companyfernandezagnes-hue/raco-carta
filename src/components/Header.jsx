@@ -1,6 +1,7 @@
 import { useRef } from 'react'
+import { IDIOMAS } from '../lib/idioma'
 
-export default function Header({ vista, onVolver, onMaridaje, onAdmin }) {
+export default function Header({ vista, onVolver, onMaridaje, onAdmin, idioma, onIdioma }) {
   const tapCount = useRef(0)
   const tapTimer = useRef(null)
 
@@ -27,6 +28,22 @@ export default function Header({ vista, onVolver, onMaridaje, onAdmin }) {
       WebkitBackdropFilter: 'blur(12px)',
     }}>
       {vista === 'carta' ? (
+        <>
+          {onIdioma && (
+            <div style={{ position: 'absolute', top: '8px', right: '12px', display: 'flex', gap: '2px', zIndex: 20 }}>
+              {IDIOMAS.map(i => (
+                <button key={i.code} onClick={() => onIdioma(i.code)} style={{
+                  fontFamily: 'var(--font-body)', fontSize: '9px', letterSpacing: '0.08em',
+                  fontWeight: idioma === i.code ? '600' : '300',
+                  color: idioma === i.code ? 'var(--raco-khaki)' : 'var(--raco-stone)',
+                  background: idioma === i.code ? 'var(--raco-cream)' : 'transparent',
+                  border: 'none',
+                  borderRadius: '8px', padding: '2px 6px', cursor: 'pointer', minWidth: '24px',
+                  transition: 'all 0.18s',
+                }}>{i.label}</button>
+              ))}
+            </div>
+          )}
         <div
           onClick={handleLogoTap}
           style={{ userSelect: 'none', cursor: 'default', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}
@@ -50,6 +67,7 @@ export default function Header({ vista, onVolver, onMaridaje, onAdmin }) {
             Carta de Bebidas
           </div>
         </div>
+        </>
       ) : (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative' }}>
           <button

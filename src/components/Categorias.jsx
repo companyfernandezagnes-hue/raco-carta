@@ -1,91 +1,114 @@
-const CATEGORIAS = [
-  { id: 'todas',     label: 'Todas' },
-  { id: 'vino',      label: 'Vinos' },
-  { id: 'cava',      label: 'Cavas' },
-  { id: 'destilado', label: 'Destilados' },
-  { id: 'coctel',    label: 'Cócteles' },
+// Categorías jerárquicas:
+//   Todas
+//   Cavas y Champanes  (subcategoria = 'espumoso')
+//   Blancos            (subcategoria empieza por 'blanco')   → Mallorca / Nacionales / Internacionales
+//   Rosados            (subcategoria = 'rosado')
+//   Tintos             (subcategoria empieza por 'tinto')    → Mallorca / Nacionales / Internacionales
+//   Dulces             (subcategoria = 'dulce')
+
+const GRUPOS = [
+  { id: 'todas',    label: 'Todas',           match: () => true },
+  { id: 'espumoso', label: 'Cavas · Champanes', match: s => s === 'espumoso' },
+  { id: 'blanco',   label: 'Blancos',          match: s => s.startsWith('blanco') },
+  { id: 'rosado',   label: 'Rosados',          match: s => s === 'rosado' },
+  { id: 'tinto',    label: 'Tintos',           match: s => s.startsWith('tinto') },
+  { id: 'dulce',    label: 'Dulces',           match: s => s === 'dulce' },
 ]
 
-const SUBCATEGORIAS_VINO = [
-  { id: 'tinto',  label: 'Tintos' },
-  { id: 'blanco', label: 'Blancos' },
-  { id: 'rosado', label: 'Rosados' },
+const ORIGENES = [
+  { id: 'mallorca',      label: 'Mallorca',       match: s => s.includes('mallorca') },
+  { id: 'nacional',      label: 'Nacionales',     match: s => s.includes('nacional') },
+  { id: 'internacional', label: 'Internacionales', match: s => s.includes('internacional') },
 ]
 
 const pill = (activo) => ({
-  padding: '7px 18px',
-  borderRadius: '20px',
-  fontSize: '12px',
-  letterSpacing: '0.14em',
+  padding: '4px 10px',
+  borderRadius: '14px',
+  fontSize: '10px',
+  letterSpacing: '0.10em',
   fontFamily: 'var(--font-brand)',
   fontWeight: 400,
   textTransform: 'uppercase',
-  border: activo ? '1px solid var(--raco-orange)' : '1px solid var(--raco-line)',
-  background: activo ? 'var(--raco-orange)' : 'transparent',
-  color: activo ? 'var(--raco-dark)' : 'var(--raco-dim)',
+  border: activo ? '1px solid var(--raco-khaki)' : '1px solid var(--raco-sand)',
+  background: activo ? 'rgba(182,154,106,0.15)' : 'transparent',
+  color: activo ? 'var(--raco-khaki)' : 'var(--raco-stone)',
   whiteSpace: 'nowrap',
   transition: 'all 0.2s',
   cursor: 'pointer',
 })
 
 export default function Categorias({ categoriaActiva, subcategoriaActiva, onCategoria, onSubcategoria, bebidas }) {
-  const conStock = (cat) => bebidas.filter(b => cat === 'todas' ? true : b.categoria === cat).length
+  const cuentaGrupo = (gid) => {
+    const grupo = GRUPOS.find(g => g.id === gid)
+    if (!grupo) return 0
+    return bebidas.filter(b => grupo.match((b.subcategoria || '').toLowerCase())).length
+  }
+  const cuentaOrigen = (oid) => {
+    const grupo = GRUPOS.find(g => g.id === categoriaActiva)
+    const origen = ORIGENES.find(o => o.id === oid)
+    if (!grupo || !origen) return 0
+    return bebidas.filter(b => {
+      const s = (b.subcategoria || '').toLowerCase()
+      return grupo.match(s) && origen.match(s)
+    }).length
+  }
+  const muestraOrigenes = categoriaActiva === 'blanco' || categoriaActiva === 'tinto'
 
   return (
-    <div style={{ borderBottom: '1px solid var(--raco-line)' }}>
+    <div style={{ borderBottom: '1px solid var(--raco-sand)' }}>
       <div style={{
         display: 'flex',
-        gap: '8px',
-        padding: '14px 20px',
+        gap: '5px',
+        padding: '10px 16px',
         overflowX: 'auto',
         scrollbarWidth: 'none',
+        justifyContent: 'center',
+        flexWrap: 'wrap',
       }}>
-        {CATEGORIAS.map(cat => (
-          (conStock(cat.id) > 0 || cat.id === 'todas') ? (
-            <button key={cat.id} style={pill(categoriaActiva === cat.id)} onClick={() => onCategoria(cat.id)}>
-              {cat.label}
+        {GRUPOS.map(g => {
+          const n = cuentaGrupo(g.id)
+          if (n === 0 && g.id !== 'todas') return null
+          return (
+            <button key={g.id} style={pill(categoriaActiva === g.id)} onClick={() => { onCategoria(g.id); onSubcategoria(null) }}>
+              {g.label}
             </button>
-          ) : null
-        ))}
+          )
+        })}
       </div>
 
-      {categoriaActiva === 'vino' && (
+      {muestraOrigenes && (
         <div style={{
           display: 'flex',
-          gap: '6px',
-          padding: '0 20px 14px',
+          gap: '4px',
+          padding: '0 16px 10px',
           overflowX: 'auto',
           scrollbarWidth: 'none',
+          justifyContent: 'center',
+          flexWrap: 'wrap',
         }}>
           <button
             style={{
               ...pill(!subcategoriaActiva),
-              fontSize: '11px',
-              padding: '5px 14px',
-              borderColor: !subcategoriaActiva ? 'var(--raco-khaki)' : 'var(--raco-line)',
-              background: !subcategoriaActiva ? 'rgba(184,168,130,0.15)' : 'transparent',
-              color: !subcategoriaActiva ? 'var(--raco-khaki)' : 'var(--raco-muted)',
+              fontSize: '9px',
+              padding: '3px 8px',
             }}
             onClick={() => onSubcategoria(null)}
           >
             Todos
           </button>
-          {SUBCATEGORIAS_VINO.map(sub => {
-            const hay = bebidas.filter(b => b.categoria === 'vino' && b.subcategoria === sub.id).length
-            return hay > 0 ? (
+          {ORIGENES.map(o => {
+            const n = cuentaOrigen(o.id)
+            return n > 0 ? (
               <button
-                key={sub.id}
+                key={o.id}
                 style={{
-                  ...pill(subcategoriaActiva === sub.id),
-                  fontSize: '11px',
-                  padding: '5px 14px',
-                  borderColor: subcategoriaActiva === sub.id ? 'var(--raco-khaki)' : 'var(--raco-line)',
-                  background: subcategoriaActiva === sub.id ? 'rgba(184,168,130,0.15)' : 'transparent',
-                  color: subcategoriaActiva === sub.id ? 'var(--raco-khaki)' : 'var(--raco-muted)',
+                  ...pill(subcategoriaActiva === o.id),
+                  fontSize: '9px',
+                  padding: '3px 8px',
                 }}
-                onClick={() => onSubcategoria(sub.id)}
+                onClick={() => onSubcategoria(o.id)}
               >
-                {sub.label}
+                {o.label}
               </button>
             ) : null
           })}

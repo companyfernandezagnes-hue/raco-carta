@@ -107,9 +107,9 @@ export default function DetalleBebida({ bebida, onVolver, todasBebidas }) {
       </div>
 
       <div style={{ padding: '24px 20px 48px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
-        {bebida.nota_cata && <NotaCataTabs bebida={bebida} />}
-        <RadarCaracteristicas bebida={bebida} />
         <FichaTecnica bebida={bebida} />
+        <RadarCaracteristicas bebida={bebida} />
+        <NotasVistaNariz bebida={bebida} />
         <InfoBodegaTabs bebida={bebida} />
         {bebida.maridajes && bebida.maridajes.length > 0 && <MaridajeExpandible maridajes={bebida.maridajes} />}
         {relacionados.length > 0 && (
@@ -174,6 +174,102 @@ function HeroPlaceholder({ bebida }) {
   )
 }
 
+function NotasVistaNariz({ bebida }) {
+  // Si tenemos los 3 separados, los mostramos como bloques.
+  // Si solo tenemos nota_cata combinado (formato "VISTA: ... · NARIZ: ... · BOCA: ..."),
+  // intentamos parsearlo. Si no, mostramos la nota tal cual.
+  let vista = bebida.nota_visual || bebida.vista
+  let nariz = bebida.nota_nariz || bebida.nariz
+  let boca  = bebida.nota_boca  || bebida.boca
+
+  if (!vista && !nariz && !boca && bebida.nota_cata) {
+    const m = String(bebida.nota_cata)
+    const matchVista = m.match(/VISTA\s*:\s*([^·]+?)(?=·\s*NARIZ|·\s*BOCA|$)/i)
+    const matchNariz = m.match(/NARIZ\s*:\s*([^·]+?)(?=·\s*BOCA|·\s*VISTA|$)/i)
+    const matchBoca  = m.match(/BOCA\s*:\s*(.+?)$/i)
+    if (matchVista) vista = matchVista[1].trim()
+    if (matchNariz) nariz = matchNariz[1].trim()
+    if (matchBoca)  boca  = matchBoca[1].trim()
+  }
+
+  if (!vista && !nariz && !boca) {
+    if (bebida.nota_cata) {
+      return (
+        <Seccion titulo="Nota de cata">
+          <p style={{ fontFamily: 'var(--font-body)', fontSize: '15px', color: 'var(--raco-black)', lineHeight: '1.75', fontStyle: 'italic', fontWeight: '300' }}>"{bebida.nota_cata}"</p>
+        </Seccion>
+      )
+    }
+    return null
+  }
+
+  const bloques = [
+    { icon: <IcoVista />, label: 'Vista', text: vista },
+    { icon: <IcoNariz />, label: 'Nariz', text: nariz },
+    { icon: <IcoBoca  />, label: 'Boca',  text: boca  },
+  ].filter(b => b.text)
+
+  return (
+    <Seccion titulo="Nota de cata">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        {bloques.map(b => (
+          <div key={b.label} style={{
+            display: 'flex', gap: '16px', alignItems: 'flex-start',
+            paddingBottom: '14px',
+            borderBottom: '1px solid var(--raco-sand)',
+          }}>
+            <div style={{
+              flexShrink: 0, width: '32px', height: '32px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: 'var(--raco-khaki)',
+            }}>{b.icon}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{
+                fontFamily: 'var(--font-body)', fontSize: '10px', letterSpacing: '0.28em',
+                textTransform: 'uppercase', color: 'var(--raco-stone)', marginBottom: '4px',
+                fontWeight: '400'
+              }}>{b.label}</p>
+              <p style={{
+                fontFamily: 'var(--font-body)', fontSize: '14px', color: 'var(--raco-black)',
+                lineHeight: '1.55', fontWeight: '300'
+              }}>{b.text}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </Seccion>
+  )
+}
+
+function IcoVista() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/>
+      <circle cx="12" cy="12" r="2.5"/>
+    </svg>
+  )
+}
+
+function IcoNariz() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M11 3.5c0 4 -3 6.5 -3 9.5 c0 1.6 0.8 2.5 2 2.5"/>
+      <path d="M10 18.5 q2 1 4 0"/>
+      <path d="M10 15.5 c1.5 0 3 0 4 -1"/>
+      <path d="M14 15.5 c1.4 0 2.5 -0.6 2.5 -2"/>
+    </svg>
+  )
+}
+
+function IcoBoca() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 12 q4 -5 9 -2 q5 -3 9 2 q-4 6 -9 4 q-5 2 -9 -4z"/>
+      <path d="M5 12 q3 0 7 1.2 q4 -1.2 7 -1.2"/>
+    </svg>
+  )
+}
+
 function NotaCataTabs({ bebida }) {
   const [tab, setTab] = useState('general')
   const tabs = [
@@ -218,12 +314,12 @@ function RadarCaracteristicas({ bebida }) {
   if (!bebida.caracteristicas) return null
   const c = bebida.caracteristicas
   const ejes = [
-    {label:'Potencia',key:'potencia'},{label:'Acidez',key:'acidez'},
-    {label:'Taninos',key:'taninos'},{label:'Dulzura',key:'dulzura'},
-    {label:'Afrutado',key:'afrutado'}
+    {label:'Cuerpo',key:'potencia'},{label:'Acidez',key:'acidez'},
+    {label:'Taninos',key:'taninos'},{label:'Dulzor',key:'dulzura'},
+    {label:'Frutal',key:'afrutado'}
   ]
   const vals = ejes.map(e => (c[e.key]||0)/10)
-  const n = ejes.length, cx=80, cy=80, r=60
+  const n = ejes.length, cx=140, cy=110, r=70
   const points = vals.map((v,i) => {
     const a=(Math.PI*2*i/n)-Math.PI/2
     return [cx+r*v*Math.cos(a), cy+r*v*Math.sin(a)]
@@ -234,13 +330,19 @@ function RadarCaracteristicas({ bebida }) {
   })
   const labelPoints = ejes.map((e,i) => {
     const a=(Math.PI*2*i/n)-Math.PI/2, lr=r+18
-    return {x:cx+lr*Math.cos(a), y:cy+lr*Math.sin(a), label:e.label}
+    const x = cx + lr * Math.cos(a)
+    const y = cy + lr * Math.sin(a)
+    let anchor = 'middle'
+    const cosA = Math.cos(a)
+    if (cosA > 0.3) anchor = 'start'
+    else if (cosA < -0.3) anchor = 'end'
+    return {x, y, label: e.label, anchor}
   })
   const gridLevels = [0.25,0.5,0.75,1]
   return (
     <Seccion titulo="Perfil">
       <div style={{ display: 'flex', justifyContent: 'center' }}>
-        <svg width="160" height="160" viewBox="0 0 160 160">
+        <svg width="280" height="220" viewBox="0 0 280 220" style={{ maxWidth: '100%' }}>
           {gridLevels.map((lv,gi) => {
             const gpts=ejes.map((_,i)=>{const a=(Math.PI*2*i/n)-Math.PI/2;return[cx+r*lv*Math.cos(a),cy+r*lv*Math.sin(a)]})
             return <polygon key={gi} points={gpts.map(p=>p.join(',')).join(' ')} fill="none" stroke="var(--raco-sand)" strokeWidth="0.5"/>
@@ -248,7 +350,7 @@ function RadarCaracteristicas({ bebida }) {
           {axisPoints.map((p,i) => <line key={i} x1={cx} y1={cy} x2={p[0]} y2={p[1]} stroke="var(--raco-sand)" strokeWidth="0.5"/>)}
           <polygon points={points.map(p=>p.join(',')).join(' ')} fill="rgba(107,122,62,0.15)" stroke="var(--raco-khaki)" strokeWidth="1.5"/>
           {points.map((p,i) => <circle key={i} cx={p[0]} cy={p[1]} r="3" fill="var(--raco-khaki)"/>)}
-          {labelPoints.map((lp,i) => <text key={i} x={lp.x} y={lp.y} textAnchor="middle" dominantBaseline="middle" fontSize="9" fill="var(--raco-stone)">{lp.label}</text>)}
+          {labelPoints.map((lp,i) => <text key={i} x={lp.x} y={lp.y} textAnchor={lp.anchor} dominantBaseline="middle" fontSize="11" fill="var(--raco-stone)" letterSpacing="0.04em">{lp.label}</text>)}
         </svg>
       </div>
     </Seccion>

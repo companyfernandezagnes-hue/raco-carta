@@ -8,14 +8,14 @@
 }
 
 :root {
-  --raco-cream:    #EDE5D0;
-  --raco-khaki:    #6B7A3E;
+  --raco-cream:    #F5EFE0;
+  --raco-khaki:    #B69A6A;   /* Tan dorado del logo (Pantone 465) */
   --raco-black:    #1C1C0E;
-  --raco-sand:     #D4C9A8;
-  --raco-stone:    #A09070;
-  --raco-paper:    #F7F2E8;
-  --raco-khaki-lt: #8A9A52;
-  --raco-earth:    #4A3728;
+  --raco-sand:     #DACAA8;
+  --raco-stone:    #9C8A66;
+  --raco-paper:    #F9F4E6;
+  --raco-khaki-lt: #C9B387;   /* Tan más claro para hover */
+  --raco-earth:    #6B533A;   /* Marrón cálido para acentos oscuros */
 
   --bg:         var(--raco-cream);
   --bg2:        var(--raco-paper);

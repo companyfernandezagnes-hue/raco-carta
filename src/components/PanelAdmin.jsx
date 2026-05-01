@@ -7,7 +7,28 @@ function verificarPassword(input) {
   try { return btoa(btoa(input)) === PASS_HASH } catch { return false }
 }
 
-const CRITICOS = ['Decanter', 'Wine Spectator', 'Robert Parker', 'Penin', 'James Suckling', 'Vinous', 'Otro']
+const CRITICOS = [
+  'Decanter', 'Wine Spectator', 'Robert Parker / Wine Advocate',
+  'Guía Peñín', 'James Suckling', 'Vinous', 'Tim Atkin',
+  'The Italian Wine Journal', 'Guia de Vins de Catalunya',
+  'Premis Vinari', 'Bacchus', 'Mundus Vini', 'Otro'
+]
+const TIPOS_PUNTUACION = [
+  { id: 'puntos',  label: 'Puntuación (ej: 94/100)' },
+  { id: 'medalla', label: 'Medalla (oro/plata/bronce)' },
+  { id: 'mencion', label: 'Mención / texto libre' },
+]
+const MEDALLAS = [
+  { id: 'oro',     label: '🥇 Oro' },
+  { id: 'plata',   label: '🥈 Plata' },
+  { id: 'bronce',  label: '🥉 Bronce' },
+  { id: 'gran-oro',label: '🏆 Gran Oro' },
+]
+function inferirTipo(p) {
+  if (p.tipo) return p.tipo
+  if (!p.nota) return 'mencion'
+  return /^[\d.,]+/.test(String(p.nota).trim()) ? 'puntos' : 'medalla'
+}
 const CAMPOS_IA = [
   'nombre','categoria','subcategoria','descripcion','bodega','productor',
   'pais','region','anada','uvas','tipo_uva_secundaria','parcela',
@@ -257,7 +278,15 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
         precio_coste: precioCosteVal,
         orden: form.orden ? parseInt(form.orden) : 0,
         maridajes: form.maridajes ? form.maridajes.split(',').map(s => s.trim()).filter(Boolean) : [],
-        puntuaciones: Array.isArray(form.puntuaciones) ? form.puntuaciones.filter(p => p.critico && p.nota) : [],
+        puntuaciones: Array.isArray(form.puntuaciones)
+          ? form.puntuaciones
+              .map(p => ({
+                ...p,
+                critico: p.critico === 'Otro' && p.criticoCustom ? p.criticoCustom.trim() : p.critico,
+                tipo: inferirTipo(p),
+              }))
+              .filter(p => p.critico && (p.nota || p.comentario))
+          : [],
         updated_at: new Date().toISOString()
       }
       let result, bebidaId = bebida?.id
@@ -331,7 +360,12 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
   }
 
   function addPuntuacion() {
-    setForm(prev => ({ ...prev, puntuaciones: [...(prev.puntuaciones || []), { critico: 'Decanter', nota: '' }] }))
+    setForm(prev => ({
+      ...prev,
+      puntuaciones: [...(prev.puntuaciones || []),
+        { critico: 'Decanter', criticoCustom: '', tipo: 'puntos', nota: '', ano: '', comentario: '' }
+      ]
+    }))
   }
   function removePuntuacion(i) {
     setForm(prev => ({ ...prev, puntuaciones: prev.puntuaciones.filter((_, idx) => idx !== i) }))
@@ -873,29 +907,95 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
               {(!form.puntuaciones || form.puntuaciones.length === 0) && (
                 <p style={{color:'#666',fontSize:'13px',margin:0,textAlign:'center'}}>Sin puntuaciones aun</p>
               )}
-              {(form.puntuaciones || []).map((p, i) => (
-                <div key={i} style={{display:'flex',gap:'8px',alignItems:'center',marginBottom:'8px'}}>
-                  <select value={p.critico} onChange={e=>updatePuntuacion(i,'critico',e.target.value)}
-                    style={{...inp,width:'auto',flex:1,padding:'6px 10px'}}>
-                    {CRITICOS.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                  <input type="number" min="50" max="100" placeholder="Nota" value={p.nota}
-                    onChange={e=>updatePuntuacion(i,'nota',e.target.value)}
-                    style={{...inp,width:'70px',textAlign:'center',padding:'6px 8px'}} />
-                  <button onClick={()=>removePuntuacion(i)} style={{background:'#7f1d1d',color:'#fca5a5',border:'none',
-                    borderRadius:'6px',padding:'6px 10px',cursor:'pointer',fontSize:'14px',fontWeight:'700'}}>
-                    x
-                  </button>
-                </div>
-              ))}
+              {(form.puntuaciones || []).map((p, i) => {
+                const tipo = inferirTipo(p)
+                const esCustom = p.critico === 'Otro' || (!CRITICOS.includes(p.critico) && p.critico)
+                return (
+                  <div key={i} style={{
+                    background:'#0f1f0f', border:'1px solid #2a4a2a', borderRadius:'8px',
+                    padding:'10px', marginBottom:'10px'
+                  }}>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr auto',gap:'8px',marginBottom:'6px'}}>
+                      <select
+                        value={CRITICOS.includes(p.critico) ? p.critico : 'Otro'}
+                        onChange={e=>updatePuntuacion(i,'critico',e.target.value)}
+                        style={{...inp,padding:'6px 8px',fontSize:'12px'}}>
+                        {CRITICOS.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                      <select value={tipo}
+                        onChange={e=>updatePuntuacion(i,'tipo',e.target.value)}
+                        style={{...inp,padding:'6px 8px',fontSize:'12px'}}>
+                        {TIPOS_PUNTUACION.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+                      </select>
+                      <button onClick={()=>removePuntuacion(i)} style={{
+                        background:'#7f1d1d',color:'#fca5a5',border:'none',
+                        borderRadius:'6px',padding:'6px 12px',cursor:'pointer',fontSize:'14px',fontWeight:'700'
+                      }}>×</button>
+                    </div>
+                    {esCustom && (
+                      <input
+                        placeholder="Nombre del crítico/premio (ej: Bacchus, Mundus Vini)"
+                        value={p.criticoCustom || (CRITICOS.includes(p.critico) ? '' : p.critico)}
+                        onChange={e=>updatePuntuacion(i,'criticoCustom',e.target.value)}
+                        style={{...inp,padding:'6px 8px',fontSize:'12px',marginBottom:'6px'}} />
+                    )}
+                    <div style={{display:'grid',gridTemplateColumns: tipo==='mencion' ? '1fr' : '2fr 1fr',gap:'8px',marginBottom:'6px'}}>
+                      {tipo === 'puntos' && (
+                        <input type="text" placeholder="Puntos (ej: 94, 9.81)"
+                          value={p.nota || ''}
+                          onChange={e=>updatePuntuacion(i,'nota',e.target.value)}
+                          style={{...inp,padding:'6px 8px',fontSize:'13px',textAlign:'center',fontWeight:'700'}} />
+                      )}
+                      {tipo === 'medalla' && (
+                        <select value={p.nota || 'oro'}
+                          onChange={e=>updatePuntuacion(i,'nota',e.target.value)}
+                          style={{...inp,padding:'6px 8px',fontSize:'13px'}}>
+                          {MEDALLAS.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
+                        </select>
+                      )}
+                      <input type="number" placeholder="Año (opcional)"
+                        value={p.ano || ''}
+                        onChange={e=>updatePuntuacion(i,'ano',e.target.value)}
+                        style={{...inp,padding:'6px 8px',fontSize:'12px',textAlign:'center'}} />
+                    </div>
+                    <textarea
+                      placeholder={tipo==='mencion'
+                        ? 'Texto / mención (ej: Icono del Vino Catalán)'
+                        : 'Comentario opcional (ej: Mejor Espumoso de Variedades Locales)'}
+                      value={p.comentario || ''}
+                      onChange={e=>updatePuntuacion(i,'comentario',e.target.value)}
+                      style={{...inp,padding:'6px 8px',fontSize:'12px',minHeight:'40px',resize:'vertical',
+                        fontFamily:'inherit'}} />
+                  </div>
+                )
+              })}
               {(form.puntuaciones || []).length > 0 && (
-                <div style={{display:'flex',gap:'6px',flexWrap:'wrap',marginTop:'10px'}}>
-                  {form.puntuaciones.filter(p=>p.critico&&p.nota).map((p,i)=>(
-                    <span key={i} style={{background:'#78350f',color:'#fde68a',border:'1px solid #d97706',
-                      borderRadius:'6px',padding:'3px 10px',fontSize:'12px',fontWeight:'700'}}>
-                      {p.nota} {p.critico}
-                    </span>
-                  ))}
+                <div style={{display:'flex',gap:'6px',flexWrap:'wrap',marginTop:'10px',
+                  paddingTop:'10px',borderTop:'1px dashed #2a4a2a'}}>
+                  <span style={{fontSize:'10px',color:'#7ec87e',width:'100%',marginBottom:'4px',
+                    letterSpacing:'0.1em'}}>VISTA PREVIA:</span>
+                  {form.puntuaciones.filter(p => p.critico && (p.nota || p.comentario)).map((p,i)=>{
+                    const tipo = inferirTipo(p)
+                    const critico = p.critico === 'Otro' && p.criticoCustom ? p.criticoCustom : p.critico
+                    let icono = '', textoNota = p.nota || ''
+                    if (tipo === 'medalla') {
+                      const m = MEDALLAS.find(x=>x.id===p.nota)
+                      if (m) { icono = m.label.split(' ')[0]; textoNota = m.label.split(' ').slice(1).join(' ') }
+                    }
+                    return (
+                      <span key={i} style={{
+                        background: tipo==='medalla' ? '#3a2a0a' : (tipo==='mencion' ? '#2a2a3a' : '#78350f'),
+                        color: tipo==='medalla' ? '#fde68a' : (tipo==='mencion' ? '#c4b5fd' : '#fde68a'),
+                        border: '1px solid '+(tipo==='medalla' ? '#d97706' : (tipo==='mencion' ? '#7c3aed' : '#d97706')),
+                        borderRadius:'6px',padding:'3px 10px',fontSize:'12px',fontWeight:'700'
+                      }}>
+                        {icono && <span style={{marginRight:'4px'}}>{icono}</span>}
+                        {textoNota && <span>{textoNota} </span>}
+                        <span style={{opacity:0.85,fontWeight:'500'}}>{critico}</span>
+                        {p.ano && <span style={{opacity:0.6,fontWeight:'400'}}> · {p.ano}</span>}
+                      </span>
+                    )
+                  })}
                 </div>
               )}
             </div>

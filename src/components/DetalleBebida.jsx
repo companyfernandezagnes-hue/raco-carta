@@ -36,9 +36,9 @@ export default function DetalleBebida({ bebida, onVolver, todasBebidas }) {
           </p>
         )}
 
-        {Array.isArray(bebida.puntuaciones) && bebida.puntuaciones.filter(p => p.critico && p.nota).length > 0 && (
+        {Array.isArray(bebida.puntuaciones) && bebida.puntuaciones.filter(p => p.critico && (p.nota || p.comentario)).length > 0 && (
           <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', marginBottom: '10px' }}>
-            {bebida.puntuaciones.filter(p => p.critico && p.nota).map((p, i) => <BadgeCritico key={i} nota={p.nota} critico={p.critico} />)}
+            {bebida.puntuaciones.filter(p => p.critico && (p.nota || p.comentario)).map((p, i) => <BadgeCritico key={i} p={p} />)}
           </div>
         )}
 
@@ -459,25 +459,85 @@ function MaridajeExpandible({ maridajes }) {
   )
 }
 
-function BadgeCritico({ nota, critico }) {
+const MEDALLA_INFO = {
+  'oro':      { icon:'🥇', label:'Oro',      bg:'rgba(212,175,55,0.10)', border:'rgba(212,175,55,0.45)', text:'#8a6a1a' },
+  'plata':    { icon:'🥈', label:'Plata',    bg:'rgba(170,170,170,0.10)',border:'rgba(140,140,140,0.45)',text:'#5a5a5a' },
+  'bronce':   { icon:'🥉', label:'Bronce',   bg:'rgba(176,113,68,0.10)', border:'rgba(176,113,68,0.40)', text:'#7a4a2a' },
+  'gran-oro': { icon:'🏆', label:'Gran Oro', bg:'rgba(212,175,55,0.14)', border:'rgba(212,175,55,0.55)', text:'#7a5a0a' },
+}
+function inferirTipoBadge(p) {
+  if (p.tipo) return p.tipo
+  if (!p.nota) return 'mencion'
+  return /^[\d.,]+/.test(String(p.nota).trim()) ? 'puntos' : 'medalla'
+}
+function BadgeCritico({ p }) {
+  const tipo = inferirTipoBadge(p)
+  const critico = p.critico || ''
   const colores = {
-    'Decanter':       {bg:'rgba(124,58,237,0.08)',border:'rgba(124,58,237,0.3)',text:'#6B4AAA'},
-    'Wine Spectator': {bg:'rgba(180,30,30,0.07)', border:'rgba(180,30,30,0.25)', text:'#8B3A3A'},
-    'Robert Parker':  {bg:'rgba(180,80,20,0.07)', border:'rgba(180,80,20,0.25)', text:'#8B5A2A'},
-    'Penin':          {bg:'rgba(40,120,60,0.08)', border:'rgba(40,120,60,0.25)', text:'#3A7A4A'},
-    'James Suckling': {bg:'rgba(30,80,160,0.07)', border:'rgba(30,80,160,0.25)',text:'#3A5A8B'},
-    'Vinous':         {bg:'rgba(160,120,20,0.07)',border:'rgba(160,120,20,0.25)',text:'#7A6A2A'},
-    'Otro':           {bg:'rgba(107,122,62,0.07)',border:'rgba(107,122,62,0.25)',text:'var(--raco-stone)'}
+    'Decanter':                       {bg:'rgba(124,58,237,0.08)',border:'rgba(124,58,237,0.3)',text:'#6B4AAA'},
+    'Wine Spectator':                 {bg:'rgba(180,30,30,0.07)', border:'rgba(180,30,30,0.25)', text:'#8B3A3A'},
+    'Robert Parker':                  {bg:'rgba(180,80,20,0.07)', border:'rgba(180,80,20,0.25)', text:'#8B5A2A'},
+    'Robert Parker / Wine Advocate':  {bg:'rgba(180,80,20,0.07)', border:'rgba(180,80,20,0.25)', text:'#8B5A2A'},
+    'Penin':                          {bg:'rgba(40,120,60,0.08)', border:'rgba(40,120,60,0.25)', text:'#3A7A4A'},
+    'Guía Peñín':                     {bg:'rgba(40,120,60,0.08)', border:'rgba(40,120,60,0.25)', text:'#3A7A4A'},
+    'James Suckling':                 {bg:'rgba(30,80,160,0.07)', border:'rgba(30,80,160,0.25)',text:'#3A5A8B'},
+    'Vinous':                         {bg:'rgba(160,120,20,0.07)',border:'rgba(160,120,20,0.25)',text:'#7A6A2A'},
+    'Tim Atkin':                      {bg:'rgba(80,30,140,0.07)', border:'rgba(80,30,140,0.25)', text:'#5a3a8a'},
+    'The Italian Wine Journal':       {bg:'rgba(0,100,60,0.07)',  border:'rgba(0,100,60,0.25)',  text:'#2a6a4a'},
+    'Guia de Vins de Catalunya':      {bg:'rgba(180,30,30,0.07)', border:'rgba(180,30,30,0.25)', text:'#8B3A3A'},
+    'Premis Vinari':                  {bg:'rgba(180,140,30,0.07)',border:'rgba(180,140,30,0.30)',text:'#8a6a1a'},
+    'Otro':                           {bg:'rgba(107,122,62,0.07)',border:'rgba(107,122,62,0.25)',text:'var(--raco-stone)'}
   }
+
+  if (tipo === 'medalla') {
+    const m = MEDALLA_INFO[p.nota] || MEDALLA_INFO.oro
+    return (
+      <span title={p.comentario || ''} style={{
+        display:'inline-flex',alignItems:'center',gap:'5px',
+        background:m.bg,border:'1px solid '+m.border,
+        borderRadius:'5px',padding:'2px 8px',whiteSpace:'nowrap'
+      }}>
+        <span style={{fontSize:'13px'}}>{m.icon}</span>
+        <span style={{fontFamily:'var(--font-brand)',fontSize:'12px',color:m.text}}>{m.label}</span>
+        <span style={{fontFamily:'var(--font-body)',fontSize:'9px',color:m.text,opacity:0.8,letterSpacing:'0.06em'}}>
+          {critico}{p.ano ? ' · '+p.ano : ''}
+        </span>
+      </span>
+    )
+  }
+
   const c = colores[critico] || colores['Otro']
+  if (tipo === 'mencion') {
+    return (
+      <span title={p.comentario || ''} style={{
+        display:'inline-flex',alignItems:'center',gap:'4px',
+        background:c.bg,border:'1px dashed '+c.border,
+        borderRadius:'5px',padding:'2px 8px',maxWidth:'100%'
+      }}>
+        <span style={{fontFamily:'var(--font-body)',fontSize:'10px',color:c.text,letterSpacing:'0.06em'}}>
+          {critico}{p.ano ? ' · '+p.ano : ''}
+        </span>
+        {p.comentario && (
+          <span style={{fontFamily:'var(--font-body)',fontSize:'10px',color:c.text,opacity:0.85,
+            fontStyle:'italic',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:'180px'}}>
+            «{p.comentario}»
+          </span>
+        )}
+      </span>
+    )
+  }
+
+  // tipo === 'puntos'
   return (
-    <span style={{
+    <span title={p.comentario || ''} style={{
       display:'inline-flex',alignItems:'center',gap:'4px',
       background:c.bg,border:'1px solid '+c.border,
       borderRadius:'5px',padding:'2px 8px',whiteSpace:'nowrap'
     }}>
-      <span style={{ fontFamily:'var(--font-brand)',fontSize:'13px',color:c.text }}>{nota}</span>
-      <span style={{ fontFamily:'var(--font-body)',fontSize:'9px',color:c.text,opacity:0.8,letterSpacing:'0.06em' }}>{critico}</span>
+      <span style={{fontFamily:'var(--font-brand)',fontSize:'13px',color:c.text}}>{p.nota}</span>
+      <span style={{fontFamily:'var(--font-body)',fontSize:'9px',color:c.text,opacity:0.8,letterSpacing:'0.06em'}}>
+        {critico}{p.ano ? ' · '+p.ano : ''}
+      </span>
     </span>
   )
 }

@@ -75,20 +75,23 @@ export default function App() {
             if (Array.isArray(trads)) {
               const mapa = Object.fromEntries(trads.map(t => [t.bebida_id, t]))
               const camposTraducibles = ['nombre','descripcion','nota_cata','nota_visual','nota_nariz','nota_boca','maridajes','historia','curiosidad']
-              setBebidas(data.map(b => {
+              const merged = data.map(b => {
                 const t = mapa[b.id]
                 if (!t) return b
-                const merged = { ...b, _idioma_original: 'es' }
+                const m = { ...b, _idioma_original: 'es' }
                 for (const c of camposTraducibles) {
-                  if (t[c]) merged[c] = t[c]
+                  if (t[c]) m[c] = t[c]
                 }
-                return merged
-              }))
+                return m
+              })
+              setBebidas(merged)
+              setBebidaseleccionada(prev => prev ? (merged.find(x => x.id === prev.id) || prev) : prev)
               return
             }
           } catch (e) { console.warn('Sin traducciones disponibles', e) }
         }
         setBebidas(data)
+        setBebidaseleccionada(prev => prev ? (data.find(x => x.id === prev.id) || prev) : prev)
       }
     } catch (e) {
       console.error('Error cargando carta:', e)

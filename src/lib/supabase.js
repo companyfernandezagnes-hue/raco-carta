@@ -33,12 +33,17 @@ function createSupabaseClient(url, key) {
           if (orders.length) params.set('order', orders.join(','))
           if (limitVal !== null) params.set('limit', String(limitVal))
 
+          // Cache-buster: añadimos un parámetro único para evitar que el navegador
+          // o cualquier proxy intermedio sirvan datos antiguos tras un guardado.
+          params.append('_t', Date.now())
           const endpoint = `${url}/rest/v1/${table}?${params.toString()}`
           const res = await fetch(endpoint, {
+            cache: 'no-store',
             headers: {
               'apikey': key,
               'Authorization': `Bearer ${key}`,
-              'Content-Type': 'application/json'
+              'Content-Type': 'application/json',
+              'Cache-Control': 'no-cache'
             }
           })
           const data = await res.json()

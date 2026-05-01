@@ -348,6 +348,9 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
     }
   }
 
+  const [fondoLoading, setFondoLoading] = useState(false)
+  const [fondoError, setFondoError] = useState('')
+
   function handleFoto(e) {
     const file = e.target.files[0]
     if (!file) return
@@ -355,9 +358,45 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
     reader.onload = ev => {
       const base64 = ev.target.result
       setForm(prev => ({ ...prev, foto_url: base64 }))
-      rellenarConIA({ fotoBase64: base64, apiKey, setForm, setIaLoading, setIaError })
+      // Sólo invocar IA automática si el usuario pidió el bloque IA y no hay nombre todavía
+      if (mostrarIA && !form.nombre) {
+        rellenarConIA({ fotoBase64: base64, apiKey, setForm, setIaLoading, setIaError })
+      }
     }
     reader.readAsDataURL(file)
+  }
+
+  async function quitarFondoFoto() {
+    if (!form.foto_url) return
+    setFondoLoading(true)
+    setFondoError('')
+    try {
+      // Carga lazy del paquete (~2MB descarga la primera vez, modelo ~80MB)
+      const { removeBackground } = await import('@imgly/background-removal')
+      // Convertir data URL → Blob
+      const r = await fetch(form.foto_url)
+      const blob = await r.blob()
+      const sinFondo = await removeBackground(blob)
+      const reader2 = new FileReader()
+      reader2.onload = ev => {
+        setForm(prev => ({ ...prev, foto_url: ev.target.result }))
+        setFondoLoading(false)
+      }
+      reader2.onerror = () => {
+        setFondoError('No se pudo procesar la imagen')
+        setFondoLoading(false)
+      }
+      reader2.readAsDataURL(sinFondo)
+    } catch (err) {
+      console.error(err)
+      setFondoError('Error: ' + (err.message || 'no se pudo quitar el fondo'))
+      setFondoLoading(false)
+    }
+  }
+
+  function quitarFoto() {
+    setForm(prev => ({ ...prev, foto_url: '' }))
+    setFondoError('')
   }
 
   function addPuntuacion() {
@@ -1014,10 +1053,95 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
               </label>
             </div>
 
-            {form.foto_url && (
-              <img src={form.foto_url} alt="preview"
-                style={{width:'100%',maxHeight:'180px',objectFit:'contain',marginTop:'12px',borderRadius:'8px',background:'#2a2a2a'}} />
-            )}
+            {/* SECCIÓN FOTO */}
+            <div style={{
+              marginTop:'18px', background:'#1a1a1a', border:'1px solid #333',
+              borderRadius:'12px', padding:'16px'
+            }}>
+              <div style={{
+                display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'12px'
+              }}>
+                <span style={{
+                  fontSize:'12px', fontWeight:'700', letterSpacing:'1px',
+                  color:'#fff', textTransform:'uppercase'
+                }}>📷 Foto del producto</span>
+                {form.foto_url && (
+                  <button onClick={quitarFoto} style={{
+                    background:'transparent', color:'#f87171', border:'1px solid #f87171',
+                    borderRadius:'6px', padding:'4px 10px', fontSize:'11px', cursor:'pointer'
+                  }}>Quitar foto</button>
+                )}
+              </div>
+
+              {/* Caja de previsualización con fondo cuadriculado para detectar transparencia */}
+              <div style={{
+                width:'100%', minHeight:'260px', borderRadius:'10px',
+                border:'2px dashed #444',
+                backgroundColor:'#2a2a2a',
+                backgroundImage: form.foto_url ?
+                  'linear-gradient(45deg, #333 25%, transparent 25%), linear-gradient(-45deg, #333 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #333 75%), linear-gradient(-45deg, transparent 75%, #333 75%)' : 'none',
+                backgroundSize:'16px 16px',
+                backgroundPosition:'0 0, 0 8px, 8px -8px, -8px 0px',
+                display:'flex', alignItems:'center', justifyContent:'center',
+                cursor: form.foto_url ? 'default' : 'pointer',
+                position:'relative', overflow:'hidden',
+                padding:'12px'
+              }} onClick={() => !form.foto_url && fotoInputRef.current?.click()}>
+                {form.foto_url ? (
+                  <img src={form.foto_url} alt="preview"
+                    style={{
+                      maxWidth:'100%', maxHeight:'400px', objectFit:'contain',
+                      imageRendering:'auto',
+                      filter: fondoLoading ? 'blur(2px) brightness(0.6)' : 'none',
+                      transition:'filter 0.2s'
+                    }} />
+                ) : (
+                  <div style={{textAlign:'center', color:'#666'}}>
+                    <div style={{fontSize:'40px', marginBottom:'6px'}}>📤</div>
+                    <p style={{margin:0, fontSize:'13px', color:'#888'}}>Pulsa para subir una foto</p>
+                    <p style={{margin:'4px 0 0', fontSize:'11px', color:'#555'}}>JPG, PNG o WebP — calidad original</p>
+                  </div>
+                )}
+                {fondoLoading && (
+                  <div style={{
+                    position:'absolute', inset:0, display:'flex', alignItems:'center',
+                    justifyContent:'center', flexDirection:'column', color:'#fff',
+                    background:'rgba(0,0,0,0.4)', backdropFilter:'blur(2px)'
+                  }}>
+                    <div style={{fontSize:'13px', fontWeight:'600'}}>Quitando fondo…</div>
+                    <div style={{fontSize:'11px', opacity:0.8, marginTop:'4px'}}>
+                      La primera vez tarda más (descarga el modelo IA)
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {fondoError && (
+                <p style={{margin:'8px 0 0', fontSize:'12px', color:'#f87171'}}>{fondoError}</p>
+              )}
+
+              {/* Botones de acción */}
+              <div style={{display:'flex', gap:'8px', marginTop:'12px', flexWrap:'wrap'}}>
+                <button onClick={()=>fotoInputRef.current?.click()}
+                  disabled={fondoLoading}
+                  style={{...btn('#374151'), fontSize:'13px', padding:'8px 14px',
+                    opacity: fondoLoading ? 0.5 : 1}}>
+                  {form.foto_url ? '🔄 Cambiar foto' : '📤 Subir foto'}
+                </button>
+                {form.foto_url && (
+                  <button onClick={quitarFondoFoto}
+                    disabled={fondoLoading}
+                    style={{...btn('#7c3aed'), fontSize:'13px', padding:'8px 14px',
+                      opacity: fondoLoading ? 0.5 : 1}}>
+                    {fondoLoading ? '⏳ Procesando…' : '✨ Quitar fondo'}
+                  </button>
+                )}
+              </div>
+              <p style={{margin:'10px 0 0', fontSize:'11px', color:'#666', lineHeight:'1.5'}}>
+                💡 «Quitar fondo» usa IA en tu navegador (sin enviar la foto a ningún servidor).
+                La primera vez descarga ~80 MB y tarda 10-30 s. Luego es instantáneo.
+              </p>
+            </div>
 
             <div style={{display:'flex',gap:'12px',marginTop:'20px'}}>
               <button style={btn()} onClick={guardar} disabled={guardando}>

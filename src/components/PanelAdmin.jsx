@@ -367,6 +367,49 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
     reader.readAsDataURL(file)
   }
 
+  function cargarComoBlob(src) {
+    return new Promise((resolve, reject) => {
+      const img = new Image()
+      img.crossOrigin = 'anonymous'
+      img.onload = () => {
+        const c = document.createElement('canvas')
+        c.width = img.naturalWidth
+        c.height = img.naturalHeight
+        const ctx = c.getContext('2d')
+        ctx.drawImage(img, 0, 0)
+        c.toBlob(b => b ? resolve(b) : reject(new Error('No se pudo generar la imagen')), 'image/png')
+      }
+      img.onerror = () => reject(new Error('img-fail'))
+      img.src = src
+    })
+  }
+
+  async function urlAImagenBlob(url) {
+    // 1) data URL (foto subida desde el ordenador): fetch directo
+    if (url.startsWith('data:')) {
+      const r = await fetch(url)
+      return await r.blob()
+    }
+    // 2) URL externa: probar fetch directo (funciona si el servidor permite CORS)
+    try {
+      const r = await fetch(url, { mode: 'cors' })
+      if (r.ok) return await r.blob()
+    } catch {}
+    // 3) Fallback: <img crossOrigin> + canvas (funciona si el servidor envía
+    //    Access-Control-Allow-Origin pero no responde a fetch())
+    try {
+      return await cargarComoBlob(url)
+    } catch {}
+    // 4) Último recurso: proxy de imágenes weserv.nl (Cloudflare, gratis,
+    //    añade cabeceras CORS a cualquier imagen pública)
+    const proxiada = `https://images.weserv.nl/?url=${encodeURIComponent(url.replace(/^https?:\/\//, ''))}`
+    try {
+      return await cargarComoBlob(proxiada)
+    } catch {
+      throw new Error('No se pudo cargar la imagen. Si está en un servidor externo, prueba a descargarla y subirla desde tu ordenador.')
+    }
+  }
+
   async function quitarFondoFoto() {
     if (!form.foto_url) return
     setFondoLoading(true)
@@ -375,11 +418,11 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
     try {
       // Carga lazy del paquete (~2MB de la lib + ~40-80MB del modelo IA)
       const { removeBackground } = await import('@imgly/background-removal')
-      setFondoProgreso({ fase: 'Procesando imagen…', pct: 5 })
+      setFondoProgreso({ fase: 'Cargando imagen…', pct: 3 })
 
-      // Convertir data URL → Blob
-      const r = await fetch(form.foto_url)
-      const blob = await r.blob()
+      // URL → Blob (esquivando CORS si hace falta)
+      const blob = await urlAImagenBlob(form.foto_url)
+      setFondoProgreso({ fase: 'Procesando…', pct: 5 })
 
       // El modelo se descarga la primera vez (queda en caché del navegador)
       const sinFondo = await removeBackground(blob, {

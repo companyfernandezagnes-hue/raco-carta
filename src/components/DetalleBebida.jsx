@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { formatPrecio } from '../lib/precio'
+import BotellaTilt3D from './BotellaTilt3D'
 
 export default function DetalleBebida({ bebida, onVolver, todasBebidas }) {
   const relacionados = todasBebidas ? todasBebidas.filter(b =>
@@ -18,10 +19,7 @@ export default function DetalleBebida({ bebida, onVolver, todasBebidas }) {
         borderBottom: '1px solid var(--raco-sand)',
       }}>
         {bebida.foto_url ? (
-          <img src={bebida.foto_url} alt={bebida.nombre} style={{
-            maxHeight: '240px', maxWidth: '100%', objectFit: 'contain',
-            borderRadius: '10px', boxShadow: '0 8px 32px rgba(28,28,14,0.12)'
-          }} />
+          <BotellaTilt3D src={bebida.foto_url} alt={bebida.nombre} tamaño="grande" intensidad={12} />
         ) : (
           <HeroPlaceholder bebida={bebida} />
         )}

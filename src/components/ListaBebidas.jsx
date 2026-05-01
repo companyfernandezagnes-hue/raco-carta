@@ -1,3 +1,5 @@
+import { formatPrecio } from '../lib/precio'
+
 export default function ListaBebidas({ bebidas, onSeleccionar, modoVista = 'lista', favoritos = [], onToggleFavorito, comparador = [], onToggleComparador }) {
   if (bebidas.length === 0) return (
     <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--raco-stone)', fontSize: '12px', letterSpacing: '0.14em', fontFamily: 'var(--font-body)' }}>
@@ -74,7 +76,7 @@ function Precio({ botella, copa, grande = false }) {
       {botella && (
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'flex-end', gap: '2px', lineHeight: 1 }}>
           <span style={{ fontFamily: 'var(--font-brand)', fontSize: grande ? '28px' : '22px', fontWeight: '400', color: 'var(--raco-black)', letterSpacing: '-0.01em' }}>
-            {Number(botella).toFixed(0)}
+            {formatPrecio(botella)}
           </span>
           <span style={{ fontFamily: 'var(--font-body)', fontSize: grande ? '13px' : '11px', fontWeight: '300', color: 'var(--raco-stone)', letterSpacing: '0.04em', marginBottom: '2px' }}>€</span>
         </div>
@@ -83,7 +85,7 @@ function Precio({ botella, copa, grande = false }) {
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'flex-end', gap: '2px', marginTop: '2px' }}>
           <span style={{ fontFamily: 'var(--font-body)', fontSize: '10px', color: 'var(--raco-stone)', letterSpacing: '0.06em' }}>copa&nbsp;</span>
           <span style={{ fontFamily: 'var(--font-brand)', fontSize: grande ? '15px' : '13px', color: 'var(--raco-stone)', fontWeight: '400' }}>
-            {Number(copa).toFixed(0)}
+            {formatPrecio(copa)}
           </span>
           <span style={{ fontFamily: 'var(--font-body)', fontSize: '10px', color: 'var(--raco-stone)' }}>€</span>
         </div>
@@ -223,7 +225,7 @@ function TarjetaGrid({ bebida, onSeleccionar, destacado, esPequena, esFavorito, 
         {(bebida.precio_botella || bebida.precio_copa) && (
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '2px' }}>
             <span style={{ fontFamily: 'var(--font-brand)', fontSize: esPequena ? '14px' : '18px', color: 'var(--raco-black)', fontWeight: '400' }}>
-              {Number(bebida.precio_botella || bebida.precio_copa).toFixed(0)}
+              {formatPrecio(bebida.precio_botella || bebida.precio_copa)}
             </span>
             <span style={{ fontFamily: 'var(--font-body)', fontSize: '10px', color: 'var(--raco-stone)' }}>€</span>
           </div>

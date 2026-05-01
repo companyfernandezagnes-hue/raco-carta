@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { formatPrecio } from '../lib/precio'
 
 const CATEGORIAS = [
   { id: 'entrantes',       label: 'Entrantes' },
@@ -290,13 +291,13 @@ export default function Maridaje({ bebidas, onSeleccionar, onVolver }) {
                         <p style={{
                           fontFamily: 'var(--font-brand)', fontSize: '20px',
                           color: 'var(--raco-black)', lineHeight: 1,
-                        }}>{Number(vino.precio_botella).toFixed(0)}<span style={{ fontSize: '11px', color: 'var(--raco-stone)' }}> €</span></p>
+                        }}>{formatPrecio(vino.precio_botella)}<span style={{ fontSize: '11px', color: 'var(--raco-stone)' }}> €</span></p>
                       )}
                       {vino.precio_copa && (
                         <p style={{
                           fontFamily: 'var(--font-body)', fontSize: '11px',
                           color: 'var(--raco-stone)', marginTop: '2px',
-                        }}>copa {Number(vino.precio_copa).toFixed(0)} €</p>
+                        }}>copa {formatPrecio(vino.precio_copa)} €</p>
                       )}
                     </div>
                   </div>

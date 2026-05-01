@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { formatPrecio } from '../lib/precio'
 
 export default function DetalleBebida({ bebida, onVolver, todasBebidas }) {
   const relacionados = todasBebidas ? todasBebidas.filter(b =>
@@ -70,7 +71,7 @@ export default function DetalleBebida({ bebida, onVolver, todasBebidas }) {
                   <span style={{
                     fontFamily: 'var(--font-brand)', fontSize: '36px', fontWeight: '400',
                     color: 'var(--raco-black)', lineHeight: 1
-                  }}>{bebida.precio_botella.toFixed(0)}</span>
+                  }}>{formatPrecio(bebida.precio_botella)}</span>
                   <span style={{
                     fontFamily: 'var(--font-body)', fontSize: '14px', fontWeight: '300',
                     color: 'var(--raco-stone)', marginBottom: '4px'
@@ -88,7 +89,7 @@ export default function DetalleBebida({ bebida, onVolver, todasBebidas }) {
                   <span style={{
                     fontFamily: 'var(--font-brand)', fontSize: '28px', fontWeight: '400',
                     color: 'var(--raco-stone)', lineHeight: 1
-                  }}>{bebida.precio_copa.toFixed(0)}</span>
+                  }}>{formatPrecio(bebida.precio_copa)}</span>
                   <span style={{
                     fontFamily: 'var(--font-body)', fontSize: '12px', fontWeight: '300',
                     color: 'var(--raco-stone)', marginBottom: '3px'
@@ -131,7 +132,7 @@ export default function DetalleBebida({ bebida, onVolver, todasBebidas }) {
                   </div>
                   {b.precio_botella && (
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: '2px' }}>
-                      <span style={{ fontFamily: 'var(--font-brand)', fontSize: '20px', color: 'var(--raco-black)' }}>{b.precio_botella.toFixed(0)}</span>
+                      <span style={{ fontFamily: 'var(--font-brand)', fontSize: '20px', color: 'var(--raco-black)' }}>{formatPrecio(b.precio_botella)}</span>
                       <span style={{ fontFamily: 'var(--font-body)', fontSize: '11px', color: 'var(--raco-stone)' }}>€</span>
                     </div>
                   )}

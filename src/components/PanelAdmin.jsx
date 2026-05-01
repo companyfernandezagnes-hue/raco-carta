@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabaseAdmin, hasSupabaseAdmin, getSupabaseUrl, getSupabaseServiceKey } from '../lib/supabaseAdmin'
+import { parsePrecio } from '../lib/precio'
 import AdminPlatos from './AdminPlatos.jsx'
 
 const PASS_HASH = 'TVRJek5BPT0=' // v4 - contraseña actual: 1234
@@ -268,13 +269,13 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
     if (!hasSupabaseAdmin()) return alert('Falta la clave de servicio Supabase. Configúrala en el botón ⚙ Ajustes.')
     setGuardando(true)
     try {
-      const precioCosteVal = calc.precioIva ? parseFloat(calc.precioIva) : (form.precio_coste ? parseFloat(form.precio_coste) : null)
+      const precioCosteVal = parsePrecio(calc.precioIva) ?? parsePrecio(form.precio_coste)
       const datos = {
         ...form,
         anada: form.anada ? parseInt(form.anada) : null,
-        graduacion: form.graduacion ? parseFloat(form.graduacion) : null,
-        precio_copa: form.precio_copa ? parseFloat(form.precio_copa) : null,
-        precio_botella: form.precio_botella ? parseFloat(form.precio_botella) : null,
+        graduacion: parsePrecio(form.graduacion),
+        precio_copa: parsePrecio(form.precio_copa),
+        precio_botella: parsePrecio(form.precio_botella),
         precio_coste: precioCosteVal,
         orden: form.orden ? parseInt(form.orden) : 0,
         maridajes: form.maridajes ? form.maridajes.split(',').map(s => s.trim()).filter(Boolean) : [],
@@ -811,8 +812,8 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
                 }}>PRECIOS FINALES</span>
                 <span style={{color:'#666', fontSize:'11px'}}>
                   Ratio botella ÷ copa: ×{
-                    form.precio_copa && form.precio_botella && parseFloat(form.precio_copa) > 0
-                      ? (parseFloat(form.precio_botella) / parseFloat(form.precio_copa)).toFixed(1)
+                    form.precio_copa && form.precio_botella && parsePrecio(form.precio_copa) > 0
+                      ? (parsePrecio(form.precio_botella) / parsePrecio(form.precio_copa)).toFixed(1)
                       : '—'
                   }
                 </span>
@@ -822,7 +823,7 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
                   <label style={{...label, marginTop:0, color:'#7ec87e'}}>🍷 Copa (€)</label>
                   <input
                     style={{...inp, border:'1px solid #3a5a3a', fontSize:'16px', fontWeight:'600', textAlign:'center'}}
-                    type="number" step="0.05"
+                    type="text" inputMode="decimal" pattern="[0-9.,]*"
                     value={form.precio_copa ?? ''}
                     onChange={e=>setForm(p=>({...p, precio_copa:e.target.value}))}
                   />
@@ -833,7 +834,7 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
                     title="Calcular botella desde copa (×5)"
                     disabled={!form.precio_copa}
                     onClick={()=>{
-                      const c = parseFloat(form.precio_copa)
+                      const c = parsePrecio(form.precio_copa)
                       if (!c) return
                       setForm(p=>({...p, precio_botella: redondearPrecio(c * 5, calc.redondeo)}))
                     }}
@@ -850,7 +851,7 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
                     title="Calcular copa desde botella (÷5)"
                     disabled={!form.precio_botella}
                     onClick={()=>{
-                      const b = parseFloat(form.precio_botella)
+                      const b = parsePrecio(form.precio_botella)
                       if (!b) return
                       setForm(p=>({...p, precio_copa: redondearPrecio(b / 5, calc.redondeo)}))
                     }}
@@ -867,7 +868,7 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
                   <label style={{...label, marginTop:0, color:'#7ec87e'}}>🍾 Botella (€)</label>
                   <input
                     style={{...inp, border:'1px solid #3a5a3a', fontSize:'16px', fontWeight:'600', textAlign:'center'}}
-                    type="number" step="0.05"
+                    type="text" inputMode="decimal" pattern="[0-9.,]*"
                     value={form.precio_botella ?? ''}
                     onChange={e=>setForm(p=>({...p, precio_botella:e.target.value}))}
                   />

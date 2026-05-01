@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { supabaseAdmin, hasSupabaseAdmin } from '../lib/supabaseAdmin'
+import { parsePrecio } from '../lib/precio'
 
 const CATEGORIAS = [
   { id: 'entrantes',       label: 'Entrantes' },
@@ -63,7 +64,7 @@ export default function AdminPlatos() {
     try {
       const datos = {
         ...editando,
-        precio: editando.precio ? parseFloat(editando.precio) : null,
+        precio: parsePrecio(editando.precio),
         ingredientes: editando.ingredientes
           ? editando.ingredientes.split(',').map(s => s.trim()).filter(Boolean)
           : [],
@@ -126,7 +127,7 @@ export default function AdminPlatos() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
           <div>
             <label style={lbl}>Precio (€)</label>
-            <input type="number" step="0.50" style={inp}
+            <input type="text" inputMode="decimal" pattern="[0-9.,]*" style={inp}
               value={e.precio || ''} onChange={ev => setE({ precio: ev.target.value })} />
           </div>
           <div>

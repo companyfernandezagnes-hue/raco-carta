@@ -350,6 +350,7 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
 
   const [fondoLoading, setFondoLoading] = useState(false)
   const [fondoError, setFondoError] = useState('')
+  const [fondoProgreso, setFondoProgreso] = useState({ fase: '', pct: 0 })
 
   function handleFoto(e) {
     const file = e.target.files[0]
@@ -370,27 +371,57 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
     if (!form.foto_url) return
     setFondoLoading(true)
     setFondoError('')
+    setFondoProgreso({ fase: 'Cargando librería…', pct: 0 })
     try {
-      // Carga lazy del paquete (~2MB descarga la primera vez, modelo ~80MB)
+      // Carga lazy del paquete (~2MB de la lib + ~40-80MB del modelo IA)
       const { removeBackground } = await import('@imgly/background-removal')
+      setFondoProgreso({ fase: 'Procesando imagen…', pct: 5 })
+
       // Convertir data URL → Blob
       const r = await fetch(form.foto_url)
       const blob = await r.blob()
-      const sinFondo = await removeBackground(blob)
+
+      // El modelo se descarga la primera vez (queda en caché del navegador)
+      const sinFondo = await removeBackground(blob, {
+        progress: (key, current, total) => {
+          if (!total) return
+          const pct = Math.round((current / total) * 100)
+          // key es algo como "fetch:/onnx/model.onnx"
+          const esModelo = /\.onnx|\.json|\.bin/.test(key)
+          setFondoProgreso({
+            fase: esModelo
+              ? `Descargando modelo IA (1ª vez): ${pct}%`
+              : `Procesando: ${pct}%`,
+            pct
+          })
+        }
+      })
+
+      setFondoProgreso({ fase: 'Aplicando…', pct: 100 })
       const reader2 = new FileReader()
       reader2.onload = ev => {
         setForm(prev => ({ ...prev, foto_url: ev.target.result }))
         setFondoLoading(false)
+        setFondoProgreso({ fase: '', pct: 0 })
       }
       reader2.onerror = () => {
         setFondoError('No se pudo procesar la imagen')
         setFondoLoading(false)
+        setFondoProgreso({ fase: '', pct: 0 })
       }
       reader2.readAsDataURL(sinFondo)
     } catch (err) {
       console.error(err)
-      setFondoError('Error: ' + (err.message || 'no se pudo quitar el fondo'))
+      const msg = err.message || String(err)
+      let amigable = msg
+      if (/network|fetch|failed/i.test(msg)) {
+        amigable = 'No hay conexión o el servidor de modelos no responde. Inténtalo con WiFi.'
+      } else if (/memory|allocation/i.test(msg)) {
+        amigable = 'La imagen es demasiado grande. Prueba con una más pequeña (máx ~3MB).'
+      }
+      setFondoError(amigable)
       setFondoLoading(false)
+      setFondoProgreso({ fase: '', pct: 0 })
     }
   }
 
@@ -1106,11 +1137,27 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
                   <div style={{
                     position:'absolute', inset:0, display:'flex', alignItems:'center',
                     justifyContent:'center', flexDirection:'column', color:'#fff',
-                    background:'rgba(0,0,0,0.4)', backdropFilter:'blur(2px)'
+                    background:'rgba(0,0,0,0.55)', backdropFilter:'blur(3px)',
+                    padding:'20px', textAlign:'center'
                   }}>
-                    <div style={{fontSize:'13px', fontWeight:'600'}}>Quitando fondo…</div>
-                    <div style={{fontSize:'11px', opacity:0.8, marginTop:'4px'}}>
-                      La primera vez tarda más (descarga el modelo IA)
+                    <div style={{fontSize:'30px', marginBottom:'8px'}}>✨</div>
+                    <div style={{fontSize:'13px', fontWeight:'700', marginBottom:'4px'}}>
+                      {fondoProgreso.fase || 'Iniciando…'}
+                    </div>
+                    {/* Barra de progreso */}
+                    <div style={{
+                      width:'80%', maxWidth:'240px', height:'6px',
+                      background:'rgba(255,255,255,0.15)', borderRadius:'4px',
+                      overflow:'hidden', marginTop:'10px'
+                    }}>
+                      <div style={{
+                        width: `${fondoProgreso.pct || 0}%`, height:'100%',
+                        background:'linear-gradient(90deg, #7c3aed, #a78bfa)',
+                        transition:'width 0.3s ease', borderRadius:'4px'
+                      }}/>
+                    </div>
+                    <div style={{fontSize:'10px', opacity:0.75, marginTop:'10px', maxWidth:'240px'}}>
+                      Sin enviar la foto a ningún servidor. Todo ocurre en tu navegador.
                     </div>
                   </div>
                 )}

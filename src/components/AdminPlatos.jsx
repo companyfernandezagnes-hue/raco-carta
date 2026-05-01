@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { supabaseAdmin } from '../lib/supabaseAdmin'
+import { supabaseAdmin, hasSupabaseAdmin } from '../lib/supabaseAdmin'
 
 const CATEGORIAS = [
   { id: 'entrantes',       label: 'Entrantes' },
@@ -58,7 +58,7 @@ export default function AdminPlatos() {
 
   async function guardar() {
     if (!editando.nombre) return alert('El nombre es obligatorio')
-    if (!supabaseAdmin) return alert('Falta la clave de servicio Supabase')
+    if (!hasSupabaseAdmin()) return alert('Falta la clave de servicio Supabase. Configúrala en el botón ⚙ Ajustes.')
     setGuardando(true)
     try {
       const datos = {
@@ -71,6 +71,7 @@ export default function AdminPlatos() {
         updated_at: new Date().toISOString(),
       }
       delete datos.created_at
+      delete datos.id
       if (editando.id) {
         await supabaseAdmin.from('platos_comida').update(datos).eq('id', editando.id)
       } else {
@@ -87,7 +88,7 @@ export default function AdminPlatos() {
 
   async function eliminar(plato) {
     if (!confirm(`¿Eliminar "${plato.nombre}"?`)) return
-    if (!supabaseAdmin) return alert('Falta la clave de servicio Supabase')
+    if (!hasSupabaseAdmin()) return alert('Falta la clave de servicio Supabase. Configúrala en el botón ⚙ Ajustes.')
     try {
       await supabaseAdmin.from('platos_comida').delete().eq('id', plato.id)
       await cargar()

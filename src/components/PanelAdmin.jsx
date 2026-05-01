@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { supabaseAdmin } from '../lib/supabaseAdmin'
+import { supabaseAdmin, hasSupabaseAdmin, getSupabaseUrl, getSupabaseServiceKey } from '../lib/supabaseAdmin'
 import AdminPlatos from './AdminPlatos.jsx'
 
 const PASS_HASH = 'TVRJek5BPT0=' // v4 - contraseña actual: 1234
@@ -151,19 +151,43 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
     try { return localStorage.getItem('groq_api_key') || import.meta.env.VITE_GROQ_API_KEY || '' }
     catch { return import.meta.env.VITE_GROQ_API_KEY || '' }
   })
-  const [mostrarConfigKey, setMostrarConfigKey] = useState(false)
+  const [mostrarAjustes, setMostrarAjustes] = useState(false)
   const [apiKeyInput, setApiKeyInput] = useState('')
+  const [supaUrlInput, setSupaUrlInput] = useState('')
+  const [supaKeyInput, setSupaKeyInput] = useState('')
+  // Versión para forzar re-render cuando cambian las claves de Supabase
+  const [, setAjustesV] = useState(0)
+  const supaUrlActual = getSupabaseUrl()
+  const supaKeyActual = getSupabaseServiceKey()
+  const tieneSupaKey = !!supaKeyActual
+
   function guardarApiKey() {
     const k = (apiKeyInput || '').trim()
     if (!k) return
     try { localStorage.setItem('groq_api_key', k) } catch {}
     setApiKey(k)
     setApiKeyInput('')
-    setMostrarConfigKey(false)
   }
   function borrarApiKey() {
     try { localStorage.removeItem('groq_api_key') } catch {}
     setApiKey(import.meta.env.VITE_GROQ_API_KEY || '')
+  }
+  function guardarSupabase() {
+    const url = (supaUrlInput || '').trim()
+    const key = (supaKeyInput || '').trim()
+    if (url) try { localStorage.setItem('supabase_url', url) } catch {}
+    if (key) try { localStorage.setItem('supabase_service_key', key) } catch {}
+    setSupaUrlInput('')
+    setSupaKeyInput('')
+    setAjustesV(v => v + 1)
+  }
+  function borrarSupabase() {
+    if (!confirm('¿Borrar las claves Supabase de este dispositivo?')) return
+    try {
+      localStorage.removeItem('supabase_url')
+      localStorage.removeItem('supabase_service_key')
+    } catch {}
+    setAjustesV(v => v + 1)
   }
 
   function login() {
@@ -220,68 +244,78 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
   }
 
   async function guardar() {
+    if (!hasSupabaseAdmin()) return alert('Falta la clave de servicio Supabase. Configúrala en el botón ⚙ Ajustes.')
     setGuardando(true)
-    const precioCosteVal = calc.precioIva ? parseFloat(calc.precioIva) : (form.precio_coste ? parseFloat(form.precio_coste) : null)
-    const datos = {
-      ...form,
-      anada: form.anada ? parseInt(form.anada) : null,
-      graduacion: form.graduacion ? parseFloat(form.graduacion) : null,
-      precio_copa: form.precio_copa ? parseFloat(form.precio_copa) : null,
-      precio_botella: form.precio_botella ? parseFloat(form.precio_botella) : null,
-      precio_coste: precioCosteVal,
-      orden: form.orden ? parseInt(form.orden) : 0,
-      maridajes: form.maridajes ? form.maridajes.split(',').map(s => s.trim()).filter(Boolean) : [],
-      puntuaciones: Array.isArray(form.puntuaciones) ? form.puntuaciones.filter(p => p.critico && p.nota) : [],
-      updated_at: new Date().toISOString()
-    }
-    let result, bebidaId = bebida?.id
-    if (bebida) {
-      result = await supabaseAdmin.from('carta_bebidas').update(datos).eq('id', bebida.id)
-    } else {
-      result = await supabaseAdmin.from('carta_bebidas').insert([datos]).select()
-      if (result?.data?.[0]?.id) bebidaId = result.data[0].id
-    }
-    if (result && result.error && result.error.message && result.error.message.includes('precio_coste')) {
-      const { precio_coste: _, ...datosSinCoste } = datos
+    try {
+      const precioCosteVal = calc.precioIva ? parseFloat(calc.precioIva) : (form.precio_coste ? parseFloat(form.precio_coste) : null)
+      const datos = {
+        ...form,
+        anada: form.anada ? parseInt(form.anada) : null,
+        graduacion: form.graduacion ? parseFloat(form.graduacion) : null,
+        precio_copa: form.precio_copa ? parseFloat(form.precio_copa) : null,
+        precio_botella: form.precio_botella ? parseFloat(form.precio_botella) : null,
+        precio_coste: precioCosteVal,
+        orden: form.orden ? parseInt(form.orden) : 0,
+        maridajes: form.maridajes ? form.maridajes.split(',').map(s => s.trim()).filter(Boolean) : [],
+        puntuaciones: Array.isArray(form.puntuaciones) ? form.puntuaciones.filter(p => p.critico && p.nota) : [],
+        updated_at: new Date().toISOString()
+      }
+      let result, bebidaId = bebida?.id
       if (bebida) {
-        await supabaseAdmin.from('carta_bebidas').update(datosSinCoste).eq('id', bebida.id)
+        const { id: _, created_at: __, ...datosUpdate } = datos
+        result = await supabaseAdmin.from('carta_bebidas').update(datosUpdate).eq('id', bebida.id)
       } else {
-        const r = await supabaseAdmin.from('carta_bebidas').insert([datosSinCoste]).select()
-        if (r?.data?.[0]?.id) bebidaId = r.data[0].id
+        result = await supabaseAdmin.from('carta_bebidas').insert([datos]).select()
+        if (result?.data?.[0]?.id) bebidaId = result.data[0].id
       }
-    }
-    // Auto-traducción CA/EN/DE con Groq (no bloquea: si falla, solo se queda sin traducción)
-    if (bebidaId && apiKey) {
-      try {
-        setIaError('')
-        const traducciones = await traducirConGroq({ vinoData: datos, apiKey })
-        for (const idioma of ['ca','en','de']) {
-          const t = traducciones[idioma]
-          if (!t) continue
-          const trad = {
-            bebida_id: bebidaId,
-            idioma,
-            nombre: t.nombre || null,
-            descripcion: t.descripcion || null,
-            nota_cata: t.nota_cata || null,
-            nota_visual: t.nota_visual || null,
-            nota_nariz: t.nota_nariz || null,
-            nota_boca: t.nota_boca || null,
-            maridajes: Array.isArray(t.maridajes) ? t.maridajes : null,
-            historia: t.historia || null,
-            curiosidad: t.curiosidad || null,
-            actualizado_en: new Date().toISOString(),
+      if (result?.error) {
+        if (result.error.message?.includes('precio_coste')) {
+          const { precio_coste: _pc, id: _id, created_at: _ca, ...datosSinCoste } = datos
+          if (bebida) {
+            await supabaseAdmin.from('carta_bebidas').update(datosSinCoste).eq('id', bebida.id)
+          } else {
+            const r = await supabaseAdmin.from('carta_bebidas').insert([datosSinCoste]).select()
+            if (r?.data?.[0]?.id) bebidaId = r.data[0].id
           }
-          await supabaseAdmin.from('bebidas_traducciones').upsert(trad, { onConflict: 'bebida_id,idioma' })
+        } else {
+          throw new Error(result.error.message)
         }
-      } catch(e) {
-        console.warn('No se pudo traducir:', e.message)
-        setIaError('Guardado, pero no se tradujo: ' + e.message)
       }
+      if (bebidaId && apiKey) {
+        try {
+          setIaError('')
+          const traducciones = await traducirConGroq({ vinoData: datos, apiKey })
+          for (const idioma of ['ca','en','de']) {
+            const t = traducciones[idioma]
+            if (!t) continue
+            const trad = {
+              bebida_id: bebidaId,
+              idioma,
+              nombre: t.nombre || null,
+              descripcion: t.descripcion || null,
+              nota_cata: t.nota_cata || null,
+              nota_visual: t.nota_visual || null,
+              nota_nariz: t.nota_nariz || null,
+              nota_boca: t.nota_boca || null,
+              maridajes: Array.isArray(t.maridajes) ? t.maridajes : null,
+              historia: t.historia || null,
+              curiosidad: t.curiosidad || null,
+              actualizado_en: new Date().toISOString(),
+            }
+            await supabaseAdmin.from('bebidas_traducciones').upsert(trad, { onConflict: 'bebida_id,idioma' })
+          }
+        } catch(e) {
+          console.warn('No se pudo traducir:', e.message)
+          setIaError('Guardado, pero no se tradujo: ' + e.message)
+        }
+      }
+      onActualizar()
+      setFase('lista')
+    } catch (e) {
+      alert('Error al guardar: ' + e.message)
+    } finally {
+      setGuardando(false)
     }
-    setGuardando(false)
-    onActualizar()
-    setFase('lista')
   }
 
   function handleFoto(e) {
@@ -364,31 +398,109 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
               <span style={{color:'#f87171'}}>● sin precio</span>
               <span style={{color:'#fbbf24'}}>● no disponible</span>
               <span style={{flex:1}} />
-              <button style={{...btn(apiKey?'#2a2a2a':'#7c3aed'),fontSize:'11px',padding:'4px 10px'}}
-                onClick={()=>setMostrarConfigKey(v=>!v)}>
-                {apiKey ? '🔑 API key OK' : '⚠ Configurar API key'}
+              <button style={{
+                ...btn(tieneSupaKey && apiKey ? '#2a2a2a' : (!tieneSupaKey ? '#dc2626' : '#7c3aed')),
+                fontSize:'11px', padding:'4px 10px'
+              }} onClick={()=>setMostrarAjustes(v=>!v)}>
+                ⚙ Ajustes {!tieneSupaKey && '⚠'}
               </button>
             </div>
-            {mostrarConfigKey && (
-              <div style={{background:'#2a2a2a',padding:'12px',borderRadius:'8px',marginBottom:'12px'}}>
-                <p style={{margin:'0 0 8px',fontSize:'12px',color:'#aaa'}}>
-                  Pega tu API key de Groq (se guarda en este dispositivo, en localStorage).
-                  Consíguela GRATIS en <span style={{color:'#7c3aed'}}>console.groq.com/keys</span> · Empieza por <code>gsk_</code>
-                </p>
-                <div style={{display:'flex',gap:'8px'}}>
-                  <input
-                    type="password"
-                    placeholder="gsk_..."
-                    value={apiKeyInput}
-                    onChange={e=>setApiKeyInput(e.target.value)}
-                    style={{flex:1,padding:'8px',background:'#1a1a1a',border:'1px solid #444',borderRadius:'6px',color:'#fff',fontSize:'13px'}}
-                  />
-                  <button style={btn('#7c3aed')} onClick={guardarApiKey}>Guardar</button>
-                  {apiKey && <button style={btn('#444')} onClick={borrarApiKey}>Borrar</button>}
+            {mostrarAjustes && (
+              <div style={{
+                background:'#1f1f1f', padding:'14px', borderRadius:'10px', marginBottom:'14px',
+                border:'1px solid #444'
+              }}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'12px'}}>
+                  <span style={{fontSize:'13px', fontWeight:'700', color:'#fff', letterSpacing:'0.5px'}}>
+                    AJUSTES (guardados solo en este dispositivo)
+                  </span>
+                  <button style={{...btn('#444'),fontSize:'11px',padding:'4px 10px'}}
+                    onClick={()=>setMostrarAjustes(false)}>Cerrar</button>
                 </div>
-                {apiKey && <p style={{margin:'6px 0 0',fontSize:'11px',color:'#7ec87e'}}>
-                  Actual: {apiKey.slice(0,6)}…{apiKey.slice(-4)}
-                </p>}
+
+                {/* SUPABASE */}
+                <div style={{
+                  background:'#161a22', padding:'12px', borderRadius:'8px', marginBottom:'10px',
+                  border: tieneSupaKey ? '1px solid #2a4a3a' : '1px solid #5a2a2a'
+                }}>
+                  <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'8px'}}>
+                    <span style={{fontSize:'12px',fontWeight:'700',color:'#7ec87e'}}>🗄 SUPABASE</span>
+                    {tieneSupaKey
+                      ? <span style={{fontSize:'11px',color:'#7ec87e'}}>● Configurado</span>
+                      : <span style={{fontSize:'11px',color:'#f87171'}}>● Sin configurar — necesario para guardar</span>}
+                  </div>
+                  <p style={{margin:'0 0 8px',fontSize:'11px',color:'#aaa',lineHeight:'1.5'}}>
+                    La service key permite escribir en la base de datos. Consíguela en
+                    <span style={{color:'#7c3aed'}}> Supabase → Settings → API → service_role</span>.
+                    Se guarda solo en este navegador (localStorage).
+                  </p>
+                  <label style={{display:'block',fontSize:'11px',color:'#aaa',marginBottom:'3px'}}>
+                    URL del proyecto (opcional, por defecto: {supaUrlActual.replace('https://','').slice(0,30)}…)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder={supaUrlActual}
+                    value={supaUrlInput}
+                    onChange={e=>setSupaUrlInput(e.target.value)}
+                    style={{width:'100%',padding:'8px',background:'#0f1218',border:'1px solid #444',
+                      borderRadius:'6px',color:'#fff',fontSize:'12px',marginBottom:'8px',boxSizing:'border-box'}}
+                  />
+                  <label style={{display:'block',fontSize:'11px',color:'#aaa',marginBottom:'3px'}}>
+                    Service role key (empieza por eyJ…)
+                  </label>
+                  <div style={{display:'flex',gap:'8px'}}>
+                    <input
+                      type="password"
+                      placeholder={tieneSupaKey ? '•••••••• (ya configurada, pega para cambiar)' : 'eyJ...'}
+                      value={supaKeyInput}
+                      onChange={e=>setSupaKeyInput(e.target.value)}
+                      style={{flex:1,padding:'8px',background:'#0f1218',border:'1px solid #444',
+                        borderRadius:'6px',color:'#fff',fontSize:'12px'}}
+                    />
+                    <button style={btn('#7ec87e')}
+                      disabled={!supaUrlInput && !supaKeyInput}
+                      onClick={guardarSupabase}>Guardar</button>
+                    {tieneSupaKey && <button style={btn('#444')} onClick={borrarSupabase}>Borrar</button>}
+                  </div>
+                  {tieneSupaKey && (
+                    <p style={{margin:'6px 0 0',fontSize:'11px',color:'#7ec87e'}}>
+                      Key actual: {supaKeyActual.slice(0,8)}…{supaKeyActual.slice(-6)}
+                    </p>
+                  )}
+                </div>
+
+                {/* GROQ */}
+                <div style={{
+                  background:'#161a22', padding:'12px', borderRadius:'8px',
+                  border: apiKey ? '1px solid #4a3a6a' : '1px solid #444'
+                }}>
+                  <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'8px'}}>
+                    <span style={{fontSize:'12px',fontWeight:'700',color:'#a78bfa'}}>🤖 GROQ (IA)</span>
+                    {apiKey
+                      ? <span style={{fontSize:'11px',color:'#a78bfa'}}>● Configurado</span>
+                      : <span style={{fontSize:'11px',color:'#888'}}>○ Opcional (sin esto no hay autorrellenado)</span>}
+                  </div>
+                  <p style={{margin:'0 0 8px',fontSize:'11px',color:'#aaa'}}>
+                    GRATIS en <span style={{color:'#7c3aed'}}>console.groq.com/keys</span> · Empieza por <code>gsk_</code>
+                  </p>
+                  <div style={{display:'flex',gap:'8px'}}>
+                    <input
+                      type="password"
+                      placeholder={apiKey ? '•••••••• (ya configurada)' : 'gsk_...'}
+                      value={apiKeyInput}
+                      onChange={e=>setApiKeyInput(e.target.value)}
+                      style={{flex:1,padding:'8px',background:'#0f1218',border:'1px solid #444',
+                        borderRadius:'6px',color:'#fff',fontSize:'12px'}}
+                    />
+                    <button style={btn('#7c3aed')} disabled={!apiKeyInput} onClick={guardarApiKey}>Guardar</button>
+                    {apiKey && <button style={btn('#444')} onClick={borrarApiKey}>Borrar</button>}
+                  </div>
+                  {apiKey && (
+                    <p style={{margin:'6px 0 0',fontSize:'11px',color:'#a78bfa'}}>
+                      Key actual: {apiKey.slice(0,6)}…{apiKey.slice(-4)}
+                    </p>
+                  )}
+                </div>
               </div>
             )}
             {bebidas.map(b => {
@@ -653,17 +765,83 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
             </div>
 
             {/* PRECIOS FINALES EDITABLES */}
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 16px',marginTop:'4px'}}>
-              <div>
-                <label style={label}>Precio copa (editable)</label>
-                <input style={{...inp,border:'1px solid #3a5a3a'}} type="number" value={form.precio_copa??''}
-                  onChange={e=>setForm(p=>({...p,precio_copa:e.target.value}))} />
+            <div style={{
+              marginTop:'14px', background:'#15201a', border:'1px solid #2a4a3a',
+              borderRadius:'12px', padding:'16px'
+            }}>
+              <div style={{
+                display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'12px'
+              }}>
+                <span style={{
+                  color:'#7ec87e', fontWeight:'700', fontSize:'13px', letterSpacing:'1px'
+                }}>PRECIOS FINALES</span>
+                <span style={{color:'#666', fontSize:'11px'}}>
+                  Ratio botella ÷ copa: ×{
+                    form.precio_copa && form.precio_botella && parseFloat(form.precio_copa) > 0
+                      ? (parseFloat(form.precio_botella) / parseFloat(form.precio_copa)).toFixed(1)
+                      : '—'
+                  }
+                </span>
               </div>
-              <div>
-                <label style={label}>Precio botella (editable)</label>
-                <input style={{...inp,border:'1px solid #3a5a3a'}} type="number" value={form.precio_botella??''}
-                  onChange={e=>setForm(p=>({...p,precio_botella:e.target.value}))} />
+              <div style={{display:'grid', gridTemplateColumns:'1fr auto 1fr', gap:'10px', alignItems:'end'}}>
+                <div>
+                  <label style={{...label, marginTop:0, color:'#7ec87e'}}>🍷 Copa (€)</label>
+                  <input
+                    style={{...inp, border:'1px solid #3a5a3a', fontSize:'16px', fontWeight:'600', textAlign:'center'}}
+                    type="number" step="0.05"
+                    value={form.precio_copa ?? ''}
+                    onChange={e=>setForm(p=>({...p, precio_copa:e.target.value}))}
+                  />
+                </div>
+                <div style={{display:'flex', flexDirection:'column', gap:'4px', paddingBottom:'4px'}}>
+                  <button
+                    type="button"
+                    title="Calcular botella desde copa (×5)"
+                    disabled={!form.precio_copa}
+                    onClick={()=>{
+                      const c = parseFloat(form.precio_copa)
+                      if (!c) return
+                      setForm(p=>({...p, precio_botella: redondearPrecio(c * 5, calc.redondeo)}))
+                    }}
+                    style={{
+                      background: form.precio_copa ? '#7ec87e' : '#2a3a2a',
+                      color: form.precio_copa ? '#0f1f0f' : '#555',
+                      border:'none', borderRadius:'6px', padding:'4px 8px',
+                      fontSize:'14px', fontWeight:'700',
+                      cursor: form.precio_copa ? 'pointer' : 'not-allowed'
+                    }}
+                  >→ ×5</button>
+                  <button
+                    type="button"
+                    title="Calcular copa desde botella (÷5)"
+                    disabled={!form.precio_botella}
+                    onClick={()=>{
+                      const b = parseFloat(form.precio_botella)
+                      if (!b) return
+                      setForm(p=>({...p, precio_copa: redondearPrecio(b / 5, calc.redondeo)}))
+                    }}
+                    style={{
+                      background: form.precio_botella ? '#7ec87e' : '#2a3a2a',
+                      color: form.precio_botella ? '#0f1f0f' : '#555',
+                      border:'none', borderRadius:'6px', padding:'4px 8px',
+                      fontSize:'14px', fontWeight:'700',
+                      cursor: form.precio_botella ? 'pointer' : 'not-allowed'
+                    }}
+                  >÷5 ←</button>
+                </div>
+                <div>
+                  <label style={{...label, marginTop:0, color:'#7ec87e'}}>🍾 Botella (€)</label>
+                  <input
+                    style={{...inp, border:'1px solid #3a5a3a', fontSize:'16px', fontWeight:'600', textAlign:'center'}}
+                    type="number" step="0.05"
+                    value={form.precio_botella ?? ''}
+                    onChange={e=>setForm(p=>({...p, precio_botella:e.target.value}))}
+                  />
+                </div>
               </div>
+              <p style={{margin:'10px 0 0', fontSize:'11px', color:'#666', textAlign:'center'}}>
+                Una botella estándar (750ml) ≈ 5 copas de 150ml. Usa los botones para autocompletar.
+              </p>
             </div>
 
             <label style={label}>Descripcion</label>

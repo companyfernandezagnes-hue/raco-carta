@@ -215,9 +215,39 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
     if (!bebida?.id) { setTraduccionDebug('❌ Guarda primero el vino antes de traducir'); return }
     setTraduciendoUno(true)
     try {
+      // 1. Verificar que la tabla existe haciendo un select rápido
+      setTraduccionDebug('⏳ Verificando tabla bebidas_traducciones…')
+      const { error: errTabla } = await supabaseAdmin.from('bebidas_traducciones').select('idioma').limit(1)
+      if (errTabla) {
+        if (/does not exist|relation/i.test(errTabla.message)) {
+          setTraduccionDebug(`❌ La tabla "bebidas_traducciones" NO existe en tu Supabase.\n\nCRÉALA con este SQL en el editor de Supabase (SQL Editor):\n\nCREATE TABLE bebidas_traducciones (\n  bebida_id UUID NOT NULL,\n  idioma TEXT NOT NULL,\n  nombre TEXT, descripcion TEXT, nota_cata TEXT,\n  nota_visual TEXT, nota_nariz TEXT, nota_boca TEXT,\n  maridajes TEXT[], historia TEXT, curiosidad TEXT,\n  actualizado_en TIMESTAMPTZ,\n  PRIMARY KEY (bebida_id, idioma)\n);\n\n(También copio el SQL en la consola del navegador, abre F12)`)
+          console.log('SQL para crear la tabla bebidas_traducciones:')
+          console.log(`CREATE TABLE bebidas_traducciones (
+  bebida_id UUID NOT NULL REFERENCES carta_bebidas(id) ON DELETE CASCADE,
+  idioma TEXT NOT NULL,
+  nombre TEXT,
+  descripcion TEXT,
+  nota_cata TEXT,
+  nota_visual TEXT,
+  nota_nariz TEXT,
+  nota_boca TEXT,
+  maridajes TEXT[],
+  historia TEXT,
+  curiosidad TEXT,
+  actualizado_en TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (bebida_id, idioma)
+);`)
+          return
+        }
+        setTraduccionDebug(`❌ Error accediendo a la tabla: ${errTabla.message}`)
+        return
+      }
+
       setTraduccionDebug('⏳ Pidiendo traducciones a Groq…')
       const datosForm = bebidaDesdeForm()
       const traducciones = await conReintento(() => traducirConGroq({ vinoData: datosForm, apiKey }))
+      console.log('Traducciones recibidas de Groq:', traducciones)
+
       setTraduccionDebug('⏳ Guardando en Supabase…')
       let okIdiomas = []
       let errorMsg = ''
@@ -234,17 +264,20 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
           actualizado_en: new Date().toISOString(),
         }
         const { error } = await supabaseAdmin.from('bebidas_traducciones').upsert(trad, { onConflict: 'bebida_id,idioma' })
-        if (error) errorMsg += `\n• ${idioma}: ${error.message}`
+        if (error) {
+          errorMsg += `\n• ${idioma}: ${error.message}`
+          console.error(`Upsert ${idioma} error:`, error)
+        }
         else okIdiomas.push(idioma.toUpperCase())
       }
       if (okIdiomas.length === 3) {
-        setTraduccionDebug(`✅ Traducido OK en ${okIdiomas.join(', ')}`)
+        setTraduccionDebug(`✅ Traducido OK en ${okIdiomas.join(', ')}\n\nPuedes verificarlo cambiando el idioma arriba (ES → CA → EN → DE)`)
       } else {
         setTraduccionDebug(`⚠️ ${okIdiomas.length}/3 idiomas guardados${errorMsg}`)
       }
       onActualizar()
     } catch (e) {
-      setTraduccionDebug(`❌ Error: ${e.message}\n\n(Mira la consola del navegador con F12 para más detalles)`)
+      setTraduccionDebug(`❌ Error: ${e.message}\n\n(F12 → Consola para más detalles)`)
       console.error('Error traducción:', e)
     } finally {
       setTraduciendoUno(false)

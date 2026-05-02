@@ -42,10 +42,16 @@ export default function PantallaBienvenida() {
   })
 
   function entrar() {
-    // Activar fullscreen
-    const el = document.documentElement
-    const req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen
-    req?.call(el).catch(() => {})
+    // Intentar fullscreen — funciona en Android Chrome y desktop, no en iOS Safari
+    try {
+      const el = document.documentElement
+      const req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen
+      if (req) req.call(el).catch(() => {})
+      // Forzar orientación portrait si está disponible (móviles)
+      if (screen.orientation?.lock) {
+        screen.orientation.lock('portrait').catch(() => {})
+      }
+    } catch {}
     try { sessionStorage.setItem(KEY_VISTO, '1') } catch {}
     setMostrar(false)
   }

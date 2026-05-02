@@ -882,19 +882,30 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
       const blob = await urlAImagenBlob(form.foto_url)
       setFondoProgreso({ fase: 'Procesando…', pct: 5 })
 
-      // El modelo se descarga la primera vez (queda en caché del navegador).
-      // Servimos los archivos del modelo desde nuestro mismo dominio para
-      // evitar problemas de CORS del CDN de imgly. Los descarga el script
-      // scripts/download-imgly.mjs en el prebuild.
+      // Modelo servido desde nuestro mismo dominio (sin CORS).
+      const publicPath = new URL('imgly/', window.location.origin + import.meta.env.BASE_URL).toString()
+      console.log('🪄 [imgly] publicPath:', publicPath)
+
+      // Verificar primero que el resources.json es accesible
+      try {
+        const r = await fetch(publicPath + 'resources.json')
+        console.log('🪄 [imgly] resources.json status:', r.status)
+        if (!r.ok) throw new Error(`resources.json HTTP ${r.status}`)
+      } catch (e) {
+        throw new Error(`No se puede acceder a los archivos del modelo en ${publicPath}. ${e.message}. Verifica que el deploy se completó.`)
+      }
+
       const sinFondo = await removeBackground(blob, {
-        publicPath: import.meta.env.BASE_URL + 'imgly/',
+        publicPath,
+        debug: true,
         progress: (key, current, total) => {
+          console.log(`🪄 [imgly] progress: ${key}`, current, '/', total)
           if (!total) return
           const pct = Math.round((current / total) * 100)
-          const esModelo = /\.onnx|\.json|\.bin|\.wasm|chunk/i.test(key)
+          const esModelo = /\.onnx|\.json|\.bin|\.wasm|chunk/i.test(key) || key.length > 20
           setFondoProgreso({
             fase: esModelo
-              ? `Descargando modelo IA (1ª vez): ${pct}%`
+              ? `Descargando modelo IA: ${pct}%`
               : `Procesando: ${pct}%`,
             pct
           })

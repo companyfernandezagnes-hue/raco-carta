@@ -80,6 +80,70 @@ export default function App() {
     })
   }
 
+  // Auto-reset entre clientes: tras X minutos sin actividad muestra un aviso.
+  // Si no responde, borra favoritos+comparador+filtros y vuelve al inicio.
+  // Mantiene idioma y modo vista de la carta.
+  const [autoResetConfig, setAutoResetConfig] = useState(() => {
+    try {
+      const c = JSON.parse(localStorage.getItem('raco_autoreset') || 'null')
+      return c || { activa: false, minutos: 4 }
+    } catch { return { activa: false, minutos: 4 } }
+  })
+  function actualizarAutoReset(nueva) {
+    setAutoResetConfig(nueva)
+    try { localStorage.setItem('raco_autoreset', JSON.stringify(nueva)) } catch {}
+  }
+  const [avisoReset, setAvisoReset] = useState(false)
+  const [segundosCuenta, setSegundosCuenta] = useState(30)
+  const resetTimerRef = useRef(null)
+  const resetCuentaRef = useRef(null)
+
+  function ejecutarReset() {
+    setAvisoReset(false)
+    setBusqueda(''); setFiltroPais(''); setFiltroTipo(''); setFiltroOrden('')
+    setFiltroGraduacion(''); setFiltroFormato(''); setFiltrosAbiertos(false)
+    setFavoritos([]); try { localStorage.setItem('favoritos','[]') } catch {}
+    setComparador([]); setMostrarComparador(false)
+    setCategoriaActiva('todas'); setSubcategoriaActiva(null)
+    setModoVista('lista')
+    setBebidaseleccionada(null); setVista('carta')
+  }
+
+  function reiniciarTimerReset() {
+    clearTimeout(resetTimerRef.current)
+    clearInterval(resetCuentaRef.current)
+    if (avisoReset) setAvisoReset(false)
+    if (!autoResetConfig.activa) return
+    resetTimerRef.current = setTimeout(() => {
+      // Mostrar aviso con cuenta atrás de 30s
+      setSegundosCuenta(30)
+      setAvisoReset(true)
+      resetCuentaRef.current = setInterval(() => {
+        setSegundosCuenta(s => {
+          if (s <= 1) { ejecutarReset(); return 30 }
+          return s - 1
+        })
+      }, 1000)
+    }, autoResetConfig.minutos * 60 * 1000)
+  }
+
+  useEffect(() => {
+    if (adminAbierto || !autoResetConfig.activa) {
+      clearTimeout(resetTimerRef.current)
+      clearInterval(resetCuentaRef.current)
+      if (avisoReset) setAvisoReset(false)
+      return
+    }
+    reiniciarTimerReset()
+    const eventos = ['mousedown','touchstart','keydown','scroll']
+    eventos.forEach(e => window.addEventListener(e, reiniciarTimerReset, { passive: true }))
+    return () => {
+      clearTimeout(resetTimerRef.current)
+      clearInterval(resetCuentaRef.current)
+      eventos.forEach(e => window.removeEventListener(e, reiniciarTimerReset))
+    }
+  }, [adminAbierto, autoResetConfig.activa, autoResetConfig.minutos])
+
   // Vista presentación / kiosko: tras X seg sin actividad, abre el slideshow.
   // El usuario elige si está activa y cuánto tiempo de inactividad espera.
   const [presentacionActiva, setPresentacionActiva] = useState(false)
@@ -299,6 +363,8 @@ export default function App() {
           onToggleModoCarta={toggleModoCarta}
           presentacionConfig={presentacionConfig}
           onPresentacionConfig={actualizarPresentacionConfig}
+          autoResetConfig={autoResetConfig}
+          onAutoResetConfig={actualizarAutoReset}
         />}
         {presentacionActiva && !adminAbierto && (
           <VistaPresentacion
@@ -308,6 +374,58 @@ export default function App() {
           />
         )}
       </Suspense>
+
+      {/* AVISO de auto-reset entre clientes */}
+      {avisoReset && (
+        <div style={{
+          position:'fixed', inset:0, zIndex:9500,
+          background:'rgba(28,28,14,0.92)', backdropFilter:'blur(6px)',
+          display:'flex', alignItems:'center', justifyContent:'center',
+          padding:'20px',
+        }}>
+          <div style={{
+            background:'var(--raco-cream)', borderRadius:'18px',
+            padding:'34px 28px', maxWidth:'420px', width:'100%',
+            textAlign:'center', boxShadow:'0 20px 60px rgba(0,0,0,0.5)',
+          }}>
+            <div style={{fontSize:'48px', marginBottom:'12px'}}>👋</div>
+            <h2 style={{
+              margin:'0 0 10px', fontFamily:'var(--font-brand)',
+              fontSize:'24px', color:'var(--raco-black)', fontWeight:'400'
+            }}>¿Sigues por aquí?</h2>
+            <p style={{
+              margin:'0 0 20px', color:'var(--raco-stone)', fontSize:'13px',
+              fontFamily:'var(--font-body)', fontWeight:'300', lineHeight:'1.5'
+            }}>
+              Llevamos un rato sin actividad. En <strong style={{color:'var(--raco-khaki)'}}>{segundosCuenta} s</strong> la
+              carta volverá al inicio para el siguiente comensal.
+            </p>
+            <div style={{
+              width:'100%', height:'4px', background:'var(--raco-sand)',
+              borderRadius:'4px', overflow:'hidden', marginBottom:'18px'
+            }}>
+              <div style={{
+                width:`${(segundosCuenta/30)*100}%`, height:'100%',
+                background:'var(--raco-khaki)', transition:'width 1s linear'
+              }}/>
+            </div>
+            <div style={{display:'flex', gap:'10px', justifyContent:'center', flexWrap:'wrap'}}>
+              <button onClick={() => { setAvisoReset(false); reiniciarTimerReset() }} style={{
+                background:'var(--raco-khaki)', color:'var(--raco-cream)',
+                border:'none', borderRadius:'10px', padding:'12px 24px',
+                cursor:'pointer', fontSize:'14px', fontFamily:'var(--font-body)',
+                fontWeight:'500', letterSpacing:'0.06em',
+              }}>Sí, sigo aquí</button>
+              <button onClick={ejecutarReset} style={{
+                background:'transparent', color:'var(--raco-stone)',
+                border:'1px solid var(--raco-sand)', borderRadius:'10px',
+                padding:'12px 20px', cursor:'pointer', fontSize:'13px',
+                fontFamily:'var(--font-body)',
+              }}>Empezar de nuevo</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

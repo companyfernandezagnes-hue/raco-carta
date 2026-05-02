@@ -144,7 +144,7 @@ async function traducirConGroq({ vinoData, apiKey }) {
   return JSON.parse(text.replace(/```json?/g,'').replace(/```/g,'').trim())
 }
 
-export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta, onToggleModoCarta, presentacionConfig, onPresentacionConfig }) {
+export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta, onToggleModoCarta, presentacionConfig, onPresentacionConfig, autoResetConfig, onAutoResetConfig }) {
   const [pantallaCompleta, setPantallaCompleta] = useState(() => !!document.fullscreenElement)
   function alternarPantallaCompleta() {
     if (document.fullscreenElement) {
@@ -775,6 +775,49 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
                 cursor:'pointer', fontWeight:'700', fontSize:'12px', whiteSpace:'nowrap'
               }}>{pantallaCompleta ? 'Salir' : 'Activar'}</button>
             </div>
+
+            {/* AUTO-RESET — borrado automático entre clientes */}
+            {autoResetConfig && (
+              <div style={{
+                background: autoResetConfig.activa ? '#1a3a1a' : '#2a2a2a',
+                border:'1px solid '+(autoResetConfig.activa?'#4ade80':'#444'),
+                borderRadius:'10px', padding:'10px 12px', marginBottom:'12px'
+              }}>
+                <div style={{display:'flex',alignItems:'center',gap:'10px',flexWrap:'wrap'}}>
+                  <div style={{flex:1, minWidth:'160px'}}>
+                    <div style={{fontSize:'12px',fontWeight:'700',color:'#fff'}}>
+                      🔄 Auto-reset entre clientes {autoResetConfig.activa && '· activo'}
+                    </div>
+                    <div style={{fontSize:'10px',color:'#aaa',marginTop:'2px'}}>
+                      Tras inactividad avisa al cliente y borra favoritos, comparador,
+                      búsqueda y filtros. Mantiene idioma y vista.
+                    </div>
+                  </div>
+                  <button onClick={() => onAutoResetConfig({...autoResetConfig, activa: !autoResetConfig.activa})}
+                    style={{
+                      background: autoResetConfig.activa ? '#4ade80' : '#7c3aed',
+                      color: autoResetConfig.activa ? '#0f1f0f' : '#fff',
+                      border:'none', borderRadius:'8px', padding:'6px 14px',
+                      cursor:'pointer', fontWeight:'700', fontSize:'12px', whiteSpace:'nowrap'
+                    }}>{autoResetConfig.activa ? 'Desactivar' : 'Activar'}</button>
+                </div>
+                {autoResetConfig.activa && (
+                  <div style={{marginTop:'10px'}}>
+                    <label style={{fontSize:'10px', color:'#aaa', display:'block', marginBottom:'3px'}}>
+                      Tiempo de inactividad antes del aviso:
+                    </label>
+                    <select value={autoResetConfig.minutos}
+                      onChange={e => onAutoResetConfig({...autoResetConfig, minutos: parseInt(e.target.value)})}
+                      style={{...inp,padding:'5px 8px',fontSize:'12px'}}>
+                      <option value="3">3 minutos</option>
+                      <option value="4">4 minutos</option>
+                      <option value="5">5 minutos</option>
+                      <option value="10">10 minutos</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* VISTA PRESENTACIÓN — slideshow automático tras X seg sin actividad */}
             {presentacionConfig && (

@@ -179,6 +179,34 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
   const [bebida, setBebida] = useState(null)
   const [form, setForm] = useState({})
   const [guardando, setGuardando] = useState(false)
+  const [pestañaEditar, setPestañaEditar] = useState('ficha')
+  const [guardarYSiguiente, setGuardarYSiguiente] = useState(false)
+  // Completitud por pestaña (true = todo lo importante puesto)
+  const completitud = {
+    ficha:   !!(form?.nombre && form?.categoria && form?.bodega),
+    precios: !!(parsePrecio(form?.precio_botella) || parsePrecio(form?.precio_copa)),
+    notas:   !!(form?.descripcion && form?.descripcion.length > 10),
+    premios: Array.isArray(form?.puntuaciones) && form.puntuaciones.length > 0,
+    foto:    !!form?.foto_url,
+  }
+  const PESTAÑAS_EDITAR = [
+    { id: 'ficha',   icon: '📝', label: 'Ficha',     opcional: false },
+    { id: 'precios', icon: '💰', label: 'Precios',   opcional: false },
+    { id: 'notas',   icon: '📜', label: 'Notas',     opcional: false },
+    { id: 'premios', icon: '🏆', label: 'Premios',   opcional: true  },
+    { id: 'foto',    icon: '📷', label: 'Foto',      opcional: false },
+  ]
+  const totalCompletas = PESTAÑAS_EDITAR.filter(p => !p.opcional).length
+  const completas = PESTAÑAS_EDITAR.filter(p => !p.opcional && completitud[p.id]).length
+  const porcentajeCompleto = Math.round((completas / totalCompletas) * 100)
+  function irPestaña(dir) {
+    const idx = PESTAÑAS_EDITAR.findIndex(p => p.id === pestañaEditar)
+    const nuevo = Math.max(0, Math.min(PESTAÑAS_EDITAR.length - 1, idx + dir))
+    setPestañaEditar(PESTAÑAS_EDITAR[nuevo].id)
+  }
+  // Lista de bebidas próximas para "Guardar y editar siguiente"
+  const idxActual = bebida ? bebidas.findIndex(b => b.id === bebida.id) : -1
+  const siguienteBebida = idxActual >= 0 && idxActual < bebidas.length - 1 ? bebidas[idxActual + 1] : null
   const [iaLoading, setIaLoading] = useState(false)
   const [iaError, setIaError] = useState('')
   const [iaTexto, setIaTexto] = useState('')
@@ -310,6 +338,7 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
       setCalc(prev => ({ ...prev, precioIva: String(b.precio_coste) }))
     }
     setFase('editando')
+    setPestañaEditar('ficha')
     setIaError('')
     setMostrarIA(false)
     setIaTexto('')
@@ -327,6 +356,7 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
     })
     setCalc(prev => ({ ...prev, precioIva: '' }))
     setFase('editando')
+    setPestañaEditar('ficha')
     setIaError('')
     setMostrarIA(true)
     setIaTexto('')
@@ -408,7 +438,14 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
         }
       }
       onActualizar()
-      setFase('lista')
+      // Si pidió "Guardar y siguiente", abre el siguiente vino directamente
+      if (guardarYSiguiente && siguienteBebida) {
+        abrirEditar(siguienteBebida)
+        setPestañaEditar('ficha')
+        setGuardarYSiguiente(false)
+      } else {
+        setFase('lista')
+      }
     } catch (e) {
       alert('Error al guardar: ' + e.message)
     } finally {
@@ -897,11 +934,85 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
 
         {fase === 'editando' && (
           <>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'16px'}}>
-              <h2 style={{margin:0}}>{bebida ? 'Editar' : 'Nueva bebida'}</h2>
-              <button style={btn('#444')} onClick={()=>setFase('lista')}>Volver</button>
+            {/* HEADER PEGAJOSO con foto + nombre + progreso + Guardar */}
+            <div style={{
+              position:'sticky', top:0, zIndex:50, background:'#1a1a1a',
+              margin:'-24px -24px 14px', padding:'14px 20px 12px',
+              borderBottom:'1px solid #333', borderRadius:'12px 12px 0 0'
+            }}>
+              <div style={{display:'flex',alignItems:'center',gap:'12px',marginBottom:'10px'}}>
+                {/* Miniatura */}
+                <div style={{
+                  width:42, height:42, borderRadius:'8px', flexShrink:0,
+                  background: form.foto_url ? `url(${form.foto_url}) center/contain no-repeat #2a2a2a` : '#2a2a2a',
+                  border:'1px solid #444',
+                  display:'flex',alignItems:'center',justifyContent:'center',
+                  fontSize:'18px', color:'#666'
+                }}>{!form.foto_url && '🍷'}</div>
+                <div style={{flex:1, minWidth:0}}>
+                  <div style={{
+                    fontSize:'14px',fontWeight:'600',color:'#fff',
+                    overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'
+                  }}>{bebida ? (form.nombre || 'Sin nombre') : 'Nueva bebida'}</div>
+                  <div style={{display:'flex',alignItems:'center',gap:'8px',marginTop:'4px'}}>
+                    <div style={{
+                      flex:1, maxWidth:'140px', height:'4px',
+                      background:'#333', borderRadius:'4px', overflow:'hidden'
+                    }}>
+                      <div style={{
+                        width:`${porcentajeCompleto}%`, height:'100%',
+                        background: porcentajeCompleto >= 100 ? '#4ade80' : porcentajeCompleto >= 60 ? '#fbbf24' : '#7c3aed',
+                        transition:'width 0.3s', borderRadius:'4px'
+                      }}/>
+                    </div>
+                    <span style={{fontSize:'10px',color:'#888'}}>{porcentajeCompleto}% completo</span>
+                  </div>
+                </div>
+                <button style={{...btn('#444'),fontSize:'11px',padding:'6px 10px'}}
+                  onClick={()=>setFase('lista')}>← Volver</button>
+                <button style={{
+                  ...btn(guardando ? '#666' : (porcentajeCompleto >= 60 ? '#4ade80' : '#e8c97e')),
+                  fontSize:'12px',padding:'6px 14px',
+                  color: porcentajeCompleto >= 60 ? '#0f1f0f' : '#1a1a1a'
+                }} onClick={() => { setGuardarYSiguiente(false); guardar() }} disabled={guardando}>
+                  {guardando ? '⏳' : '💾 Guardar'}
+                </button>
+              </div>
+
+              {/* PESTAÑAS */}
+              <div style={{display:'flex',gap:'4px',overflowX:'auto'}}>
+                {PESTAÑAS_EDITAR.map(p => {
+                  const activa = pestañaEditar === p.id
+                  const completa = completitud[p.id]
+                  return (
+                    <button key={p.id} onClick={() => setPestañaEditar(p.id)}
+                      style={{
+                        background: activa ? '#7c3aed' : '#252525',
+                        border:'1px solid '+(activa ? '#7c3aed' : '#333'),
+                        color: activa ? '#fff' : '#aaa',
+                        borderRadius:'8px', padding:'6px 12px',
+                        fontSize:'12px', fontFamily:'inherit', cursor:'pointer',
+                        display:'flex',alignItems:'center',gap:'5px',whiteSpace:'nowrap',
+                        fontWeight: activa ? '600' : '400',
+                        transition:'all 0.15s'
+                      }}>
+                      <span>{p.icon}</span>
+                      <span>{p.label}</span>
+                      {completa && <span style={{
+                        background: activa ? '#4ade80' : 'transparent',
+                        color: activa ? '#0f1f0f' : '#4ade80',
+                        borderRadius:'50%', width:'14px', height:'14px',
+                        display:'flex', alignItems:'center', justifyContent:'center',
+                        fontSize:'9px', fontWeight:'700'
+                      }}>✓</span>}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
 
+            {/* PESTAÑA: FICHA */}
+            {pestañaEditar === 'ficha' && (<>
             {/* BLOQUE IA */}
             <div style={{background:'#2a1f4e',borderRadius:'10px',padding:'16px',marginBottom:'16px',border:'1px solid #7c3aed'}}>
               <button style={{...btn('#7c3aed'),width:'100%',marginBottom: mostrarIA?'12px':'0'}}
@@ -948,6 +1059,29 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
               ) : <div key={i} />)}
             </div>
 
+            {/* CHECKBOXES Disponible / Destacado dentro de FICHA */}
+            <div style={{
+              background:'#1a1a1a', border:'1px solid #333', borderRadius:'10px',
+              padding:'12px 14px', marginTop:'12px',
+              display:'flex', gap:'18px', alignItems:'center', flexWrap:'wrap'
+            }}>
+              <label style={{display:'flex',alignItems:'center',gap:'8px',cursor:'pointer',fontSize:'13px',color:'#fff'}}>
+                <input type="checkbox" checked={form.disponible??true}
+                  onChange={e=>setForm(p=>({...p,disponible:e.target.checked}))}
+                  style={{width:'18px',height:'18px',cursor:'pointer'}} />
+                <span>Disponible en carta</span>
+              </label>
+              <label style={{display:'flex',alignItems:'center',gap:'8px',cursor:'pointer',fontSize:'13px',color:'#fff'}}>
+                <input type="checkbox" checked={form.destacado??false}
+                  onChange={e=>setForm(p=>({...p,destacado:e.target.checked}))}
+                  style={{width:'18px',height:'18px',cursor:'pointer'}} />
+                <span>⭐ Destacado (aparece como Hero)</span>
+              </label>
+            </div>
+            </>)}
+
+            {/* PESTAÑA: PRECIOS */}
+            {pestañaEditar === 'precios' && (<>
             {/* CALCULADORA DE PRECIO */}
             <div style={{marginTop:'16px',background:'#1e2a1e',border:'1px solid #3a5a3a',borderRadius:'12px',padding:'16px'}}>
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer',
@@ -1190,6 +1324,10 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
               </p>
             </div>
 
+            </>)}
+
+            {/* PESTAÑA: NOTAS */}
+            {pestañaEditar === 'notas' && (<>
             <label style={label}>Descripcion</label>
             <textarea style={{...inp,minHeight:'60px',resize:'vertical'}} value={form.descripcion||''}
               onChange={e=>setForm(p=>({...p,descripcion:e.target.value}))} />
@@ -1205,7 +1343,10 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
             <label style={label}>Notas IA (analisis automatico)</label>
             <textarea style={{...inp,minHeight:'50px',resize:'vertical',color:'#a78bfa'}} value={form.notas_ia||''}
               onChange={e=>setForm(p=>({...p,notas_ia:e.target.value}))} />
+            </>)}
 
+            {/* PESTAÑA: PREMIOS */}
+            {pestañaEditar === 'premios' && (<>
             <div style={{marginTop:'16px',background:'#1e2a1e',border:'1px solid #4ade80',borderRadius:'10px',padding:'14px'}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'10px'}}>
                 <span style={{fontSize:'12px',color:'#4ade80',fontWeight:'600',letterSpacing:'0.1em',textTransform:'uppercase'}}>
@@ -1312,19 +1453,10 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
               )}
             </div>
 
-            <div style={{display:'flex',gap:'12px',marginTop:'16px',alignItems:'center'}}>
-              <label style={{display:'flex',alignItems:'center',gap:'6px',cursor:'pointer'}}>
-                <input type="checkbox" checked={form.disponible??true}
-                  onChange={e=>setForm(p=>({...p,disponible:e.target.checked}))} />
-                <span style={{fontSize:'14px'}}>Disponible</span>
-              </label>
-              <label style={{display:'flex',alignItems:'center',gap:'6px',cursor:'pointer'}}>
-                <input type="checkbox" checked={form.destacado??false}
-                  onChange={e=>setForm(p=>({...p,destacado:e.target.checked}))} />
-                <span style={{fontSize:'14px'}}>Destacado</span>
-              </label>
-            </div>
+            </>)}
 
+            {/* PESTAÑA: FOTO */}
+            {pestañaEditar === 'foto' && (<>
             {/* SECCIÓN FOTO */}
             <div style={{
               marginTop:'18px', background:'#1a1a1a', border:'1px solid #333',
@@ -1431,11 +1563,49 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
               </p>
             </div>
 
-            <div style={{display:'flex',gap:'12px',marginTop:'20px'}}>
-              <button style={btn()} onClick={guardar} disabled={guardando}>
-                {guardando ? 'Guardando...' : 'Guardar'}
+            </>)}
+
+            {/* FOOTER de navegación entre pestañas */}
+            <div style={{
+              position:'sticky', bottom:0, zIndex:50, background:'#1a1a1a',
+              margin:'20px -24px -24px', padding:'14px 20px',
+              borderTop:'1px solid #333', borderRadius:'0 0 12px 12px',
+              display:'flex', alignItems:'center', gap:'8px', flexWrap:'wrap'
+            }}>
+              <button style={{...btn('#374151'), fontSize:'12px', padding:'8px 14px'}}
+                disabled={pestañaEditar === PESTAÑAS_EDITAR[0].id}
+                onClick={() => irPestaña(-1)}>
+                ← Anterior
               </button>
-              <button style={btn('#444')} onClick={()=>setFase('lista')}>Cancelar</button>
+              <div style={{flex:1, textAlign:'center', fontSize:'11px', color:'#888'}}>
+                {(() => {
+                  const idx = PESTAÑAS_EDITAR.findIndex(p => p.id === pestañaEditar)
+                  return `${idx+1} de ${PESTAÑAS_EDITAR.length} · ${PESTAÑAS_EDITAR[idx].label}`
+                })()}
+              </div>
+              {pestañaEditar !== PESTAÑAS_EDITAR[PESTAÑAS_EDITAR.length-1].id ? (
+                <button style={{...btn('#7c3aed'), fontSize:'12px', padding:'8px 14px'}}
+                  onClick={() => irPestaña(1)}>
+                  Siguiente →
+                </button>
+              ) : (
+                <>
+                  <button style={{
+                    ...btn(guardando ? '#666' : '#4ade80'),
+                    fontSize:'12px', padding:'8px 14px', color:'#0f1f0f'
+                  }} onClick={() => { setGuardarYSiguiente(false); guardar() }} disabled={guardando}>
+                    💾 Guardar
+                  </button>
+                  {bebida && siguienteBebida && (
+                    <button style={{...btn('#e8c97e'), fontSize:'12px', padding:'8px 14px', color:'#1a1a1a'}}
+                      onClick={() => { setGuardarYSiguiente(true); guardar() }}
+                      disabled={guardando}
+                      title={`Guardar y editar: ${siguienteBebida.nombre}`}>
+                      💾 Guardar y siguiente →
+                    </button>
+                  )}
+                </>
+              )}
             </div>
           </>
         )}

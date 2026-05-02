@@ -68,6 +68,9 @@ export default function App() {
   const [comparador, setComparador] = useState([])
   const [mostrarComparador, setMostrarComparador] = useState(false)
   const [idioma, setIdioma] = useState(() => leerIdiomaGuardado())
+  // Modo cliente cacheado al montar: evita que un atacante manipule
+  // sessionStorage entre renders y reactive el admin
+  const [esCliente] = useState(() => esModoCliente())
   // Modo carta = vista limpia para el cliente (sin búsqueda, filtros, modo vista,
   // favoritos, comparador). Se activa desde el panel admin y se guarda en
   // localStorage. Triple-tap en el logo sigue abriendo admin.
@@ -86,10 +89,12 @@ export default function App() {
   // Si no responde, borra favoritos+comparador+filtros y vuelve al inicio.
   // Mantiene idioma y modo vista de la carta.
   const [autoResetConfig, setAutoResetConfig] = useState(() => {
+    const def = { activa: false, minutos: 4 }
     try {
       const c = JSON.parse(localStorage.getItem('raco_autoreset') || 'null')
-      return c || { activa: false, minutos: 4 }
-    } catch { return { activa: false, minutos: 4 } }
+      if (c && typeof c.activa === 'boolean' && typeof c.minutos === 'number') return c
+      return def
+    } catch { return def }
   })
   function actualizarAutoReset(nueva) {
     setAutoResetConfig(nueva)
@@ -150,10 +155,12 @@ export default function App() {
   // El usuario elige si está activa y cuánto tiempo de inactividad espera.
   const [presentacionActiva, setPresentacionActiva] = useState(false)
   const [presentacionConfig, setPresentacionConfig] = useState(() => {
+    const def = { activa: false, delaySeg: 60, intervaloSeg: 7 }
     try {
       const c = JSON.parse(localStorage.getItem('raco_presentacion') || 'null')
-      return c || { activa: false, delaySeg: 60, intervaloSeg: 7 }
-    } catch { return { activa: false, delaySeg: 60, intervaloSeg: 7 } }
+      if (c && typeof c.activa === 'boolean' && typeof c.delaySeg === 'number' && typeof c.intervaloSeg === 'number') return c
+      return def
+    } catch { return def }
   })
   function actualizarPresentacionConfig(nueva) {
     setPresentacionConfig(nueva)
@@ -186,6 +193,13 @@ export default function App() {
 
   function cambiarIdioma(code) { setIdioma(code); guardarIdioma(code) }
 
+  // Cache offline: guarda la última carta en localStorage para que la app
+  // funcione si Supabase está caído o no hay WiFi en el local.
+  function setBebidasYCache(arr) {
+    setBebidas(arr)
+    setBebidaseleccionada(prev => prev ? (arr.find(x => x.id === prev.id) || prev) : prev)
+    try { localStorage.setItem('raco_cache_carta', JSON.stringify({ bebidas: arr, ts: Date.now() })) } catch {}
+  }
   async function cargar() {
     try {
       const { data, error } = await supabase.from('carta_bebidas').select('*').eq('disponible', true).order('orden', { ascending: true })
@@ -206,23 +220,35 @@ export default function App() {
                 }
                 return m
               })
-              setBebidas(merged)
-              setBebidaseleccionada(prev => prev ? (merged.find(x => x.id === prev.id) || prev) : prev)
+              setBebidasYCache(merged)
               return
             }
           } catch (e) { console.warn('Sin traducciones disponibles', e) }
         }
-        setBebidas(data)
-        setBebidaseleccionada(prev => prev ? (data.find(x => x.id === prev.id) || prev) : prev)
-      }
+        setBebidasYCache(data)
+      } else throw error
     } catch (e) {
       console.error('Error cargando carta:', e)
+      // Fallback offline: usar la última carta guardada en localStorage
+      try {
+        const cache = JSON.parse(localStorage.getItem('raco_cache_carta') || 'null')
+        if (cache?.bebidas?.length) {
+          setBebidas(cache.bebidas)
+          console.warn('🔌 Usando carta cacheada (sin conexión).', new Date(cache.ts).toLocaleString())
+        }
+      } catch {}
     } finally {
       setLoading(false)
     }
   }
   useEffect(() => { cargar() }, [idioma])
-  function toggleFavorito(bebida) { setFavoritos(prev => { const n = prev.includes(bebida.id) ? prev.filter(id => id !== bebida.id) : [...prev, bebida.id]; localStorage.setItem('favoritos', JSON.stringify(n)); return n }) }
+  function toggleFavorito(bebida) {
+    setFavoritos(prev => {
+      const n = prev.includes(bebida.id) ? prev.filter(id => id !== bebida.id) : [...prev, bebida.id]
+      try { localStorage.setItem('favoritos', JSON.stringify(n)) } catch (e) { console.warn('No se pudo guardar favoritos:', e) }
+      return n
+    })
+  }
   function toggleComparador(bebida) { setComparador(prev => { if (prev.find(b => b.id === bebida.id)) return prev.filter(b => b.id !== bebida.id); if (prev.length >= 2) return [prev[1], bebida]; return [...prev, bebida] }) }
   function abrirDetalle(bebida) { setBebidaseleccionada(bebida); setVista('detalle') }
   function volverODetalle(accion, rel) { if (accion === 'relacionado' && rel) { setBebidaseleccionada(rel) } else { setBebidaseleccionada(null); setVista('carta') } }
@@ -248,8 +274,10 @@ export default function App() {
     if (filtroFormato) {
       const tieneCopa = b.precio_copa != null && b.precio_copa !== '' && Number(b.precio_copa) > 0
       const tieneBot = b.precio_botella != null && b.precio_botella !== '' && Number(b.precio_botella) > 0
-      if (filtroFormato === 'copa' && !(tieneCopa && !tieneBot)) return false
-      if (filtroFormato === 'botella' && !(tieneBot && !tieneCopa)) return false
+      // Filtro formato: "copa" = sirven por copa (también si hay botella),
+      // "botella" = sirven por botella, "ambos" = sirven en los dos formatos
+      if (filtroFormato === 'copa' && !tieneCopa) return false
+      if (filtroFormato === 'botella' && !tieneBot) return false
       if (filtroFormato === 'ambos' && !(tieneCopa && tieneBot)) return false
     }
     if (categoriaActiva === 'todas') return true
@@ -284,8 +312,10 @@ export default function App() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--raco-cream)', maxWidth: '900px', margin: '0 auto' }}>
       <PantallaBienvenida />
-      {/* En modo cliente (QR) el admin queda totalmente bloqueado */}
-      <Header vista={vista} onVolver={volver} onMaridaje={() => setVista('maridaje')} onAdmin={esModoCliente() ? undefined : () => setAdminAbierto(true)} idioma={idioma} onIdioma={cambiarIdioma} />
+      {/* En modo cliente (QR) el admin queda totalmente bloqueado.
+          Calculamos esModoCliente una vez al montar para evitar bypass por
+          manipulación de sessionStorage entre renders. */}
+      <Header vista={vista} onVolver={volver} onMaridaje={() => setVista('maridaje')} onAdmin={esCliente ? undefined : () => setAdminAbierto(true)} idioma={idioma} onIdioma={cambiarIdioma} />
       {vista === 'carta' && (
         <div>
           <Categorias categoriaActiva={categoriaActiva} subcategoriaActiva={subcategoriaActiva} onCategoria={cat => { setCategoriaActiva(cat); setSubcategoriaActiva(null) }} onSubcategoria={setSubcategoriaActiva} bebidas={bebidas} />
@@ -301,7 +331,7 @@ export default function App() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, background: 'var(--raco-paper)', border: '1px solid var(--raco-sand)', borderRadius: '10px', padding: '10px 14px' }}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--raco-stone)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 <input type="text" placeholder="Buscar por nombre, bodega, uva..." value={busqueda} onChange={e => setBusqueda(e.target.value)} style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--raco-black)', fontSize: '13px', fontFamily: 'var(--font-body)', fontWeight: '300' }} />
-                {busqueda && <button onClick={() => setBusqueda('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--raco-stone)', fontSize: '18px', lineHeight: 1, padding: 0 }}>x</button>}
+                {busqueda && <button aria-label="Limpiar búsqueda" onClick={() => setBusqueda('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--raco-stone)', fontSize: '18px', lineHeight: 1, padding: 0 }}>×</button>}
               </div>
               <button onClick={() => setFiltrosAbiertos(v => !v)} style={{ background: (filtrosAbiertos||numFiltros>0)?'var(--raco-khaki)':'var(--raco-paper)', border: '1px solid '+((filtrosAbiertos||numFiltros>0)?'var(--raco-khaki)':'var(--raco-sand)'), borderRadius: '10px', padding: '10px 14px', cursor: 'pointer', color: (filtrosAbiertos||numFiltros>0)?'var(--raco-paper)':'var(--raco-stone)', fontSize: '12px', fontFamily: 'var(--font-body)', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', transition: 'all 0.18s' }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>

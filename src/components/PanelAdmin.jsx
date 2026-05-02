@@ -137,7 +137,12 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
       apiKey,
     })
     if (!text) throw new Error('Respuesta vacía de Groq')
-    const json = JSON.parse(text.replace(/```json?/g,'').replace(/```/g,'').trim())
+    let json
+    try {
+      json = JSON.parse(text.replace(/```json?/g,'').replace(/```/g,'').trim())
+    } catch {
+      throw new Error('Groq devolvió JSON inválido. Texto: ' + text.slice(0, 100))
+    }
     setForm(prev => ({
       ...prev,
       ...Object.fromEntries(
@@ -205,6 +210,8 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
   const [guardando, setGuardando] = useState(false)
   const [previewAbierto, setPreviewAbierto] = useState(false)
   const [toastGuardado, setToastGuardado] = useState(false)
+  const toastRef = useRef(null)
+  useEffect(() => () => clearTimeout(toastRef.current), [])
   const [traduciendoUno, setTraduciendoUno] = useState(false)
   const [traduccionDebug, setTraduccionDebug] = useState('')
 
@@ -598,27 +605,32 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
       notas_ia: b.notas_ia || '',
       puntuaciones: Array.isArray(b.puntuaciones) ? b.puntuaciones : []
     }
-    // Recuperar borrador si existe y es reciente (menos de 7 días)
+    // Recuperar borrador si existe, es reciente (<7 días) y válido
+    let borrador = null
     try {
       const raw = localStorage.getItem('raco_borrador_' + b.id)
-      if (raw) {
-        const borrador = JSON.parse(raw)
-        const edadMin = Math.round((Date.now() - borrador.ts) / 60000)
-        if (edadMin < 60 * 24 * 7 && borrador.form?.nombre) {
-          if (confirm(`Tienes cambios sin guardar de hace ${edadMin < 60 ? edadMin + ' min' : Math.round(edadMin/60) + ' h'} en este vino.\n\n¿Recuperar borrador?`)) {
-            setForm(borrador.form)
-          } else {
-            setForm(formInicial)
-            localStorage.removeItem('raco_borrador_' + b.id)
-          }
+      if (raw) borrador = JSON.parse(raw)
+    } catch (e) {
+      console.warn('Borrador corrupto, descartando:', e)
+      try { localStorage.removeItem('raco_borrador_' + b.id) } catch {}
+    }
+    if (borrador?.form?.nombre && borrador?.ts) {
+      const edadMin = Math.round((Date.now() - borrador.ts) / 60000)
+      if (edadMin < 60 * 24 * 7) {
+        const cuando = edadMin < 60 ? `${edadMin} min` : `${Math.round(edadMin/60)} h`
+        if (confirm(`Tienes cambios sin guardar de hace ${cuando} en este vino.\n\n¿Recuperar borrador?`)) {
+          setForm(borrador.form)
         } else {
           setForm(formInicial)
-          localStorage.removeItem('raco_borrador_' + b.id)
+          try { localStorage.removeItem('raco_borrador_' + b.id) } catch {}
         }
       } else {
         setForm(formInicial)
+        try { localStorage.removeItem('raco_borrador_' + b.id) } catch {}
       }
-    } catch { setForm(formInicial) }
+    } else {
+      setForm(formInicial)
+    }
     // Si tiene precio_coste guardado, pre-rellenar calculadora
     if (b.precio_coste) {
       setCalc(prev => ({ ...prev, precioIva: String(b.precio_coste) }))
@@ -728,9 +740,10 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
       try {
         localStorage.removeItem('raco_borrador_' + (bebida?.id || 'nuevo'))
       } catch {}
-      // Toast verde de confirmación
+      // Toast verde de confirmación (con cleanup al desmontar)
       setToastGuardado(true)
-      setTimeout(() => setToastGuardado(false), 2200)
+      clearTimeout(toastRef.current)
+      toastRef.current = setTimeout(() => setToastGuardado(false), 2200)
       // Si pidió "Guardar y siguiente", abre el siguiente vino directamente
       if (guardarYSiguiente && siguienteBebida) {
         abrirEditar(siguienteBebida)

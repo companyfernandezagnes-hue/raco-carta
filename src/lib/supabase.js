@@ -44,11 +44,17 @@ function createSupabaseClient(url, key) {
               'Pragma': 'no-cache'
             }
           })
-          const data = await res.json()
+          let data = null
+          try { data = await res.json() } catch (e) {
+            // Si la respuesta no es JSON válido (error de red, HTML de error, etc.)
+            return resolve({ data: null, error: { message: `Respuesta no válida: ${e.message}` } })
+          }
           if (!res.ok) resolve({ data: null, error: data })
           else resolve({ data, error: null })
         } catch (err) {
-          reject ? reject({ data: null, error: err }) : resolve({ data: null, error: err })
+          // Errores de red (offline, CORS, DNS): siempre resolvemos para no
+          // dejar promesas colgando. La app puede caer al caché offline.
+          resolve({ data: null, error: { message: err.message || 'Sin conexión' } })
         }
       }
     }

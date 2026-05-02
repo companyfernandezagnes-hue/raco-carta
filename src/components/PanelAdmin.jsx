@@ -1,12 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabaseAdmin, hasSupabaseAdmin, getSupabaseUrl, getSupabaseServiceKey } from '../lib/supabaseAdmin'
 import { parsePrecio } from '../lib/precio'
+import { hayPasswordConfigurada, definirPassword, intentarLogin, msHastaDesbloqueo, intentosRestantes, formatearTiempo } from '../lib/auth'
 import AdminPlatos from './AdminPlatos.jsx'
-
-const PASS_HASH = 'TVRJek5BPT0=' // v4 - contraseña actual: 1234
-function verificarPassword(input) {
-  try { return btoa(btoa(input)) === PASS_HASH } catch { return false }
-}
 
 const CRITICOS = [
   'Decanter', 'Wine Spectator', 'Robert Parker / Wine Advocate',
@@ -164,6 +160,22 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
   const [tabAdmin, setTabAdmin] = useState('bebidas')   // 'bebidas' | 'platos'
   const [pass, setPass] = useState('')
   const [error, setError] = useState('')
+  // Estado autenticación
+  const [intentosLeft, setIntentosLeft] = useState(intentosRestantes())
+  const [bloqueoMs, setBloqueoMs] = useState(msHastaDesbloqueo())
+  const [requiereSetup, setRequiereSetup] = useState(!hayPasswordConfigurada())
+  const [pass2, setPass2] = useState('')   // confirmación al definir
+  const [cambiandoPass, setCambiandoPass] = useState(false)
+  // Tick para refrescar el contador de bloqueo cada segundo
+  useEffect(() => {
+    if (bloqueoMs <= 0) return
+    const t = setInterval(() => {
+      const m = msHastaDesbloqueo()
+      setBloqueoMs(m)
+      if (m === 0) setIntentosLeft(intentosRestantes())
+    }, 1000)
+    return () => clearInterval(t)
+  }, [bloqueoMs])
   const [bebida, setBebida] = useState(null)
   const [form, setForm] = useState({})
   const [guardando, setGuardando] = useState(false)
@@ -227,9 +239,50 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
     setAjustesV(v => v + 1)
   }
 
-  function login() {
-    if (verificarPassword(pass)) { setFase('lista'); setError('') }
-    else setError('Contrasena incorrecta')
+  async function loginNuevo() {
+    setError('')
+    const r = await intentarLogin(pass)
+    if (r.ok) {
+      setPass('')
+      if (r.motivo === 'migrado') {
+        // La primera vez con la antigua contraseña por defecto: obligar a cambiarla
+        setError('')
+        setFase('definirPass')
+      } else {
+        setFase('lista')
+      }
+    } else {
+      setIntentosLeft(r.intentosRestantes)
+      if (r.motivo === 'bloqueado') {
+        setBloqueoMs(r.msBloqueo)
+        setError(`Demasiados intentos. Bloqueado durante ${formatearTiempo(r.msBloqueo)}.`)
+      } else if (r.motivo === 'sin_setup') {
+        setError('Aún no hay contraseña. Configúrala primero.')
+        setFase('definirPass')
+      } else {
+        setError(`Contraseña incorrecta. Te quedan ${r.intentosRestantes} intentos.`)
+      }
+    }
+  }
+
+  async function definirNuevaPassword() {
+    if (!pass || pass.length < 4) { setError('Mínimo 4 caracteres'); return }
+    if (pass !== pass2) { setError('Las contraseñas no coinciden'); return }
+    try {
+      await definirPassword(pass)
+      setPass(''); setPass2(''); setError('')
+      setRequiereSetup(false)
+      setIntentosLeft(intentosRestantes())
+      if (cambiandoPass) {
+        setCambiandoPass(false)
+        setFase('lista')
+        alert('Contraseña actualizada')
+      } else {
+        setFase('lista')
+      }
+    } catch (e) {
+      setError(e.message)
+    }
   }
 
   function abrirEditar(b) {
@@ -527,13 +580,59 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
       <div style={card}>
         {fase === 'login' && (
           <>
-            <h2 style={{margin:'0 0 20px',textAlign:'center'}}>Admin Raco</h2>
-            <input style={inp} type="password" placeholder="Contrasena" value={pass}
-              onChange={e=>setPass(e.target.value)} onKeyDown={e=>e.key==='Enter'&&login()} autoFocus />
-            {error && <p style={{color:'#f87171',margin:'8px 0'}}>{error}</p>}
+            <h2 style={{margin:'0 0 6px',textAlign:'center'}}>Admin Racó</h2>
+            <p style={{margin:'0 0 16px', textAlign:'center', color:'#888', fontSize:'12px'}}>
+              {requiereSetup
+                ? 'Primer acceso: usa "1234" para entrar y luego define tu contraseña'
+                : 'Introduce la contraseña del panel'}
+            </p>
+            <input style={{...inp, opacity: bloqueoMs > 0 ? 0.5 : 1}}
+              type="password" placeholder="Contraseña" value={pass}
+              disabled={bloqueoMs > 0}
+              onChange={e=>setPass(e.target.value)}
+              onKeyDown={e=>e.key==='Enter'&&loginNuevo()} autoFocus />
+            {bloqueoMs > 0 && (
+              <p style={{color:'#fbbf24',margin:'10px 0 0',textAlign:'center',fontSize:'13px'}}>
+                ⏳ Bloqueado · vuelve en <strong>{formatearTiempo(bloqueoMs)}</strong>
+              </p>
+            )}
+            {error && bloqueoMs === 0 && <p style={{color:'#f87171',margin:'8px 0',fontSize:'12px'}}>{error}</p>}
+            {bloqueoMs === 0 && intentosLeft < 4 && intentosLeft > 0 && (
+              <p style={{color:'#aaa',margin:'4px 0 0',fontSize:'11px'}}>
+                {intentosLeft} intento{intentosLeft===1?'':'s'} antes del bloqueo de 5 minutos
+              </p>
+            )}
             <div style={{display:'flex',gap:'12px',marginTop:'16px'}}>
-              <button style={btn()} onClick={login}>Entrar</button>
+              <button style={btn()} disabled={bloqueoMs > 0} onClick={loginNuevo}>Entrar</button>
               <button style={btn('#444')} onClick={onCerrar}>Cancelar</button>
+            </div>
+          </>
+        )}
+
+        {fase === 'definirPass' && (
+          <>
+            <h2 style={{margin:'0 0 6px',textAlign:'center'}}>
+              {cambiandoPass ? 'Cambiar contraseña' : 'Define una contraseña'}
+            </h2>
+            <p style={{margin:'0 0 16px', textAlign:'center', color:'#888', fontSize:'12px'}}>
+              {cambiandoPass
+                ? 'Elige una nueva contraseña. Mínimo 4 caracteres.'
+                : 'Solo se guarda en este dispositivo. No la olvides — no se puede recuperar.'}
+            </p>
+            <input style={inp} type="password" placeholder="Nueva contraseña (mín. 4)"
+              value={pass} onChange={e=>setPass(e.target.value)} autoFocus />
+            <div style={{height:8}}/>
+            <input style={inp} type="password" placeholder="Repítela"
+              value={pass2} onChange={e=>setPass2(e.target.value)}
+              onKeyDown={e=>e.key==='Enter'&&definirNuevaPassword()} />
+            {error && <p style={{color:'#f87171',margin:'8px 0',fontSize:'12px'}}>{error}</p>}
+            <div style={{display:'flex',gap:'12px',marginTop:'16px'}}>
+              <button style={btn()} onClick={definirNuevaPassword}>Guardar</button>
+              {cambiandoPass && (
+                <button style={btn('#444')} onClick={()=>{ setCambiandoPass(false); setPass(''); setPass2(''); setError(''); setFase('lista'); }}>
+                  Cancelar
+                </button>
+              )}
             </div>
           </>
         )}
@@ -626,6 +725,11 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
               </div>
               <div style={{display:'flex',gap:'8px'}}>
                 {tabAdmin === 'bebidas' && <button style={btn('#7c3aed')} onClick={abrirNueva}>+ Nueva IA</button>}
+                <button style={{...btn('#374151'),fontSize:'11px'}}
+                  title="Cambiar contraseña del admin"
+                  onClick={()=>{ setCambiandoPass(true); setPass(''); setPass2(''); setError(''); setFase('definirPass') }}>
+                  🔑 Contraseña
+                </button>
                 <button style={btn('#444')} onClick={onCerrar}>X</button>
               </div>
             </div>

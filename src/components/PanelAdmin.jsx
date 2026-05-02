@@ -571,24 +571,36 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
       const r = await fetch(url)
       return await r.blob()
     }
-    // 2) URL externa: probar fetch directo (funciona si el servidor permite CORS)
+    // 2) URL externa: probar fetch directo (si el servidor permite CORS)
     try {
       const r = await fetch(url, { mode: 'cors' })
       if (r.ok) return await r.blob()
     } catch {}
-    // 3) Fallback: <img crossOrigin> + canvas (funciona si el servidor envía
-    //    Access-Control-Allow-Origin pero no responde a fetch())
+    // 3) <img crossOrigin> + canvas (algunos servidores responden a img pero no fetch)
     try {
       return await cargarComoBlob(url)
     } catch {}
-    // 4) Último recurso: proxy de imágenes weserv.nl (Cloudflare, gratis,
-    //    añade cabeceras CORS a cualquier imagen pública)
-    const proxiada = `https://images.weserv.nl/?url=${encodeURIComponent(url.replace(/^https?:\/\//, ''))}`
-    try {
-      return await cargarComoBlob(proxiada)
-    } catch {
-      throw new Error('No se pudo cargar la imagen. Si está en un servidor externo, prueba a descargarla y subirla desde tu ordenador.')
+
+    // 4) Cascada de proxies CORS — probamos uno tras otro hasta que funcione.
+    //    Cada proxy tiene políticas y caídas distintas, así casi siempre alguno responde.
+    const sinProtocolo = url.replace(/^https?:\/\//, '')
+    const proxies = [
+      `https://images.weserv.nl/?url=${encodeURIComponent(sinProtocolo)}`,
+      `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+      `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(url)}`,
+      `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    ]
+    for (const p of proxies) {
+      try { return await cargarComoBlob(p) } catch {}
+      try {
+        const r = await fetch(p)
+        if (r.ok) {
+          const b = await r.blob()
+          if (b.size > 100) return b   // descartamos respuestas vacías
+        }
+      } catch {}
     }
+    throw new Error('No se pudo cargar la imagen. El servidor donde está alojada bloquea el acceso. Descárgala manualmente (botón derecho → Guardar imagen) y vuelve a subirla con "🔄 Cambiar foto".')
   }
 
   async function quitarFondoFoto() {
@@ -1661,7 +1673,25 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
               </div>
 
               {fondoError && (
-                <p style={{margin:'8px 0 0', fontSize:'12px', color:'#f87171'}}>{fondoError}</p>
+                <div style={{
+                  marginTop:'10px', padding:'10px 12px',
+                  background:'#3a1a1a', border:'1px solid #7f1d1d',
+                  borderRadius:'8px'
+                }}>
+                  <p style={{margin:'0 0 8px', fontSize:'12px', color:'#fca5a5', lineHeight:'1.5'}}>
+                    {fondoError}
+                  </p>
+                  {form.foto_url && !form.foto_url.startsWith('data:') && (
+                    <a href={form.foto_url} target="_blank" rel="noopener noreferrer"
+                      style={{
+                        display:'inline-block', background:'#7c3aed', color:'#fff',
+                        padding:'6px 12px', borderRadius:'6px', fontSize:'11px',
+                        textDecoration:'none', fontWeight:'600'
+                      }}>
+                      🔗 Abrir foto original (botón derecho → Guardar imagen)
+                    </a>
+                  )}
+                </div>
               )}
 
               {/* Botones de acción */}

@@ -128,30 +128,25 @@ const TarjetaBebida = memo(function TarjetaBebida({ bebida, onSeleccionar, desta
     <div
       onClick={() => onSeleccionar(bebida)}
       style={{
-        // Fondo crema (mismo que body) → la botella se funde sin caja
-        background: 'var(--raco-cream)',
-        // Solo línea separadora abajo, sin caja completa
-        borderBottom: '1px solid var(--raco-sand)',
-        border: 'none', borderBottom: '1px solid var(--raco-sand)',
-        padding: '14px', cursor: 'pointer',
-        transition: 'background 0.2s, transform 0.15s',
+        background: 'var(--raco-paper)',
+        border: '1px solid ' + (destacado ? 'rgba(107,122,62,0.45)' : 'var(--raco-sand)'),
+        borderRadius: '14px', padding: '14px', cursor: 'pointer',
+        transition: 'border-color 0.2s, box-shadow 0.2s, transform 0.15s',
         display: 'flex', gap: '14px', alignItems: 'center', position: 'relative',
         animation: 'fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) both',
       }}
-      onMouseEnter={e => { e.currentTarget.style.background = 'var(--raco-paper)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
-      onMouseLeave={e => { e.currentTarget.style.background = 'var(--raco-cream)'; e.currentTarget.style.transform = 'translateY(0)' }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--raco-khaki)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(107,122,62,0.10)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = destacado ? 'rgba(107,122,62,0.45)' : 'var(--raco-sand)'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)' }}
     >
       {bebida.foto_url ? (
         <div style={{
-          width: '60px', height: '90px', flexShrink: 0,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          width: '56px', height: '72px', flexShrink: 0,
+          borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--raco-sand)',
+          background: 'var(--raco-paper)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center'
         }}>
           <img src={bebida.foto_url} alt={bebida.nombre}
-            style={{
-              // Forzar altura completa → todas las botellas mismo tamaño visual
-              height: '100%', width: 'auto', maxWidth: '100%',
-              objectFit: 'contain', mixBlendMode: 'multiply'
-            }} />
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         </div>
       ) : (
         <FotoPlaceholder bebida={bebida} />

@@ -144,7 +144,22 @@ async function traducirConGroq({ vinoData, apiKey }) {
   return JSON.parse(text.replace(/```json?/g,'').replace(/```/g,'').trim())
 }
 
-export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
+export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta, onToggleModoCarta }) {
+  const [pantallaCompleta, setPantallaCompleta] = useState(() => !!document.fullscreenElement)
+  function alternarPantallaCompleta() {
+    if (document.fullscreenElement) {
+      document.exitFullscreen?.().then(() => setPantallaCompleta(false)).catch(() => {})
+    } else {
+      const el = document.documentElement
+      const req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen
+      req?.call(el).then(() => setPantallaCompleta(true)).catch(() => {})
+    }
+  }
+  useEffect(() => {
+    function onChange() { setPantallaCompleta(!!document.fullscreenElement) }
+    document.addEventListener('fullscreenchange', onChange)
+    return () => document.removeEventListener('fullscreenchange', onChange)
+  }, [])
   const [fase, setFase] = useState('login')
   const [tabAdmin, setTabAdmin] = useState('bebidas')   // 'bebidas' | 'platos'
   const [pass, setPass] = useState('')
@@ -523,6 +538,35 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar }) {
         {/* MEJORA 3: Vista de precios en lista admin */}
         {fase === 'lista' && (
           <>
+            {/* MODO CARTA + PANTALLA COMPLETA — para usar en el restaurante */}
+            <div style={{
+              background: modoCarta ? '#1a3a1a' : '#2a2a2a',
+              border:'1px solid '+(modoCarta?'#4ade80':'#444'),
+              borderRadius:'10px', padding:'10px 12px', marginBottom:'12px',
+              display:'flex', alignItems:'center', gap:'10px', flexWrap:'wrap'
+            }}>
+              <div style={{flex:1, minWidth:'160px'}}>
+                <div style={{fontSize:'12px',fontWeight:'700',color:'#fff'}}>
+                  {modoCarta ? '✓ Modo carta activo' : '🍽 Modo carta (para clientes)'}
+                </div>
+                <div style={{fontSize:'10px',color:'#aaa',marginTop:'2px'}}>
+                  Oculta búsqueda, filtros, favoritos y modo vista. Vista limpia.
+                </div>
+              </div>
+              <button onClick={onToggleModoCarta} style={{
+                background: modoCarta ? '#4ade80' : '#7c3aed',
+                color: modoCarta ? '#0f1f0f' : '#fff',
+                border:'none', borderRadius:'8px', padding:'6px 14px',
+                cursor:'pointer', fontWeight:'700', fontSize:'12px', whiteSpace:'nowrap'
+              }}>{modoCarta ? 'Desactivar' : 'Activar'}</button>
+              <button onClick={alternarPantallaCompleta} title="Esconde la barra del navegador" style={{
+                background: pantallaCompleta ? '#4ade80' : '#374151',
+                color: pantallaCompleta ? '#0f1f0f' : '#fff',
+                border:'none', borderRadius:'8px', padding:'6px 12px',
+                cursor:'pointer', fontWeight:'600', fontSize:'12px', whiteSpace:'nowrap'
+              }}>{pantallaCompleta ? '✓ Pantalla completa' : '⛶ Pantalla completa'}</button>
+            </div>
+
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'12px'}}>
               <div style={{display:'flex',gap:'4px'}}>
                 <button style={{...btn(tabAdmin==='bebidas'?'#7c3aed':'#2a2a2a'),padding:'6px 14px',fontSize:'13px'}}

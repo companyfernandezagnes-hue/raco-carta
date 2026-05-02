@@ -61,6 +61,19 @@ export default function App() {
   const [comparador, setComparador] = useState([])
   const [mostrarComparador, setMostrarComparador] = useState(false)
   const [idioma, setIdioma] = useState(() => leerIdiomaGuardado())
+  // Modo carta = vista limpia para el cliente (sin búsqueda, filtros, modo vista,
+  // favoritos, comparador). Se activa desde el panel admin y se guarda en
+  // localStorage. Triple-tap en el logo sigue abriendo admin.
+  const [modoCarta, setModoCarta] = useState(() => {
+    try { return localStorage.getItem('raco_modo_carta') === '1' } catch { return false }
+  })
+  function toggleModoCarta() {
+    setModoCarta(v => {
+      const nv = !v
+      try { localStorage.setItem('raco_modo_carta', nv ? '1' : '0') } catch {}
+      return nv
+    })
+  }
 
   function cambiarIdioma(code) { setIdioma(code); guardarIdioma(code) }
 
@@ -166,6 +179,7 @@ export default function App() {
         <div>
           <Categorias categoriaActiva={categoriaActiva} subcategoriaActiva={subcategoriaActiva} onCategoria={cat => { setCategoriaActiva(cat); setSubcategoriaActiva(null) }} onSubcategoria={setSubcategoriaActiva} bebidas={bebidas} />
           <div style={{ padding: '0 16px 12px' }}>
+            {!modoCarta && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, background: 'var(--raco-paper)', border: '1px solid var(--raco-sand)', borderRadius: '10px', padding: '10px 14px' }}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--raco-stone)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -178,6 +192,7 @@ export default function App() {
                 {numFiltros > 0 && <span style={{ background: 'var(--raco-paper)', color: 'var(--raco-khaki)', borderRadius: '50%', width: '16px', height: '16px', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>{numFiltros}</span>}
               </button>
             </div>
+            )}
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
               <button onClick={() => setVista('maridaje')} style={{
                 fontFamily: 'var(--font-body)', fontWeight: '300', fontSize: '10px',
@@ -193,7 +208,7 @@ export default function App() {
                 Maridaje
               </button>
             </div>
-            {filtrosAbiertos && (
+            {!modoCarta && filtrosAbiertos && (
               <div style={{ background: 'var(--raco-paper)', border: '1px solid var(--raco-sand)', borderRadius: '10px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '8px', animation: 'fadeDown 0.18s ease both' }}>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <SelectRaco value={filtroTipo} onChange={setFiltroTipo} options={opcionesTipo} placeholder="Tipo: todos" />
@@ -209,6 +224,7 @@ export default function App() {
                 </div>
               </div>
             )}
+            {!modoCarta && (
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
               {(busqueda||filtroPais||filtroTipo) ? <p style={{ color: 'var(--raco-stone)', fontSize: '11px', letterSpacing: '0.06em', fontFamily: 'var(--font-body)' }}>{bebidasFiltradas.length} resultado{bebidasFiltradas.length!==1?'s':''}{busqueda?' para "'+busqueda+'"':''}</p> : <div />}
               <div style={{ display: 'flex', gap: '4px' }}>
@@ -219,15 +235,16 @@ export default function App() {
                 {comparador.length>0 && <button onClick={() => setMostrarComparador(true)} style={{ background: 'rgba(107,122,62,0.12)', border: '1px solid var(--raco-khaki)', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', color: 'var(--raco-khaki)', fontSize: '12px', letterSpacing: '0.05em', transition: 'all 0.15s' }}>⚖ {comparador.length}/2</button>}
               </div>
             </div>
+            )}
           </div>
-          <ListaBebidas bebidas={modoVista==='favoritos'?bebidasFiltradas.filter(b=>favoritos.includes(b.id)):bebidasFiltradas} onSeleccionar={abrirDetalle} modoVista={modoVista==='favoritos'?'lista':modoVista} favoritos={favoritos} onToggleFavorito={toggleFavorito} comparador={comparador} onToggleComparador={toggleComparador} />
+          <ListaBebidas bebidas={modoVista==='favoritos'?bebidasFiltradas.filter(b=>favoritos.includes(b.id)):bebidasFiltradas} onSeleccionar={abrirDetalle} modoVista={modoVista==='favoritos'?'lista':modoVista} favoritos={favoritos} onToggleFavorito={toggleFavorito} comparador={comparador} onToggleComparador={toggleComparador} modoCarta={modoCarta} />
           {mostrarComparador && comparador.length===2 && <ComparadorModal bebida1={comparador[0]} bebida2={comparador[1]} onCerrar={() => setMostrarComparador(false)} />}
           <FooterRaco />
         </div>
       )}
       {vista==='detalle' && bebidaseleccionada && <DetalleBebida bebida={bebidaseleccionada} onVolver={volverODetalle} todasBebidas={bebidas} />}
       {vista==='maridaje' && <Maridaje bebidas={bebidas} onSeleccionar={abrirDetalle} onVolver={volver} />}
-      {adminAbierto && <PanelAdmin bebidas={bebidas} onCerrar={() => setAdminAbierto(false)} onActualizar={cargar} />}
+      {adminAbierto && <PanelAdmin bebidas={bebidas} onCerrar={() => setAdminAbierto(false)} onActualizar={cargar} modoCarta={modoCarta} onToggleModoCarta={toggleModoCarta} />}
     </div>
   )
 }

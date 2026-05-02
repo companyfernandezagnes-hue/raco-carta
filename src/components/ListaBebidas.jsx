@@ -1,6 +1,10 @@
 import { formatPrecio } from '../lib/precio'
 
-export default function ListaBebidas({ bebidas, onSeleccionar, modoVista = 'lista', favoritos = [], onToggleFavorito, comparador = [], onToggleComparador }) {
+export default function ListaBebidas({ bebidas, onSeleccionar, modoVista = 'lista', favoritos = [], onToggleFavorito, comparador = [], onToggleComparador, modoCarta = false }) {
+  // En modo carta (vista limpia para cliente), no se muestran los botones
+  // de favorito ni comparador en cada tarjeta.
+  const fav = modoCarta ? undefined : onToggleFavorito
+  const comp = modoCarta ? undefined : onToggleComparador
   if (bebidas.length === 0) return (
     <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--raco-stone)', fontSize: '12px', letterSpacing: '0.14em', fontFamily: 'var(--font-body)' }}>
       Sin referencias disponibles
@@ -18,7 +22,7 @@ export default function ListaBebidas({ bebidas, onSeleccionar, modoVista = 'list
           <>
             <SeccionHeader>Selección del sumiller</SeccionHeader>
             <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: '10px', marginBottom: '28px' }}>
-              {destacados.map(b => <TarjetaGrid key={b.id} bebida={b} onSeleccionar={onSeleccionar} destacado esPequena={modoVista === 'grid-sm'} esFavorito={favoritos.includes(b.id)} onToggleFavorito={onToggleFavorito} enComparador={comparador.some(c => c.id === b.id)} onToggleComparador={onToggleComparador} />)}
+              {destacados.map(b => <TarjetaGrid key={b.id} bebida={b} onSeleccionar={onSeleccionar} destacado esPequena={modoVista === 'grid-sm'} esFavorito={favoritos.includes(b.id)} onToggleFavorito={fav} enComparador={comparador.some(c => c.id === b.id)} onToggleComparador={comp} />)}
             </div>
           </>
         )}
@@ -26,7 +30,7 @@ export default function ListaBebidas({ bebidas, onSeleccionar, modoVista = 'list
           <>
             {destacados.length > 0 && <SeccionHeader>Carta completa</SeccionHeader>}
             <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: '10px' }}>
-              {resto.map(b => <TarjetaGrid key={b.id} bebida={b} onSeleccionar={onSeleccionar} esPequena={modoVista === 'grid-sm'} esFavorito={favoritos.includes(b.id)} onToggleFavorito={onToggleFavorito} enComparador={comparador.some(c => c.id === b.id)} onToggleComparador={onToggleComparador} />)}
+              {resto.map(b => <TarjetaGrid key={b.id} bebida={b} onSeleccionar={onSeleccionar} esPequena={modoVista === 'grid-sm'} esFavorito={favoritos.includes(b.id)} onToggleFavorito={fav} enComparador={comparador.some(c => c.id === b.id)} onToggleComparador={comp} />)}
             </div>
           </>
         )}
@@ -40,7 +44,7 @@ export default function ListaBebidas({ bebidas, onSeleccionar, modoVista = 'list
         <>
           <SeccionHeader>Selección del sumiller</SeccionHeader>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '28px' }}>
-            {destacados.map(b => <TarjetaBebida key={b.id} bebida={b} onSeleccionar={onSeleccionar} destacado esFavorito={favoritos.includes(b.id)} onToggleFavorito={onToggleFavorito} enComparador={comparador.some(c => c.id === b.id)} onToggleComparador={onToggleComparador} />)}
+            {destacados.map(b => <TarjetaBebida key={b.id} bebida={b} onSeleccionar={onSeleccionar} destacado esFavorito={favoritos.includes(b.id)} onToggleFavorito={fav} enComparador={comparador.some(c => c.id === b.id)} onToggleComparador={comp} />)}
           </div>
         </>
       )}
@@ -48,7 +52,7 @@ export default function ListaBebidas({ bebidas, onSeleccionar, modoVista = 'list
         <>
           {destacados.length > 0 && <SeccionHeader>Carta completa</SeccionHeader>}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {resto.map(b => <TarjetaBebida key={b.id} bebida={b} onSeleccionar={onSeleccionar} esFavorito={favoritos.includes(b.id)} onToggleFavorito={onToggleFavorito} enComparador={comparador.some(c => c.id === b.id)} onToggleComparador={onToggleComparador} />)}
+            {resto.map(b => <TarjetaBebida key={b.id} bebida={b} onSeleccionar={onSeleccionar} esFavorito={favoritos.includes(b.id)} onToggleFavorito={fav} enComparador={comparador.some(c => c.id === b.id)} onToggleComparador={comp} />)}
           </div>
         </>
       )}

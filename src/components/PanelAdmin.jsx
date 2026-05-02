@@ -1,8 +1,12 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { supabaseAdmin, hasSupabaseAdmin, getSupabaseUrl, getSupabaseServiceKey } from '../lib/supabaseAdmin'
 import { parsePrecio } from '../lib/precio'
 import { hayPasswordConfigurada, definirPassword, intentarLogin, msHastaDesbloqueo, intentosRestantes, formatearTiempo } from '../lib/auth'
 import AdminPlatos from './AdminPlatos.jsx'
+
+// Vista previa que reutiliza la ficha del cliente. Lazy para no engordar
+// el bundle del admin cuando no se usa.
+const DetalleBebida = lazy(() => import('./DetalleBebida.jsx'))
 
 const CRITICOS = [
   'Decanter', 'Wine Spectator', 'Robert Parker / Wine Advocate',
@@ -179,6 +183,8 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
   const [bebida, setBebida] = useState(null)
   const [form, setForm] = useState({})
   const [guardando, setGuardando] = useState(false)
+  const [previewAbierto, setPreviewAbierto] = useState(false)
+  const [toastGuardado, setToastGuardado] = useState(false)
   const [pestañaEditar, setPestañaEditar] = useState('ficha')
   const [guardarYSiguiente, setGuardarYSiguiente] = useState(false)
   // Completitud por pestaña (true = todo lo importante puesto)
@@ -207,6 +213,39 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
   // Lista de bebidas próximas para "Guardar y editar siguiente"
   const idxActual = bebida ? bebidas.findIndex(b => b.id === bebida.id) : -1
   const siguienteBebida = idxActual >= 0 && idxActual < bebidas.length - 1 ? bebidas[idxActual + 1] : null
+
+  // Construye un objeto bebida desde el form en edición para la vista previa
+  function bebidaDesdeForm() {
+    return {
+      ...form,
+      id: bebida?.id || 'preview',
+      precio_botella: parsePrecio(form.precio_botella),
+      precio_copa:    parsePrecio(form.precio_copa),
+      precio_coste:   parsePrecio(form.precio_coste),
+      graduacion:     parsePrecio(form.graduacion),
+      anada:          form.anada ? parseInt(form.anada) : null,
+      maridajes: typeof form.maridajes === 'string'
+        ? form.maridajes.split(',').map(s => s.trim()).filter(Boolean)
+        : (form.maridajes || []),
+      puntuaciones: Array.isArray(form.puntuaciones) ? form.puntuaciones : [],
+    }
+  }
+
+  // Atajo Ctrl+S / Cmd+S para guardar mientras editas
+  useEffect(() => {
+    if (fase !== 'editando') return
+    function onKey(e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault()
+        if (!guardando) { setGuardarYSiguiente(false); guardar() }
+      }
+      if (e.key === 'Escape' && previewAbierto) {
+        setPreviewAbierto(false)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [fase, guardando, previewAbierto])
   const [iaLoading, setIaLoading] = useState(false)
   const [iaError, setIaError] = useState('')
   const [iaTexto, setIaTexto] = useState('')
@@ -438,6 +477,9 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
         }
       }
       onActualizar()
+      // Toast verde de confirmación
+      setToastGuardado(true)
+      setTimeout(() => setToastGuardado(false), 2200)
       // Si pidió "Guardar y siguiente", abre el siguiente vino directamente
       if (guardarYSiguiente && siguienteBebida) {
         abrirEditar(siguienteBebida)
@@ -1002,13 +1044,18 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
                     <span style={{fontSize:'10px',color:'#888'}}>{porcentajeCompleto}% completo</span>
                   </div>
                 </div>
+                <button style={{...btn('#374151'),fontSize:'11px',padding:'6px 10px'}}
+                  onClick={()=>setPreviewAbierto(true)} title="Ver cómo lo verá el cliente">
+                  👁 Preview
+                </button>
                 <button style={{...btn('#444'),fontSize:'11px',padding:'6px 10px'}}
                   onClick={()=>setFase('lista')}>← Volver</button>
                 <button style={{
                   ...btn(guardando ? '#666' : (porcentajeCompleto >= 60 ? '#4ade80' : '#e8c97e')),
                   fontSize:'12px',padding:'6px 14px',
                   color: porcentajeCompleto >= 60 ? '#0f1f0f' : '#1a1a1a'
-                }} onClick={() => { setGuardarYSiguiente(false); guardar() }} disabled={guardando}>
+                }} onClick={() => { setGuardarYSiguiente(false); guardar() }} disabled={guardando}
+                  title="Atajo: Ctrl+S">
                   {guardando ? '⏳' : '💾 Guardar'}
                 </button>
               </div>
@@ -1644,6 +1691,65 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
           </>
         )}
       </div>
+
+      {/* VISTA PREVIA EN VIVO — usa la ficha real del cliente con datos del form */}
+      {previewAbierto && (
+        <div onClick={() => setPreviewAbierto(false)} style={{
+          position:'fixed', inset:0, zIndex:10000,
+          background:'rgba(0,0,0,0.85)', backdropFilter:'blur(4px)',
+          display:'flex', alignItems:'flex-start', justifyContent:'center',
+          padding:'20px', overflowY:'auto', cursor:'pointer'
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background:'var(--raco-cream)', borderRadius:'16px',
+            maxWidth:'600px', width:'100%', overflow:'hidden',
+            boxShadow:'0 20px 60px rgba(0,0,0,0.5)', cursor:'default',
+            position:'relative'
+          }}>
+            <div style={{
+              position:'sticky', top:0, zIndex:2, background:'var(--raco-cream)',
+              padding:'10px 14px', borderBottom:'1px solid var(--raco-sand)',
+              display:'flex', justifyContent:'space-between', alignItems:'center'
+            }}>
+              <span style={{
+                fontSize:'10px', letterSpacing:'0.3em', color:'var(--raco-stone)',
+                textTransform:'uppercase', fontFamily:'var(--font-body)'
+              }}>👁 Vista previa · Cómo lo verá el cliente</span>
+              <button onClick={() => setPreviewAbierto(false)} style={{
+                background:'transparent', border:'1px solid var(--raco-sand)',
+                borderRadius:'6px', padding:'4px 10px', cursor:'pointer',
+                color:'var(--raco-stone)', fontSize:'12px'
+              }}>Cerrar (Esc)</button>
+            </div>
+            <Suspense fallback={<div style={{padding:30,textAlign:'center'}}>Cargando…</div>}>
+              <DetalleBebida bebida={bebidaDesdeForm()} onVolver={() => setPreviewAbierto(false)} todasBebidas={[]} />
+            </Suspense>
+          </div>
+        </div>
+      )}
+
+      {/* TOAST de guardado exitoso */}
+      {toastGuardado && (
+        <div style={{
+          position:'fixed', bottom:'24px', left:'50%',
+          transform:'translateX(-50%)', zIndex:11000,
+          background:'#4ade80', color:'#0f1f0f',
+          padding:'12px 24px', borderRadius:'12px',
+          fontWeight:'700', fontSize:'14px',
+          boxShadow:'0 8px 24px rgba(74,222,128,0.4)',
+          animation:'toastIn 0.3s cubic-bezier(0.22,1,0.36,1) both',
+          display:'flex', alignItems:'center', gap:'10px'
+        }}>
+          <span style={{fontSize:'18px'}}>✓</span>
+          <span>Guardado correctamente</span>
+        </div>
+      )}
+      <style>{`
+        @keyframes toastIn {
+          from { opacity: 0; transform: translate(-50%, 20px); }
+          to   { opacity: 1; transform: translate(-50%, 0); }
+        }
+      `}</style>
     </div>
   )
       }

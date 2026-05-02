@@ -195,12 +195,15 @@ export default function App() {
 
   // Cache offline: guarda la última carta en localStorage para que la app
   // funcione si Supabase está caído o no hay WiFi en el local.
-  function setBebidasYCache(arr) {
+  function setBebidasYCache(arr, loadId) {
+    // Race protection: si llegó una carga más reciente, descartar esta
+    if (loadId !== undefined && loadId !== lastLoadIdRef.current) return
     setBebidas(arr)
     setBebidaseleccionada(prev => prev ? (arr.find(x => x.id === prev.id) || prev) : prev)
     try { localStorage.setItem('raco_cache_carta', JSON.stringify({ bebidas: arr, ts: Date.now() })) } catch {}
   }
   async function cargar() {
+    const myId = lastLoadIdRef.current
     try {
       const { data, error } = await supabase.from('carta_bebidas').select('*').eq('disponible', true).order('orden', { ascending: true })
       if (!error && Array.isArray(data)) {
@@ -220,12 +223,12 @@ export default function App() {
                 }
                 return m
               })
-              setBebidasYCache(merged)
+              setBebidasYCache(merged, myId)
               return
             }
           } catch (e) { console.warn('Sin traducciones disponibles', e) }
         }
-        setBebidasYCache(data)
+        setBebidasYCache(data, myId)
       } else throw error
     } catch (e) {
       console.error('Error cargando carta:', e)
@@ -241,7 +244,15 @@ export default function App() {
       setLoading(false)
     }
   }
-  useEffect(() => { cargar() }, [idioma])
+  // Si el usuario cambia rápido de idioma, podríamos tener 2 cargas en
+  // vuelo. El "lastLoadId" garantiza que solo la última actualice el estado.
+  const lastLoadIdRef = useRef(0)
+  useEffect(() => {
+    const myId = ++lastLoadIdRef.current
+    cargar().catch(() => {})
+    // Las funciones de cargar comprueban lastLoadIdRef antes de setBebidas
+    return () => { /* la próxima carga incrementará myId */ }
+  }, [idioma])
   function toggleFavorito(bebida) {
     setFavoritos(prev => {
       const n = prev.includes(bebida.id) ? prev.filter(id => id !== bebida.id) : [...prev, bebida.id]
@@ -333,7 +344,7 @@ export default function App() {
                 <input type="text" placeholder="Buscar por nombre, bodega, uva..." value={busqueda} onChange={e => setBusqueda(e.target.value)} style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--raco-black)', fontSize: '13px', fontFamily: 'var(--font-body)', fontWeight: '300' }} />
                 {busqueda && <button aria-label="Limpiar búsqueda" onClick={() => setBusqueda('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--raco-stone)', fontSize: '18px', lineHeight: 1, padding: 0 }}>×</button>}
               </div>
-              <button onClick={() => setFiltrosAbiertos(v => !v)} style={{ background: (filtrosAbiertos||numFiltros>0)?'var(--raco-khaki)':'var(--raco-paper)', border: '1px solid '+((filtrosAbiertos||numFiltros>0)?'var(--raco-khaki)':'var(--raco-sand)'), borderRadius: '10px', padding: '10px 14px', cursor: 'pointer', color: (filtrosAbiertos||numFiltros>0)?'var(--raco-paper)':'var(--raco-stone)', fontSize: '12px', fontFamily: 'var(--font-body)', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', transition: 'all 0.18s' }}>
+              <button aria-label="Abrir filtros" onClick={() => setFiltrosAbiertos(v => !v)} style={{ background: (filtrosAbiertos||numFiltros>0)?'var(--raco-khaki)':'var(--raco-paper)', border: '1px solid '+((filtrosAbiertos||numFiltros>0)?'var(--raco-khaki)':'var(--raco-sand)'), borderRadius: '10px', padding: '10px 14px', cursor: 'pointer', color: (filtrosAbiertos||numFiltros>0)?'var(--raco-paper)':'var(--raco-stone)', fontSize: '12px', fontFamily: 'var(--font-body)', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', transition: 'all 0.18s' }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
                 Filtros
                 {numFiltros > 0 && <span style={{ background: 'var(--raco-paper)', color: 'var(--raco-khaki)', borderRadius: '50%', width: '16px', height: '16px', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>{numFiltros}</span>}
@@ -396,7 +407,7 @@ export default function App() {
                   <button key={v.id} title={v.title} onClick={() => setModoVista(v.id)} style={{ background: modoVista===v.id?'rgba(107,122,62,0.12)':'transparent', border: '1px solid '+(modoVista===v.id?'var(--raco-khaki)':'var(--raco-sand)'), borderRadius: '6px', padding: '5px 9px', cursor: 'pointer', color: modoVista===v.id?'var(--raco-khaki)':'var(--raco-stone)', display:'flex', alignItems:'center', justifyContent:'center', transition: 'all 0.15s' }}>{v.icon}</button>
                 ))}
                 {favoritos.length>0 && <button onClick={() => setModoVista(modoVista==='favoritos'?'lista':'favoritos')} style={{ background: modoVista==='favoritos'?'rgba(107,122,62,0.12)':'transparent', border: '1px solid '+(modoVista==='favoritos'?'var(--raco-khaki)':'var(--raco-sand)'), borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', color: modoVista==='favoritos'?'var(--raco-khaki)':'var(--raco-stone)', fontSize: '14px', transition: 'all 0.15s' }}>♥ {favoritos.length}</button>}
-                {comparador.length>0 && <button onClick={() => setMostrarComparador(true)} style={{ background: 'rgba(107,122,62,0.12)', border: '1px solid var(--raco-khaki)', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', color: 'var(--raco-khaki)', fontSize: '12px', letterSpacing: '0.05em', transition: 'all 0.15s' }}>⚖ {comparador.length}/2</button>}
+                {comparador.length>0 && <button aria-label="Abrir comparador" onClick={() => setMostrarComparador(true)} style={{ background: 'rgba(107,122,62,0.12)', border: '1px solid var(--raco-khaki)', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', color: 'var(--raco-khaki)', fontSize: '12px', letterSpacing: '0.05em', transition: 'all 0.15s' }}>⚖ {comparador.length}/2</button>}
               </div>
             </div>
           </div>

@@ -311,6 +311,7 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
     let errores = 0
     try {
       const { removeBackground } = await import('@imgly/background-removal')
+      const publicPath = 'https://cdn.jsdelivr.net/npm/@imgly/background-removal-data@1.7.0/dist/'
       for (let i = 0; i < conFoto.length; i++) {
         const b = conFoto[i]
         // Permitir abortar entre fotos
@@ -318,7 +319,7 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
         setProcesoFotos(p => ({ ...p, hechos: i, actual: b.nombre }))
         try {
           const blob = await urlAImagenBlob(b.foto_url)
-          const sinFondo = await removeBackground(blob)
+          const sinFondo = await removeBackground(blob, { publicPath })
           // Convertir el resultado a data URL
           const dataUrl = await new Promise((res, rej) => {
             const r = new FileReader()
@@ -882,20 +883,37 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
       setFondoProgreso({ fase: 'Procesando…', pct: 5 })
 
       // El modelo se descarga la primera vez (queda en caché del navegador).
-      // Llamada lo más simple posible — todo por defecto.
-      const sinFondo = await removeBackground(blob, {
-        progress: (key, current, total) => {
-          if (!total) return
-          const pct = Math.round((current / total) * 100)
-          const esModelo = /\.onnx|\.json|\.bin|\.wasm/.test(key)
-          setFondoProgreso({
-            fase: esModelo
-              ? `Descargando modelo IA (1ª vez): ${pct}%`
-              : `Procesando: ${pct}%`,
-            pct
+      // El CDN por defecto (staticimgly.com) suele estar caído o lento. Usamos
+      // jsdelivr (CDN de npm) como primario, con fallback a unpkg.
+      const cdns = [
+        'https://cdn.jsdelivr.net/npm/@imgly/background-removal-data@1.7.0/dist/',
+        'https://unpkg.com/@imgly/background-removal-data@1.7.0/dist/',
+      ]
+      let sinFondo
+      let ultimoError
+      for (const publicPath of cdns) {
+        try {
+          sinFondo = await removeBackground(blob, {
+            publicPath,
+            progress: (key, current, total) => {
+              if (!total) return
+              const pct = Math.round((current / total) * 100)
+              const esModelo = /\.onnx|\.json|\.bin|\.wasm/.test(key)
+              setFondoProgreso({
+                fase: esModelo
+                  ? `Descargando modelo IA (1ª vez): ${pct}%`
+                  : `Procesando: ${pct}%`,
+                pct
+              })
+            }
           })
+          break
+        } catch (e) {
+          ultimoError = e
+          console.warn(`CDN ${publicPath} falló, probando siguiente…`, e.message)
         }
-      })
+      }
+      if (!sinFondo) throw ultimoError || new Error('Ningún CDN respondió')
 
       setFondoProgreso({ fase: 'Aplicando…', pct: 100 })
       const reader2 = new FileReader()

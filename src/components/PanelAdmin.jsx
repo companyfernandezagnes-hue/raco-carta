@@ -311,7 +311,7 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
     let errores = 0
     try {
       const { removeBackground } = await import('@imgly/background-removal')
-      const publicPath = 'https://cdn.jsdelivr.net/npm/@imgly/background-removal-data@1.7.0/dist/'
+      const publicPath = import.meta.env.BASE_URL + 'imgly/'
       for (let i = 0; i < conFoto.length; i++) {
         const b = conFoto[i]
         // Permitir abortar entre fotos
@@ -883,37 +883,23 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
       setFondoProgreso({ fase: 'Procesando…', pct: 5 })
 
       // El modelo se descarga la primera vez (queda en caché del navegador).
-      // El CDN por defecto (staticimgly.com) suele estar caído o lento. Usamos
-      // jsdelivr (CDN de npm) como primario, con fallback a unpkg.
-      const cdns = [
-        'https://cdn.jsdelivr.net/npm/@imgly/background-removal-data@1.7.0/dist/',
-        'https://unpkg.com/@imgly/background-removal-data@1.7.0/dist/',
-      ]
-      let sinFondo
-      let ultimoError
-      for (const publicPath of cdns) {
-        try {
-          sinFondo = await removeBackground(blob, {
-            publicPath,
-            progress: (key, current, total) => {
-              if (!total) return
-              const pct = Math.round((current / total) * 100)
-              const esModelo = /\.onnx|\.json|\.bin|\.wasm/.test(key)
-              setFondoProgreso({
-                fase: esModelo
-                  ? `Descargando modelo IA (1ª vez): ${pct}%`
-                  : `Procesando: ${pct}%`,
-                pct
-              })
-            }
+      // Servimos los archivos del modelo desde nuestro mismo dominio para
+      // evitar problemas de CORS del CDN de imgly. Los descarga el script
+      // scripts/download-imgly.mjs en el prebuild.
+      const sinFondo = await removeBackground(blob, {
+        publicPath: import.meta.env.BASE_URL + 'imgly/',
+        progress: (key, current, total) => {
+          if (!total) return
+          const pct = Math.round((current / total) * 100)
+          const esModelo = /\.onnx|\.json|\.bin|\.wasm|chunk/i.test(key)
+          setFondoProgreso({
+            fase: esModelo
+              ? `Descargando modelo IA (1ª vez): ${pct}%`
+              : `Procesando: ${pct}%`,
+            pct
           })
-          break
-        } catch (e) {
-          ultimoError = e
-          console.warn(`CDN ${publicPath} falló, probando siguiente…`, e.message)
         }
-      }
-      if (!sinFondo) throw ultimoError || new Error('Ningún CDN respondió')
+      })
 
       setFondoProgreso({ fase: 'Aplicando…', pct: 100 })
       const reader2 = new FileReader()

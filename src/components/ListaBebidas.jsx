@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { formatPrecio } from '../lib/precio'
 
 export default function ListaBebidas({ bebidas, onSeleccionar, modoVista = 'lista', favoritos = [], onToggleFavorito, comparador = [], onToggleComparador }) {
@@ -121,7 +122,7 @@ function FotoPlaceholder({ bebida, width = 56, height = 72, fontSize = 20 }) {
 }
 
 // Tarjeta lista
-function TarjetaBebida({ bebida, onSeleccionar, destacado, esFavorito, onToggleFavorito, enComparador, onToggleComparador }) {
+const TarjetaBebida = memo(function TarjetaBebida({ bebida, onSeleccionar, destacado, esFavorito, onToggleFavorito, enComparador, onToggleComparador }) {
   const puntuaciones = Array.isArray(bebida.puntuaciones) ? bebida.puntuaciones.filter(p => p.critico && p.nota) : []
   return (
     <div
@@ -187,10 +188,10 @@ function TarjetaBebida({ bebida, onSeleccionar, destacado, esFavorito, onToggleF
       </div>
     </div>
   )
-}
+})
 
 // Tarjeta grid
-function TarjetaGrid({ bebida, onSeleccionar, destacado, esPequena, esFavorito, onToggleFavorito, enComparador, onToggleComparador }) {
+const TarjetaGrid = memo(function TarjetaGrid({ bebida, onSeleccionar, destacado, esPequena, esFavorito, onToggleFavorito, enComparador, onToggleComparador }) {
   return (
     <div
       style={{
@@ -246,7 +247,7 @@ function TarjetaGrid({ bebida, onSeleccionar, destacado, esPequena, esFavorito, 
       )}
     </div>
   )
-}
+})
 
 // Placeholder grid con inicial grande
 function PlaceholderGrid({ bebida, esPequena }) {

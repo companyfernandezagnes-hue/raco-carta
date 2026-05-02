@@ -457,19 +457,53 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
   const [fondoError, setFondoError] = useState('')
   const [fondoProgreso, setFondoProgreso] = useState({ fase: '', pct: 0 })
 
-  function handleFoto(e) {
+  // Comprime una imagen a máx 1200px de lado mayor y la convierte a JPEG/PNG
+  // según tenga o no transparencia. Reduce 5MB → 100-300KB típicamente.
+  function comprimirImagen(file) {
+    return new Promise((resolve, reject) => {
+      const img = new Image()
+      const url = URL.createObjectURL(file)
+      img.onload = () => {
+        const MAX = 1200
+        let { width, height } = img
+        if (width > height && width > MAX) { height = Math.round(height * MAX / width); width = MAX }
+        else if (height > MAX) { width = Math.round(width * MAX / height); height = MAX }
+        const canvas = document.createElement('canvas')
+        canvas.width = width; canvas.height = height
+        const ctx = canvas.getContext('2d')
+        ctx.drawImage(img, 0, 0, width, height)
+        // PNG si tiene transparencia (lo detectamos por nombre o tipo), JPEG si no
+        const usarPng = /png|webp/i.test(file.type)
+        canvas.toBlob(blob => {
+          URL.revokeObjectURL(url)
+          if (!blob) return reject(new Error('No se pudo comprimir'))
+          const r = new FileReader()
+          r.onload = () => resolve(r.result)
+          r.onerror = () => reject(new Error('Lectura fallida'))
+          r.readAsDataURL(blob)
+        }, usarPng ? 'image/png' : 'image/jpeg', 0.85)
+      }
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Imagen inválida')) }
+      img.src = url
+    })
+  }
+
+  async function handleFoto(e) {
     const file = e.target.files[0]
     if (!file) return
-    const reader = new FileReader()
-    reader.onload = ev => {
-      const base64 = ev.target.result
+    try {
+      const base64 = await comprimirImagen(file)
       setForm(prev => ({ ...prev, foto_url: base64 }))
       // Sólo invocar IA automática si el usuario pidió el bloque IA y no hay nombre todavía
       if (mostrarIA && !form.nombre) {
         rellenarConIA({ fotoBase64: base64, apiKey, setForm, setIaLoading, setIaError })
       }
+    } catch (err) {
+      // Si falla la compresión, intentar guardar tal cual
+      const reader = new FileReader()
+      reader.onload = ev => setForm(prev => ({ ...prev, foto_url: ev.target.result }))
+      reader.readAsDataURL(file)
     }
-    reader.readAsDataURL(file)
   }
 
   function cargarComoBlob(src) {

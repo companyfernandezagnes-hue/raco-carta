@@ -1,14 +1,17 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { supabase } from './lib/supabase'
 import { IDIOMAS, leerIdiomaGuardado, guardarIdioma } from './lib/idioma'
 import Header from './components/Header.jsx'
 import Categorias from './components/Categorias.jsx'
 import ListaBebidas from './components/ListaBebidas.jsx'
-import DetalleBebida from './components/DetalleBebida.jsx'
-import Maridaje from './components/Maridaje.jsx'
-import PanelAdmin from './components/PanelAdmin.jsx'
 import HeroDestacado from './components/HeroDestacado.jsx'
-import VistaPresentacion from './components/VistaPresentacion.jsx'
+
+// Lazy load: estos componentes solo se descargan cuando el usuario los abre.
+// Reduce mucho el peso del JS inicial que ven los clientes en la carta.
+const DetalleBebida     = lazy(() => import('./components/DetalleBebida.jsx'))
+const Maridaje          = lazy(() => import('./components/Maridaje.jsx'))
+const PanelAdmin        = lazy(() => import('./components/PanelAdmin.jsx'))
+const VistaPresentacion = lazy(() => import('./components/VistaPresentacion.jsx'))
 
 function SelectRaco({ value, onChange, options, placeholder }) {
   const [open, setOpen] = useState(false)
@@ -285,24 +288,26 @@ export default function App() {
           <FooterRaco />
         </div>
       )}
-      {vista==='detalle' && bebidaseleccionada && <DetalleBebida bebida={bebidaseleccionada} onVolver={volverODetalle} todasBebidas={bebidas} />}
-      {vista==='maridaje' && <Maridaje bebidas={bebidas} onSeleccionar={abrirDetalle} onVolver={volver} />}
-      {adminAbierto && <PanelAdmin
-        bebidas={bebidas}
-        onCerrar={() => setAdminAbierto(false)}
-        onActualizar={cargar}
-        modoCarta={modoCarta}
-        onToggleModoCarta={toggleModoCarta}
-        presentacionConfig={presentacionConfig}
-        onPresentacionConfig={actualizarPresentacionConfig}
-      />}
-      {presentacionActiva && !adminAbierto && (
-        <VistaPresentacion
+      <Suspense fallback={<div style={{padding:'30px',textAlign:'center',color:'var(--raco-stone)',fontSize:'12px',letterSpacing:'0.2em'}}>CARGANDO…</div>}>
+        {vista==='detalle' && bebidaseleccionada && <DetalleBebida bebida={bebidaseleccionada} onVolver={volverODetalle} todasBebidas={bebidas} />}
+        {vista==='maridaje' && <Maridaje bebidas={bebidas} onSeleccionar={abrirDetalle} onVolver={volver} />}
+        {adminAbierto && <PanelAdmin
           bebidas={bebidas}
-          intervaloMs={presentacionConfig.intervaloSeg * 1000}
-          onSalir={() => { setPresentacionActiva(false); reiniciarTimerPresentacion() }}
-        />
-      )}
+          onCerrar={() => setAdminAbierto(false)}
+          onActualizar={cargar}
+          modoCarta={modoCarta}
+          onToggleModoCarta={toggleModoCarta}
+          presentacionConfig={presentacionConfig}
+          onPresentacionConfig={actualizarPresentacionConfig}
+        />}
+        {presentacionActiva && !adminAbierto && (
+          <VistaPresentacion
+            bebidas={bebidas}
+            intervaloMs={presentacionConfig.intervaloSeg * 1000}
+            onSalir={() => { setPresentacionActiva(false); reiniciarTimerPresentacion() }}
+          />
+        )}
+      </Suspense>
     </div>
   )
 }

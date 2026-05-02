@@ -144,7 +144,7 @@ async function traducirConGroq({ vinoData, apiKey }) {
   return JSON.parse(text.replace(/```json?/g,'').replace(/```/g,'').trim())
 }
 
-export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta, onToggleModoCarta }) {
+export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta, onToggleModoCarta, presentacionConfig, onPresentacionConfig }) {
   const [pantallaCompleta, setPantallaCompleta] = useState(() => !!document.fullscreenElement)
   function alternarPantallaCompleta() {
     if (document.fullscreenElement) {
@@ -439,12 +439,15 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
       const blob = await urlAImagenBlob(form.foto_url)
       setFondoProgreso({ fase: 'Procesando…', pct: 5 })
 
-      // El modelo se descarga la primera vez (queda en caché del navegador)
+      // El modelo se descarga la primera vez (queda en caché del navegador).
+      // Modelo "isnet" = máxima calidad (frente a "isnet_fp16" rápido por defecto).
+      // "general" funciona mejor para botellas con etiquetas, vidrio y reflejos.
       const sinFondo = await removeBackground(blob, {
+        model: 'isnet',
+        output: { format: 'image/png', quality: 1 },
         progress: (key, current, total) => {
           if (!total) return
           const pct = Math.round((current / total) * 100)
-          // key es algo como "fetch:/onnx/model.onnx"
           const esModelo = /\.onnx|\.json|\.bin/.test(key)
           setFondoProgreso({
             fase: esModelo
@@ -560,6 +563,59 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
                 cursor:'pointer', fontWeight:'700', fontSize:'12px', whiteSpace:'nowrap'
               }}>{pantallaCompleta ? 'Salir' : 'Activar'}</button>
             </div>
+
+            {/* VISTA PRESENTACIÓN — slideshow automático tras X seg sin actividad */}
+            {presentacionConfig && (
+              <div style={{
+                background: presentacionConfig.activa ? '#1a3a1a' : '#2a2a2a',
+                border:'1px solid '+(presentacionConfig.activa?'#4ade80':'#444'),
+                borderRadius:'10px', padding:'10px 12px', marginBottom:'12px'
+              }}>
+                <div style={{display:'flex',alignItems:'center',gap:'10px',flexWrap:'wrap'}}>
+                  <div style={{flex:1, minWidth:'160px'}}>
+                    <div style={{fontSize:'12px',fontWeight:'700',color:'#fff'}}>
+                      🎬 Vista presentación {presentacionConfig.activa && '· activa'}
+                    </div>
+                    <div style={{fontSize:'10px',color:'#aaa',marginTop:'2px'}}>
+                      Tras inactividad, abre slideshow de los vinos destacados.
+                    </div>
+                  </div>
+                  <button onClick={() => onPresentacionConfig({...presentacionConfig, activa: !presentacionConfig.activa})}
+                    style={{
+                      background: presentacionConfig.activa ? '#4ade80' : '#7c3aed',
+                      color: presentacionConfig.activa ? '#0f1f0f' : '#fff',
+                      border:'none', borderRadius:'8px', padding:'6px 14px',
+                      cursor:'pointer', fontWeight:'700', fontSize:'12px', whiteSpace:'nowrap'
+                    }}>{presentacionConfig.activa ? 'Desactivar' : 'Activar'}</button>
+                </div>
+                {presentacionConfig.activa && (
+                  <div style={{display:'flex',gap:'10px',marginTop:'10px',flexWrap:'wrap'}}>
+                    <label style={{flex:1, minWidth:'140px', fontSize:'10px', color:'#aaa'}}>
+                      Inactividad antes de abrir:
+                      <select value={presentacionConfig.delaySeg}
+                        onChange={e => onPresentacionConfig({...presentacionConfig, delaySeg: parseInt(e.target.value)})}
+                        style={{...inp,padding:'5px 8px',fontSize:'12px',marginTop:'3px'}}>
+                        <option value="30">30 segundos</option>
+                        <option value="60">1 minuto</option>
+                        <option value="120">2 minutos</option>
+                        <option value="300">5 minutos</option>
+                      </select>
+                    </label>
+                    <label style={{flex:1, minWidth:'140px', fontSize:'10px', color:'#aaa'}}>
+                      Cambio de vino cada:
+                      <select value={presentacionConfig.intervaloSeg}
+                        onChange={e => onPresentacionConfig({...presentacionConfig, intervaloSeg: parseInt(e.target.value)})}
+                        style={{...inp,padding:'5px 8px',fontSize:'12px',marginTop:'3px'}}>
+                        <option value="5">5 segundos</option>
+                        <option value="7">7 segundos</option>
+                        <option value="10">10 segundos</option>
+                        <option value="15">15 segundos</option>
+                      </select>
+                    </label>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'12px'}}>
               <div style={{display:'flex',gap:'4px'}}>

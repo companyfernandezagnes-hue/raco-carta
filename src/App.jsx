@@ -8,6 +8,7 @@ import DetalleBebida from './components/DetalleBebida.jsx'
 import Maridaje from './components/Maridaje.jsx'
 import PanelAdmin from './components/PanelAdmin.jsx'
 import HeroDestacado from './components/HeroDestacado.jsx'
+import VistaPresentacion from './components/VistaPresentacion.jsx'
 
 function SelectRaco({ value, onChange, options, placeholder }) {
   const [open, setOpen] = useState(false)
@@ -75,6 +76,44 @@ export default function App() {
       return nv
     })
   }
+
+  // Vista presentación / kiosko: tras X seg sin actividad, abre el slideshow.
+  // El usuario elige si está activa y cuánto tiempo de inactividad espera.
+  const [presentacionActiva, setPresentacionActiva] = useState(false)
+  const [presentacionConfig, setPresentacionConfig] = useState(() => {
+    try {
+      const c = JSON.parse(localStorage.getItem('raco_presentacion') || 'null')
+      return c || { activa: false, delaySeg: 60, intervaloSeg: 7 }
+    } catch { return { activa: false, delaySeg: 60, intervaloSeg: 7 } }
+  })
+  function actualizarPresentacionConfig(nueva) {
+    setPresentacionConfig(nueva)
+    try { localStorage.setItem('raco_presentacion', JSON.stringify(nueva)) } catch {}
+  }
+  const presentTimerRef = useRef(null)
+  function reiniciarTimerPresentacion() {
+    clearTimeout(presentTimerRef.current)
+    if (presentacionActiva) setPresentacionActiva(false)
+    if (!presentacionConfig.activa) return
+    presentTimerRef.current = setTimeout(
+      () => setPresentacionActiva(true),
+      presentacionConfig.delaySeg * 1000
+    )
+  }
+  useEffect(() => {
+    if (adminAbierto || !presentacionConfig.activa) {
+      clearTimeout(presentTimerRef.current)
+      if (presentacionActiva) setPresentacionActiva(false)
+      return
+    }
+    reiniciarTimerPresentacion()
+    const eventos = ['mousedown','touchstart','keydown','scroll']
+    eventos.forEach(e => window.addEventListener(e, reiniciarTimerPresentacion, { passive: true }))
+    return () => {
+      clearTimeout(presentTimerRef.current)
+      eventos.forEach(e => window.removeEventListener(e, reiniciarTimerPresentacion))
+    }
+  }, [adminAbierto, presentacionConfig.activa, presentacionConfig.delaySeg])
 
   function cambiarIdioma(code) { setIdioma(code); guardarIdioma(code) }
 
@@ -248,7 +287,22 @@ export default function App() {
       )}
       {vista==='detalle' && bebidaseleccionada && <DetalleBebida bebida={bebidaseleccionada} onVolver={volverODetalle} todasBebidas={bebidas} />}
       {vista==='maridaje' && <Maridaje bebidas={bebidas} onSeleccionar={abrirDetalle} onVolver={volver} />}
-      {adminAbierto && <PanelAdmin bebidas={bebidas} onCerrar={() => setAdminAbierto(false)} onActualizar={cargar} modoCarta={modoCarta} onToggleModoCarta={toggleModoCarta} />}
+      {adminAbierto && <PanelAdmin
+        bebidas={bebidas}
+        onCerrar={() => setAdminAbierto(false)}
+        onActualizar={cargar}
+        modoCarta={modoCarta}
+        onToggleModoCarta={toggleModoCarta}
+        presentacionConfig={presentacionConfig}
+        onPresentacionConfig={actualizarPresentacionConfig}
+      />}
+      {presentacionActiva && !adminAbierto && (
+        <VistaPresentacion
+          bebidas={bebidas}
+          intervaloMs={presentacionConfig.intervaloSeg * 1000}
+          onSalir={() => { setPresentacionActiva(false); reiniciarTimerPresentacion() }}
+        />
+      )}
     </div>
   )
 }

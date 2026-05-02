@@ -140,7 +140,7 @@ const TarjetaBebida = memo(function TarjetaBebida({ bebida, onSeleccionar, desta
     >
       {bebida.foto_url ? (
         <div style={{ width: '56px', height: '72px', flexShrink: 0, borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--raco-sand)' }}>
-          <img src={bebida.foto_url} alt={bebida.nombre} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <img src={bebida.foto_url} alt={bebida.nombre} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '4px' }} />
         </div>
       ) : (
         <FotoPlaceholder bebida={bebida} />
@@ -208,7 +208,7 @@ const TarjetaGrid = memo(function TarjetaGrid({ bebida, onSeleccionar, destacado
     >
       <div style={{ width: '100%', aspectRatio: esPequena ? '2/3' : '3/4', overflow: 'hidden', background: '#EAE4D4' }}>
         {bebida.foto_url ? (
-          <img src={bebida.foto_url} alt={bebida.nombre} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <img src={bebida.foto_url} alt={bebida.nombre} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '4px' }} />
         ) : (
           <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <PlaceholderGrid bebida={bebida} esPequena={esPequena} />

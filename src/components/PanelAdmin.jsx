@@ -185,6 +185,57 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
   const [guardando, setGuardando] = useState(false)
   const [previewAbierto, setPreviewAbierto] = useState(false)
   const [toastGuardado, setToastGuardado] = useState(false)
+  // Traducción masiva de todos los vinos
+  const [traduciendoTodo, setTraduciendoTodo] = useState(false)
+  const [traduccionProgreso, setTraduccionProgreso] = useState({ hechos: 0, total: 0, actual: '', errores: 0 })
+
+  async function traducirTodosLosVinos() {
+    if (!apiKey) {
+      alert('Falta la API key de Groq. Configúrala en ⚙ Ajustes.')
+      return
+    }
+    if (!hasSupabaseAdmin()) {
+      alert('Falta la service key de Supabase. Configúrala en ⚙ Ajustes.')
+      return
+    }
+    if (!confirm(`¿Traducir los ${bebidas.length} vinos al catalán, inglés y alemán?\n\nTarda ~1-2 segundos por vino. Las traducciones existentes se sobrescriben.`)) return
+
+    setTraduciendoTodo(true)
+    setTraduccionProgreso({ hechos: 0, total: bebidas.length, actual: '', errores: 0 })
+    let errores = 0
+    for (let i = 0; i < bebidas.length; i++) {
+      const b = bebidas[i]
+      setTraduccionProgreso({ hechos: i, total: bebidas.length, actual: b.nombre, errores })
+      try {
+        const traducciones = await traducirConGroq({ vinoData: b, apiKey })
+        for (const idioma of ['ca','en','de']) {
+          const t = traducciones[idioma]
+          if (!t) continue
+          await supabaseAdmin.from('bebidas_traducciones').upsert({
+            bebida_id: b.id,
+            idioma,
+            nombre: t.nombre || null,
+            descripcion: t.descripcion || null,
+            nota_cata: t.nota_cata || null,
+            nota_visual: t.nota_visual || null,
+            nota_nariz: t.nota_nariz || null,
+            nota_boca: t.nota_boca || null,
+            maridajes: Array.isArray(t.maridajes) ? t.maridajes : null,
+            historia: t.historia || null,
+            curiosidad: t.curiosidad || null,
+            actualizado_en: new Date().toISOString(),
+          }, { onConflict: 'bebida_id,idioma' })
+        }
+      } catch (e) {
+        console.warn(`Error traduciendo ${b.nombre}:`, e.message)
+        errores++
+      }
+    }
+    setTraduccionProgreso({ hechos: bebidas.length, total: bebidas.length, actual: '', errores })
+    setTraduciendoTodo(false)
+    alert(`Traducción terminada.\n${bebidas.length - errores} vinos OK · ${errores} con error.`)
+    onActualizar()
+  }
   const [pestañaEditar, setPestañaEditar] = useState('ficha')
   const [guardarYSiguiente, setGuardarYSiguiente] = useState(false)
   // Completitud por pestaña (true = todo lo importante puesto)
@@ -618,11 +669,9 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
       setFondoProgreso({ fase: 'Procesando…', pct: 5 })
 
       // El modelo se descarga la primera vez (queda en caché del navegador).
-      // Modelo "isnet" = máxima calidad (frente a "isnet_fp16" rápido por defecto).
-      // "general" funciona mejor para botellas con etiquetas, vidrio y reflejos.
+      // Usamos isnet_fp16 (default): rápido y fiable, ya con buena calidad.
       const sinFondo = await removeBackground(blob, {
-        model: 'isnet',
-        output: { format: 'image/png', quality: 1 },
+        output: { format: 'image/png', quality: 0.95 },
         progress: (key, current, total) => {
           if (!total) return
           const pct = Math.round((current / total) * 100)
@@ -891,7 +940,15 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
                 <button style={{...btn(tabAdmin==='platos'?'#7c3aed':'#2a2a2a'),padding:'6px 14px',fontSize:'13px'}}
                   onClick={()=>setTabAdmin('platos')}>🍽 Platos</button>
               </div>
-              <div style={{display:'flex',gap:'8px'}}>
+              <div style={{display:'flex',gap:'8px',flexWrap:'wrap'}}>
+                {tabAdmin === 'bebidas' && (
+                  <button style={{...btn('#0ea5e9'),fontSize:'11px'}}
+                    onClick={traducirTodosLosVinos}
+                    disabled={traduciendoTodo}
+                    title="Genera traducciones CA/EN/DE de todos los vinos">
+                    {traduciendoTodo ? '⏳ Traduciendo…' : '🌐 Traducir TODOS'}
+                  </button>
+                )}
                 {tabAdmin === 'bebidas' && <button style={btn('#7c3aed')} onClick={abrirNueva}>+ Nueva IA</button>}
                 <button style={{...btn('#374151'),fontSize:'11px'}}
                   title="Cambiar contraseña del admin"
@@ -901,6 +958,31 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
                 <button style={btn('#444')} onClick={onCerrar}>X</button>
               </div>
             </div>
+
+            {/* Indicador de progreso de traducción masiva */}
+            {traduciendoTodo && (
+              <div style={{
+                background:'#0c4a6e', border:'1px solid #0ea5e9',
+                borderRadius:'10px', padding:'12px', marginBottom:'12px'
+              }}>
+                <div style={{fontSize:'12px',fontWeight:'700',color:'#fff',marginBottom:'6px'}}>
+                  🌐 Traduciendo: {traduccionProgreso.hechos} / {traduccionProgreso.total}
+                  {traduccionProgreso.errores > 0 && ` · ${traduccionProgreso.errores} errores`}
+                </div>
+                <div style={{
+                  width:'100%', height:'6px', background:'#1e293b',
+                  borderRadius:'4px', overflow:'hidden', marginBottom:'6px'
+                }}>
+                  <div style={{
+                    width: `${(traduccionProgreso.hechos / traduccionProgreso.total) * 100}%`,
+                    height:'100%', background:'#0ea5e9', transition:'width 0.3s'
+                  }}/>
+                </div>
+                <div style={{fontSize:'10px',color:'#bae6fd',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                  Vino actual: {traduccionProgreso.actual || '...'}
+                </div>
+              </div>
+            )}
             {tabAdmin === 'platos' && <AdminPlatos />}
             {tabAdmin === 'bebidas' && (<>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'12px'}}>

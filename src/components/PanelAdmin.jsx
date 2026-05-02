@@ -205,6 +205,51 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
   const [guardando, setGuardando] = useState(false)
   const [previewAbierto, setPreviewAbierto] = useState(false)
   const [toastGuardado, setToastGuardado] = useState(false)
+  const [traduciendoUno, setTraduciendoUno] = useState(false)
+  const [traduccionDebug, setTraduccionDebug] = useState('')
+
+  async function traducirSoloEsteVino() {
+    setTraduccionDebug('')
+    if (!apiKey) { setTraduccionDebug('❌ Falta API key Groq en ⚙ Ajustes'); return }
+    if (!hasSupabaseAdmin()) { setTraduccionDebug('❌ Falta service key Supabase en ⚙ Ajustes'); return }
+    if (!bebida?.id) { setTraduccionDebug('❌ Guarda primero el vino antes de traducir'); return }
+    setTraduciendoUno(true)
+    try {
+      setTraduccionDebug('⏳ Pidiendo traducciones a Groq…')
+      const datosForm = bebidaDesdeForm()
+      const traducciones = await conReintento(() => traducirConGroq({ vinoData: datosForm, apiKey }))
+      setTraduccionDebug('⏳ Guardando en Supabase…')
+      let okIdiomas = []
+      let errorMsg = ''
+      for (const idioma of ['ca','en','de']) {
+        const t = traducciones[idioma]
+        if (!t) { errorMsg += `\n• ${idioma}: respuesta vacía de Groq`; continue }
+        const trad = {
+          bebida_id: bebida.id, idioma,
+          nombre: t.nombre || null, descripcion: t.descripcion || null,
+          nota_cata: t.nota_cata || null, nota_visual: t.nota_visual || null,
+          nota_nariz: t.nota_nariz || null, nota_boca: t.nota_boca || null,
+          maridajes: Array.isArray(t.maridajes) ? t.maridajes : null,
+          historia: t.historia || null, curiosidad: t.curiosidad || null,
+          actualizado_en: new Date().toISOString(),
+        }
+        const { error } = await supabaseAdmin.from('bebidas_traducciones').upsert(trad, { onConflict: 'bebida_id,idioma' })
+        if (error) errorMsg += `\n• ${idioma}: ${error.message}`
+        else okIdiomas.push(idioma.toUpperCase())
+      }
+      if (okIdiomas.length === 3) {
+        setTraduccionDebug(`✅ Traducido OK en ${okIdiomas.join(', ')}`)
+      } else {
+        setTraduccionDebug(`⚠️ ${okIdiomas.length}/3 idiomas guardados${errorMsg}`)
+      }
+      onActualizar()
+    } catch (e) {
+      setTraduccionDebug(`❌ Error: ${e.message}\n\n(Mira la consola del navegador con F12 para más detalles)`)
+      console.error('Error traducción:', e)
+    } finally {
+      setTraduciendoUno(false)
+    }
+  }
   // Traducción masiva de todos los vinos
   const [traduciendoTodo, setTraduciendoTodo] = useState(false)
   const [traduccionProgreso, setTraduccionProgreso] = useState({ hechos: 0, total: 0, actual: '', errores: 0 })
@@ -1212,6 +1257,13 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
                     <span style={{fontSize:'10px',color:'#888'}}>{porcentajeCompleto}% completo</span>
                   </div>
                 </div>
+                {bebida?.id && (
+                  <button style={{...btn('#0ea5e9'),fontSize:'11px',padding:'6px 10px'}}
+                    onClick={traducirSoloEsteVino} disabled={traduciendoUno}
+                    title="Traducir este vino al CA/EN/DE">
+                    {traduciendoUno ? '⏳' : '🌐 Traducir'}
+                  </button>
+                )}
                 <button style={{...btn('#374151'),fontSize:'11px',padding:'6px 10px'}}
                   onClick={()=>setPreviewAbierto(true)} title="Ver cómo lo verá el cliente">
                   👁 Preview
@@ -1227,6 +1279,22 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
                   {guardando ? '⏳' : '💾 Guardar'}
                 </button>
               </div>
+
+              {/* Mensaje del estado de traducción individual */}
+              {traduccionDebug && (
+                <div style={{
+                  background:'#0c4a6e', border:'1px solid #0ea5e9',
+                  borderRadius:'8px', padding:'8px 12px', marginBottom:'10px',
+                  fontSize:'11px', color:'#bae6fd', whiteSpace:'pre-wrap',
+                  display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:'8px'
+                }}>
+                  <span style={{flex:1}}>{traduccionDebug}</span>
+                  <button onClick={()=>setTraduccionDebug('')} style={{
+                    background:'transparent', color:'#bae6fd', border:'none',
+                    cursor:'pointer', fontSize:'14px', padding:0
+                  }}>×</button>
+                </div>
+              )}
 
               {/* PESTAÑAS */}
               <div style={{display:'flex',gap:'4px',overflowX:'auto'}}>

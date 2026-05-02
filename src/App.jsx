@@ -5,6 +5,7 @@ import Header from './components/Header.jsx'
 import Categorias from './components/Categorias.jsx'
 import ListaBebidas from './components/ListaBebidas.jsx'
 import HeroDestacado from './components/HeroDestacado.jsx'
+import PantallaBienvenida from './components/PantallaBienvenida.jsx'
 
 // Lazy load: estos componentes solo se descargan cuando el usuario los abre.
 // Reduce mucho el peso del JS inicial que ven los clientes en la carta.
@@ -281,6 +282,7 @@ export default function App() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--raco-cream)', maxWidth: '900px', margin: '0 auto' }}>
+      <PantallaBienvenida />
       <Header vista={vista} onVolver={volver} onMaridaje={() => setVista('maridaje')} onAdmin={() => setAdminAbierto(true)} idioma={idioma} onIdioma={cambiarIdioma} />
       {vista === 'carta' && (
         <div>

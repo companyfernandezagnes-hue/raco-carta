@@ -6,6 +6,7 @@ import Categorias from './components/Categorias.jsx'
 import ListaBebidas from './components/ListaBebidas.jsx'
 import HeroDestacado from './components/HeroDestacado.jsx'
 import PantallaBienvenida, { esModoCliente } from './components/PantallaBienvenida.jsx'
+import VistaBotella from './components/VistaBotella.jsx'
 
 // Lazy load: estos componentes solo se descargan cuando el usuario los abre.
 // Reduce mucho el peso del JS inicial que ven los clientes en la carta.
@@ -342,15 +343,19 @@ export default function App() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
               {(busqueda||filtroPais||filtroTipo) ? <p style={{ color: 'var(--raco-stone)', fontSize: '11px', letterSpacing: '0.06em', fontFamily: 'var(--font-body)' }}>{bebidasFiltradas.length} resultado{bebidasFiltradas.length!==1?'s':''}{busqueda?' para "'+busqueda+'"':''}</p> : <div />}
               <div style={{ display: 'flex', gap: '4px' }}>
-                {[{id:'lista',sym:'≡'},{id:'grid-sm',sym:'⊞'},{id:'grid-lg',sym:'□'}].map(v => (
-                  <button key={v.id} onClick={() => setModoVista(v.id)} style={{ background: modoVista===v.id?'rgba(107,122,62,0.12)':'transparent', border: '1px solid '+(modoVista===v.id?'var(--raco-khaki)':'var(--raco-sand)'), borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', color: modoVista===v.id?'var(--raco-khaki)':'var(--raco-stone)', fontSize: '16px', lineHeight: 1, transition: 'all 0.15s' }}>{v.sym}</button>
+                {[{id:'lista',sym:'≡',title:'Lista'},{id:'grid-sm',sym:'⊞',title:'Cuadrícula'},{id:'botella',sym:'🍾',title:'Modo botella'}].map(v => (
+                  <button key={v.id} title={v.title} onClick={() => setModoVista(v.id)} style={{ background: modoVista===v.id?'rgba(107,122,62,0.12)':'transparent', border: '1px solid '+(modoVista===v.id?'var(--raco-khaki)':'var(--raco-sand)'), borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', color: modoVista===v.id?'var(--raco-khaki)':'var(--raco-stone)', fontSize: '16px', lineHeight: 1, transition: 'all 0.15s' }}>{v.sym}</button>
                 ))}
                 {favoritos.length>0 && <button onClick={() => setModoVista(modoVista==='favoritos'?'lista':'favoritos')} style={{ background: modoVista==='favoritos'?'rgba(107,122,62,0.12)':'transparent', border: '1px solid '+(modoVista==='favoritos'?'var(--raco-khaki)':'var(--raco-sand)'), borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', color: modoVista==='favoritos'?'var(--raco-khaki)':'var(--raco-stone)', fontSize: '14px', transition: 'all 0.15s' }}>♥ {favoritos.length}</button>}
                 {comparador.length>0 && <button onClick={() => setMostrarComparador(true)} style={{ background: 'rgba(107,122,62,0.12)', border: '1px solid var(--raco-khaki)', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', color: 'var(--raco-khaki)', fontSize: '12px', letterSpacing: '0.05em', transition: 'all 0.15s' }}>⚖ {comparador.length}/2</button>}
               </div>
             </div>
           </div>
-          <ListaBebidas bebidas={modoVista==='favoritos'?bebidasFiltradas.filter(b=>favoritos.includes(b.id)):bebidasFiltradas} onSeleccionar={abrirDetalle} modoVista={modoVista==='favoritos'?'lista':modoVista} favoritos={favoritos} onToggleFavorito={toggleFavorito} comparador={comparador} onToggleComparador={toggleComparador} />
+          {modoVista === 'botella' ? (
+            <VistaBotella bebidas={bebidasFiltradas} onSeleccionar={abrirDetalle} />
+          ) : (
+            <ListaBebidas bebidas={modoVista==='favoritos'?bebidasFiltradas.filter(b=>favoritos.includes(b.id)):bebidasFiltradas} onSeleccionar={abrirDetalle} modoVista={modoVista==='favoritos'?'lista':modoVista} favoritos={favoritos} onToggleFavorito={toggleFavorito} comparador={comparador} onToggleComparador={toggleComparador} />
+          )}
           {mostrarComparador && comparador.length===2 && <ComparadorModal bebida1={comparador[0]} bebida2={comparador[1]} onCerrar={() => setMostrarComparador(false)} />}
           <FooterRaco />
         </div>

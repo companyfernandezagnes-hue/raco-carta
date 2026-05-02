@@ -358,6 +358,21 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
     }
   }
 
+  // AUTO-GUARDADO de borrador en localStorage cada vez que el form cambia.
+  // Si te vas, refrescas o se cae la luz, al volver te ofrece recuperar.
+  useEffect(() => {
+    if (fase !== 'editando' || !form?.nombre) return
+    const id = bebida?.id || 'nuevo'
+    const t = setTimeout(() => {
+      try {
+        localStorage.setItem('raco_borrador_' + id, JSON.stringify({
+          form, ts: Date.now()
+        }))
+      } catch {}
+    }, 800)  // debounce: guarda 800ms después del último cambio
+    return () => clearTimeout(t)
+  }, [form, fase, bebida?.id])
+
   // Atajo Ctrl+S / Cmd+S para guardar mientras editas
   useEffect(() => {
     if (fase !== 'editando') return
@@ -481,7 +496,7 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
 
   function abrirEditar(b) {
     setBebida(b)
-    setForm({
+    const formInicial = {
       nombre: b.nombre || '', categoria: b.categoria || '',
       subcategoria: b.subcategoria || '', descripcion: b.descripcion || '',
       bodega: b.bodega || '', productor: b.productor || '',
@@ -492,13 +507,33 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
       maridajes: Array.isArray(b.maridajes) ? b.maridajes.join(', ') : (b.maridajes || ''),
       temperatura: b.temperatura || '', graduacion: b.graduacion || '',
       precio_copa: b.precio_copa || '', precio_botella: b.precio_botella || '',
-      // MEJORA 2: cargar precio_coste guardado
       precio_coste: b.precio_coste || '',
       disponible: b.disponible ?? true, destacado: b.destacado ?? false,
       foto_url: b.foto_url || '', orden: b.orden || 0,
       notas_ia: b.notas_ia || '',
       puntuaciones: Array.isArray(b.puntuaciones) ? b.puntuaciones : []
-    })
+    }
+    // Recuperar borrador si existe y es reciente (menos de 7 días)
+    try {
+      const raw = localStorage.getItem('raco_borrador_' + b.id)
+      if (raw) {
+        const borrador = JSON.parse(raw)
+        const edadMin = Math.round((Date.now() - borrador.ts) / 60000)
+        if (edadMin < 60 * 24 * 7 && borrador.form?.nombre) {
+          if (confirm(`Tienes cambios sin guardar de hace ${edadMin < 60 ? edadMin + ' min' : Math.round(edadMin/60) + ' h'} en este vino.\n\n¿Recuperar borrador?`)) {
+            setForm(borrador.form)
+          } else {
+            setForm(formInicial)
+            localStorage.removeItem('raco_borrador_' + b.id)
+          }
+        } else {
+          setForm(formInicial)
+          localStorage.removeItem('raco_borrador_' + b.id)
+        }
+      } else {
+        setForm(formInicial)
+      }
+    } catch { setForm(formInicial) }
     // Si tiene precio_coste guardado, pre-rellenar calculadora
     if (b.precio_coste) {
       setCalc(prev => ({ ...prev, precioIva: String(b.precio_coste) }))
@@ -604,6 +639,10 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
         }
       }
       onActualizar()
+      // Borrar el borrador autoguardado, ya tenemos los datos en BD
+      try {
+        localStorage.removeItem('raco_borrador_' + (bebida?.id || 'nuevo'))
+      } catch {}
       // Toast verde de confirmación
       setToastGuardado(true)
       setTimeout(() => setToastGuardado(false), 2200)
@@ -1951,33 +1990,36 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
         <div onClick={() => setPreviewAbierto(false)} style={{
           position:'fixed', inset:0, zIndex:10000,
           background:'rgba(0,0,0,0.85)', backdropFilter:'blur(4px)',
-          display:'flex', alignItems:'flex-start', justifyContent:'center',
-          padding:'20px', overflowY:'auto', cursor:'pointer'
+          display:'flex', alignItems:'center', justifyContent:'center',
+          padding:'12px', cursor:'pointer'
         }}>
           <div onClick={e => e.stopPropagation()} style={{
             background:'var(--raco-cream)', borderRadius:'16px',
-            maxWidth:'600px', width:'100%', overflow:'hidden',
+            maxWidth:'520px', width:'100%', height:'92vh',
+            overflow:'hidden', display:'flex', flexDirection:'column',
             boxShadow:'0 20px 60px rgba(0,0,0,0.5)', cursor:'default',
-            position:'relative'
           }}>
             <div style={{
-              position:'sticky', top:0, zIndex:2, background:'var(--raco-cream)',
+              flexShrink:0, background:'var(--raco-cream)',
               padding:'10px 14px', borderBottom:'1px solid var(--raco-sand)',
-              display:'flex', justifyContent:'space-between', alignItems:'center'
+              display:'flex', justifyContent:'space-between', alignItems:'center', gap:'8px'
             }}>
               <span style={{
                 fontSize:'10px', letterSpacing:'0.3em', color:'var(--raco-stone)',
-                textTransform:'uppercase', fontFamily:'var(--font-body)'
-              }}>👁 Vista previa · Cómo lo verá el cliente</span>
+                textTransform:'uppercase', fontFamily:'var(--font-body)',
+                overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'
+              }}>👁 Vista previa · Como lo verá el cliente</span>
               <button onClick={() => setPreviewAbierto(false)} style={{
-                background:'transparent', border:'1px solid var(--raco-sand)',
-                borderRadius:'6px', padding:'4px 10px', cursor:'pointer',
-                color:'var(--raco-stone)', fontSize:'12px'
-              }}>Cerrar (Esc)</button>
+                background:'var(--raco-khaki)', color:'var(--raco-cream)', border:'none',
+                borderRadius:'6px', padding:'6px 14px', cursor:'pointer',
+                fontSize:'12px', fontWeight:'600', whiteSpace:'nowrap', flexShrink:0
+              }}>✕ Cerrar</button>
             </div>
-            <Suspense fallback={<div style={{padding:30,textAlign:'center'}}>Cargando…</div>}>
-              <DetalleBebida bebida={bebidaDesdeForm()} onVolver={() => setPreviewAbierto(false)} todasBebidas={[]} />
-            </Suspense>
+            <div style={{flex:1, overflowY:'auto', WebkitOverflowScrolling:'touch'}}>
+              <Suspense fallback={<div style={{padding:30,textAlign:'center'}}>Cargando…</div>}>
+                <DetalleBebida bebida={bebidaDesdeForm()} onVolver={() => setPreviewAbierto(false)} todasBebidas={[]} />
+              </Suspense>
+            </div>
           </div>
         </div>
       )}

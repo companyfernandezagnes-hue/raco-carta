@@ -85,6 +85,8 @@ export default function BotellaTilt3D({
             width: '100%',
             height: '100%',
             objectFit: 'contain',
+            // Multiply funde el fondo blanco de la foto con el fondo crema de la app
+            mixBlendMode: 'multiply',
             // Sombra dinámica que sigue a la rotación → profundidad
             filter: `drop-shadow(${rot.y * -0.6}px ${8 + Math.abs(rot.x) * 0.4}px ${10 + Math.abs(rot.y) * 0.5}px rgba(40,30,20,${0.20 + Math.abs(rot.y) * 0.005}))`,
             imageRendering: 'auto',

@@ -97,10 +97,30 @@ async function llamarGroq({ systemPrompt, userPrompt, apiKey, modelo = 'llama-3.
     const txt = await res.text()
     let detalle = txt
     try { detalle = JSON.parse(txt)?.error?.message || txt } catch {}
-    throw new Error(`Groq ${res.status}: ${detalle.slice(0, 300)}`)
+    const err = new Error(`Groq ${res.status}: ${detalle.slice(0, 300)}`)
+    err.status = res.status
+    // Headers de rate limit que envía Groq
+    err.retryAfter = parseInt(res.headers.get('retry-after') || '0')
+    throw err
   }
   const data = await res.json()
   return data.choices?.[0]?.message?.content?.trim() || ''
+}
+
+// Helper: ejecutar fn con reintento automático si la API devuelve 429 (rate limit)
+async function conReintento(fn, maxIntentos = 4) {
+  let ultimoError
+  for (let i = 0; i < maxIntentos; i++) {
+    try { return await fn() }
+    catch (e) {
+      ultimoError = e
+      if (e.status !== 429 && !/rate|limit/i.test(e.message)) throw e
+      // Espera el tiempo que diga Groq, o exponencial 5/10/20s
+      const espera = (e.retryAfter || (5 * Math.pow(2, i))) * 1000
+      await new Promise(r => setTimeout(r, espera))
+    }
+  }
+  throw ultimoError
 }
 
 async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading, setIaError }) {
@@ -207,7 +227,8 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
       const b = bebidas[i]
       setTraduccionProgreso({ hechos: i, total: bebidas.length, actual: b.nombre, errores })
       try {
-        const traducciones = await traducirConGroq({ vinoData: b, apiKey })
+        // Reintento automático si Groq devuelve 429 (rate limit)
+        const traducciones = await conReintento(() => traducirConGroq({ vinoData: b, apiKey }))
         for (const idioma of ['ca','en','de']) {
           const t = traducciones[idioma]
           if (!t) continue
@@ -229,11 +250,21 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
       } catch (e) {
         console.warn(`Error traduciendo ${b.nombre}:`, e.message)
         errores++
+        // Si han fallado 3 seguidos, paramos para no perder más tiempo
+        if (errores >= 3 && i < 5) {
+          alert(`3 errores seguidos. Posibles causas:\n• Rate limit de Groq superado\n• API key inválida\n• Sin conexión\n\nMensaje del último error:\n${e.message}\n\nEspera unos minutos y vuelve a intentarlo.`)
+          break
+        }
       }
+      // Pausa entre vinos para respetar el rate limit de Groq (30 RPM en free tier)
+      // 2.5 segundos = ~24 vinos/minuto, dentro del límite con margen
+      if (i < bebidas.length - 1) await new Promise(r => setTimeout(r, 2500))
     }
     setTraduccionProgreso({ hechos: bebidas.length, total: bebidas.length, actual: '', errores })
     setTraduciendoTodo(false)
-    alert(`Traducción terminada.\n${bebidas.length - errores} vinos OK · ${errores} con error.`)
+    if (errores < 3) {
+      alert(`Traducción terminada.\n${bebidas.length - errores} vinos OK · ${errores} con error.`)
+    }
     onActualizar()
   }
   const [pestañaEditar, setPestañaEditar] = useState('ficha')

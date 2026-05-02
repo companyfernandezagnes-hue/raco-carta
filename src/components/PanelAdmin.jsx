@@ -253,6 +253,58 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
   // Traducción masiva de todos los vinos
   const [traduciendoTodo, setTraduciendoTodo] = useState(false)
   const [traduccionProgreso, setTraduccionProgreso] = useState({ hechos: 0, total: 0, actual: '', errores: 0 })
+  // Quitar fondo masivo
+  const [procesandoFotos, setProcesandoFotos] = useState(false)
+  const [procesoFotos, setProcesoFotos] = useState({ hechos: 0, total: 0, actual: '', errores: 0, abortar: false })
+
+  async function quitarFondoTodasLasFotos() {
+    if (!hasSupabaseAdmin()) {
+      alert('Falta la service key de Supabase. Configúrala en ⚙ Ajustes.')
+      return
+    }
+    const conFoto = bebidas.filter(b => b.foto_url)
+    if (conFoto.length === 0) { alert('No hay vinos con foto.'); return }
+    if (!confirm(`¿Quitar el fondo a las ${conFoto.length} fotos?\n\nTarda unos 5-15 segundos por foto. Total estimado: ${Math.ceil(conFoto.length * 10 / 60)} minutos.\n\nLas fotos que ya tienen transparencia se procesarán igualmente. Puedes cerrar esta ventana mientras procesa.`)) return
+
+    setProcesandoFotos(true)
+    setProcesoFotos({ hechos: 0, total: conFoto.length, actual: '', errores: 0, abortar: false })
+    let errores = 0
+    try {
+      const { removeBackground } = await import('@imgly/background-removal')
+      for (let i = 0; i < conFoto.length; i++) {
+        const b = conFoto[i]
+        // Permitir abortar entre fotos
+        if (procesoFotos.abortar) break
+        setProcesoFotos(p => ({ ...p, hechos: i, actual: b.nombre }))
+        try {
+          const blob = await urlAImagenBlob(b.foto_url)
+          const sinFondo = await removeBackground(blob)
+          // Convertir el resultado a data URL
+          const dataUrl = await new Promise((res, rej) => {
+            const r = new FileReader()
+            r.onload = () => res(r.result)
+            r.onerror = rej
+            r.readAsDataURL(sinFondo)
+          })
+          // Guardar en Supabase
+          const { error } = await supabaseAdmin.from('carta_bebidas')
+            .update({ foto_url: dataUrl, updated_at: new Date().toISOString() })
+            .eq('id', b.id)
+          if (error) throw new Error(error.message)
+        } catch (e) {
+          console.warn(`Error procesando ${b.nombre}:`, e.message)
+          errores++
+        }
+        setProcesoFotos(p => ({ ...p, errores }))
+      }
+    } catch (e) {
+      alert('Error cargando librería: ' + e.message)
+    }
+    setProcesoFotos(p => ({ ...p, hechos: conFoto.length, actual: '' }))
+    setProcesandoFotos(false)
+    alert(`Procesamiento terminado.\n${conFoto.length - errores} fotos OK · ${errores} con error.\n\nLas fotos antiguas se han reemplazado en la base de datos.`)
+    onActualizar()
+  }
 
   async function traducirTodosLosVinos() {
     if (!apiKey) {
@@ -784,13 +836,12 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
       setFondoProgreso({ fase: 'Procesando…', pct: 5 })
 
       // El modelo se descarga la primera vez (queda en caché del navegador).
-      // Usamos isnet_fp16 (default): rápido y fiable, ya con buena calidad.
+      // Llamada lo más simple posible — todo por defecto.
       const sinFondo = await removeBackground(blob, {
-        output: { format: 'image/png', quality: 0.95 },
         progress: (key, current, total) => {
           if (!total) return
           const pct = Math.round((current / total) * 100)
-          const esModelo = /\.onnx|\.json|\.bin/.test(key)
+          const esModelo = /\.onnx|\.json|\.bin|\.wasm/.test(key)
           setFondoProgreso({
             fase: esModelo
               ? `Descargando modelo IA (1ª vez): ${pct}%`
@@ -814,13 +865,17 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
       }
       reader2.readAsDataURL(sinFondo)
     } catch (err) {
-      console.error(err)
+      console.error('Error quitar fondo:', err)
       const msg = err.message || String(err)
       let amigable = msg
-      if (/network|fetch|failed/i.test(msg)) {
-        amigable = 'No hay conexión o el servidor de modelos no responde. Inténtalo con WiFi.'
-      } else if (/memory|allocation/i.test(msg)) {
-        amigable = 'La imagen es demasiado grande. Prueba con una más pequeña (máx ~3MB).'
+      if (/network|fetch|failed to fetch|networkerror/i.test(msg)) {
+        amigable = '⚠️ No se pudo descargar el modelo IA. Esto suele pasar si:\n• Tu WiFi/datos están lentos\n• El navegador bloquea la descarga (privacidad estricta, modo incógnito)\n• El CDN del modelo está caído\n\nRefresca la página (Cmd+Shift+R) y vuelve a intentarlo.'
+      } else if (/memory|allocation|wasm/i.test(msg)) {
+        amigable = 'La imagen es muy grande para el navegador. Prueba con una más pequeña (máx ~3MB).'
+      } else if (/abort/i.test(msg)) {
+        amigable = 'Se canceló la operación. Vuelve a intentarlo.'
+      } else {
+        amigable = `Error: ${msg.slice(0, 200)}\n\n(Mira la consola con F12 para más detalles)`
       }
       setFondoError(amigable)
       setFondoLoading(false)
@@ -1059,9 +1114,17 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
                 {tabAdmin === 'bebidas' && (
                   <button style={{...btn('#0ea5e9'),fontSize:'11px'}}
                     onClick={traducirTodosLosVinos}
-                    disabled={traduciendoTodo}
+                    disabled={traduciendoTodo || procesandoFotos}
                     title="Genera traducciones CA/EN/DE de todos los vinos">
                     {traduciendoTodo ? '⏳ Traduciendo…' : '🌐 Traducir TODOS'}
+                  </button>
+                )}
+                {tabAdmin === 'bebidas' && (
+                  <button style={{...btn('#a78bfa'),fontSize:'11px'}}
+                    onClick={quitarFondoTodasLasFotos}
+                    disabled={procesandoFotos || traduciendoTodo}
+                    title="Procesa todas las fotos quitando el fondo blanco con IA">
+                    {procesandoFotos ? '⏳ Procesando…' : '🪄 Quitar fondo a TODAS'}
                   </button>
                 )}
                 {tabAdmin === 'bebidas' && <button style={btn('#7c3aed')} onClick={abrirNueva}>+ Nueva IA</button>}
@@ -1073,6 +1136,35 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
                 <button style={btn('#444')} onClick={onCerrar}>X</button>
               </div>
             </div>
+
+            {/* Indicador de progreso del quitar fondo masivo */}
+            {procesandoFotos && (
+              <div style={{
+                background:'#3b1d6b', border:'1px solid #a78bfa',
+                borderRadius:'10px', padding:'12px', marginBottom:'12px'
+              }}>
+                <div style={{fontSize:'12px',fontWeight:'700',color:'#fff',marginBottom:'6px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                  <span>🪄 Quitando fondo: {procesoFotos.hechos} / {procesoFotos.total}
+                    {procesoFotos.errores > 0 && ` · ${procesoFotos.errores} errores`}</span>
+                  <button onClick={()=>setProcesoFotos(p=>({...p,abortar:true}))} style={{
+                    background:'#7f1d1d',color:'#fff',border:'none',borderRadius:'4px',
+                    padding:'2px 8px',cursor:'pointer',fontSize:'10px'
+                  }}>Detener</button>
+                </div>
+                <div style={{
+                  width:'100%', height:'6px', background:'#1e293b',
+                  borderRadius:'4px', overflow:'hidden', marginBottom:'6px'
+                }}>
+                  <div style={{
+                    width: `${(procesoFotos.hechos / procesoFotos.total) * 100}%`,
+                    height:'100%', background:'#a78bfa', transition:'width 0.3s'
+                  }}/>
+                </div>
+                <div style={{fontSize:'10px',color:'#ddd6fe',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                  Foto actual: {procesoFotos.actual || '...'}
+                </div>
+              </div>
+            )}
 
             {/* Indicador de progreso de traducción masiva */}
             {traduciendoTodo && (

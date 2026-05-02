@@ -343,8 +343,27 @@ export default function App() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
               {(busqueda||filtroPais||filtroTipo) ? <p style={{ color: 'var(--raco-stone)', fontSize: '11px', letterSpacing: '0.06em', fontFamily: 'var(--font-body)' }}>{bebidasFiltradas.length} resultado{bebidasFiltradas.length!==1?'s':''}{busqueda?' para "'+busqueda+'"':''}</p> : <div />}
               <div style={{ display: 'flex', gap: '4px' }}>
-                {[{id:'lista',sym:'≡',title:'Lista'},{id:'grid-sm',sym:'⊞',title:'Cuadrícula'},{id:'botella',sym:'🍾',title:'Modo botella'}].map(v => (
-                  <button key={v.id} title={v.title} onClick={() => setModoVista(v.id)} style={{ background: modoVista===v.id?'rgba(107,122,62,0.12)':'transparent', border: '1px solid '+(modoVista===v.id?'var(--raco-khaki)':'var(--raco-sand)'), borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', color: modoVista===v.id?'var(--raco-khaki)':'var(--raco-stone)', fontSize: '16px', lineHeight: 1, transition: 'all 0.15s' }}>{v.sym}</button>
+                {[
+                  {id:'lista',title:'Lista', icon:(
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+                      <line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/>
+                    </svg>
+                  )},
+                  {id:'grid-sm',title:'Cuadrícula', icon:(
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+                      <rect x="4" y="4" width="7" height="7"/><rect x="13" y="4" width="7" height="7"/>
+                      <rect x="4" y="13" width="7" height="7"/><rect x="13" y="13" width="7" height="7"/>
+                    </svg>
+                  )},
+                  {id:'botella',title:'Modo botella', icon:(
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                      {/* Botella estilizada minimalista */}
+                      <path d="M10 2v3.5c0 .8-.4 1.4-1 2C7.5 9 6.5 10.5 6.5 12.5V20a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2v-7.5c0-2-1-3.5-2.5-5-.6-.6-1-1.2-1-2V2z"/>
+                      <line x1="10" y1="2" x2="14" y2="2"/>
+                    </svg>
+                  )},
+                ].map(v => (
+                  <button key={v.id} title={v.title} onClick={() => setModoVista(v.id)} style={{ background: modoVista===v.id?'rgba(107,122,62,0.12)':'transparent', border: '1px solid '+(modoVista===v.id?'var(--raco-khaki)':'var(--raco-sand)'), borderRadius: '6px', padding: '5px 9px', cursor: 'pointer', color: modoVista===v.id?'var(--raco-khaki)':'var(--raco-stone)', display:'flex', alignItems:'center', justifyContent:'center', transition: 'all 0.15s' }}>{v.icon}</button>
                 ))}
                 {favoritos.length>0 && <button onClick={() => setModoVista(modoVista==='favoritos'?'lista':'favoritos')} style={{ background: modoVista==='favoritos'?'rgba(107,122,62,0.12)':'transparent', border: '1px solid '+(modoVista==='favoritos'?'var(--raco-khaki)':'var(--raco-sand)'), borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', color: modoVista==='favoritos'?'var(--raco-khaki)':'var(--raco-stone)', fontSize: '14px', transition: 'all 0.15s' }}>♥ {favoritos.length}</button>}
                 {comparador.length>0 && <button onClick={() => setMostrarComparador(true)} style={{ background: 'rgba(107,122,62,0.12)', border: '1px solid var(--raco-khaki)', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', color: 'var(--raco-khaki)', fontSize: '12px', letterSpacing: '0.05em', transition: 'all 0.15s' }}>⚖ {comparador.length}/2</button>}

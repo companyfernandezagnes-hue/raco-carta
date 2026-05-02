@@ -1,10 +1,8 @@
 import { formatPrecio } from '../lib/precio'
 
-export default function ListaBebidas({ bebidas, onSeleccionar, modoVista = 'lista', favoritos = [], onToggleFavorito, comparador = [], onToggleComparador, modoCarta = false }) {
-  // En modo carta (vista limpia para cliente), no se muestran los botones
-  // de favorito ni comparador en cada tarjeta.
-  const fav = modoCarta ? undefined : onToggleFavorito
-  const comp = modoCarta ? undefined : onToggleComparador
+export default function ListaBebidas({ bebidas, onSeleccionar, modoVista = 'lista', favoritos = [], onToggleFavorito, comparador = [], onToggleComparador }) {
+  const fav = onToggleFavorito
+  const comp = onToggleComparador
   if (bebidas.length === 0) return (
     <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--raco-stone)', fontSize: '12px', letterSpacing: '0.14em', fontFamily: 'var(--font-body)' }}>
       Sin referencias disponibles

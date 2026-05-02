@@ -22,9 +22,10 @@ export default function VistaPresentacion({ bebidas, intervaloMs = 8000, onSalir
   const intervalRef = useRef(null)
   const [qrUrl, setQrUrl] = useState('')
 
-  // Generar el QR de la carta una sola vez
+  // Generar el QR de la carta una sola vez. Añadimos ?qr=1 para que la app
+  // detecte que viene del QR del cliente y bloquee el acceso al admin.
   useEffect(() => {
-    const url = window.location.origin + window.location.pathname
+    const url = window.location.origin + window.location.pathname + '?qr=1'
     QRCode.toDataURL(url, {
       margin: 1, width: 220,
       color: { dark: '#1c1c0e', light: '#f7f1e0' }

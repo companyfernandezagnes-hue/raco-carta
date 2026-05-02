@@ -128,24 +128,30 @@ const TarjetaBebida = memo(function TarjetaBebida({ bebida, onSeleccionar, desta
     <div
       onClick={() => onSeleccionar(bebida)}
       style={{
-        background: 'var(--raco-paper)',
-        border: '1px solid ' + (destacado ? 'rgba(107,122,62,0.45)' : 'var(--raco-sand)'),
-        borderRadius: '14px', padding: '14px', cursor: 'pointer',
-        transition: 'border-color 0.2s, box-shadow 0.2s, transform 0.15s',
+        // Fondo crema (mismo que body) → la botella se funde sin caja
+        background: 'var(--raco-cream)',
+        // Solo línea separadora abajo, sin caja completa
+        borderBottom: '1px solid var(--raco-sand)',
+        border: 'none', borderBottom: '1px solid var(--raco-sand)',
+        padding: '14px', cursor: 'pointer',
+        transition: 'background 0.2s, transform 0.15s',
         display: 'flex', gap: '14px', alignItems: 'center', position: 'relative',
         animation: 'fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) both',
       }}
-      onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--raco-khaki)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(107,122,62,0.10)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = destacado ? 'rgba(107,122,62,0.45)' : 'var(--raco-sand)'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)' }}
+      onMouseEnter={e => { e.currentTarget.style.background = 'var(--raco-paper)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+      onMouseLeave={e => { e.currentTarget.style.background = 'var(--raco-cream)'; e.currentTarget.style.transform = 'translateY(0)' }}
     >
       {bebida.foto_url ? (
         <div style={{
-          width: '56px', height: '90px', flexShrink: 0,
+          width: '60px', height: '90px', flexShrink: 0,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          // Sin fondo ni borde → la botella se funde con el fondo de la app
         }}>
           <img src={bebida.foto_url} alt={bebida.nombre}
-            style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', mixBlendMode: 'multiply' }} />
+            style={{
+              // Forzar altura completa → todas las botellas mismo tamaño visual
+              height: '100%', width: 'auto', maxWidth: '100%',
+              objectFit: 'contain', mixBlendMode: 'multiply'
+            }} />
         </div>
       ) : (
         <FotoPlaceholder bebida={bebida} />
@@ -201,30 +207,34 @@ const TarjetaGrid = memo(function TarjetaGrid({ bebida, onSeleccionar, destacado
     <div
       style={{
         position: 'relative',
-        background: 'var(--raco-paper)',
-        border: '1px solid ' + (destacado ? 'rgba(107,122,62,0.45)' : 'var(--raco-sand)'),
+        // Mismo fondo que el body → la card desaparece visualmente, solo queda la botella
+        background: 'var(--raco-cream)',
+        border: '1px solid ' + (destacado ? 'rgba(107,122,62,0.30)' : 'transparent'),
         borderRadius: '12px', overflow: 'hidden', cursor: 'pointer',
         transition: 'all 0.2s',
         animation: 'fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) both',
       }}
       onClick={() => onSeleccionar(bebida)}
-      onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--raco-khaki)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(107,122,62,0.10)'; e.currentTarget.style.transform = 'translateY(-2px)' }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = destacado ? 'rgba(107,122,62,0.45)' : 'var(--raco-sand)'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)' }}
+      onMouseEnter={e => { e.currentTarget.style.background = 'var(--raco-paper)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(107,122,62,0.10)'; e.currentTarget.style.transform = 'translateY(-2px)' }}
+      onMouseLeave={e => { e.currentTarget.style.background = 'var(--raco-cream)'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)' }}
     >
       <div style={{
-        width: '100%', aspectRatio: esPequena ? '2/3' : '3/4',
+        width: '100%',
+        // Altura FIJA en lugar de aspect ratio → todas las botellas iguales
+        height: esPequena ? '180px' : '240px',
         overflow: 'hidden',
-        // Mismo color que el fondo de la app → la botella parece flotar
+        // Mismo color del body → multiply funde fondo blanco perfectamente
         background: 'var(--raco-cream)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: esPequena ? '8px' : '14px',
+        padding: esPequena ? '12px 8px' : '20px 16px',
         boxSizing: 'border-box',
       }}>
         {bebida.foto_url ? (
           <img src={bebida.foto_url} alt={bebida.nombre}
             style={{
-              maxWidth: '100%', maxHeight: '100%', objectFit: 'contain',
-              // Multiply hace que el fondo blanco de la imagen se funda con el crema
+              // Forzamos altura completa para que TODAS las botellas se vean del mismo tamaño
+              maxWidth: '100%', height: '100%', width: 'auto',
+              objectFit: 'contain',
               mixBlendMode: 'multiply',
               filter: 'drop-shadow(0 4px 10px rgba(80,60,30,0.10))',
             }} />

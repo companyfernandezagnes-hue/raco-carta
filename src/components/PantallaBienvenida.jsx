@@ -2,20 +2,36 @@ import { useState, useEffect } from 'react'
 
 const KEY_VISTO = 'raco_bienvenida_visto'
 
+// Detecta si la app se abrió desde el QR del cliente (modo restringido)
+export function esModoCliente() {
+  try {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('qr') === '1' || params.get('cliente') === '1') {
+      sessionStorage.setItem('raco_modo_cliente', '1')
+      return true
+    }
+    return sessionStorage.getItem('raco_modo_cliente') === '1'
+  } catch { return false }
+}
+
 /**
  * Pantalla de bienvenida que se muestra al abrir la app por primera vez.
  * Al tocar:
  *  - Activa pantalla completa (oculta la barra del navegador)
  *  - Marca como visto para no salir de nuevo en esta sesión
  *
+ * En modo cliente (URL con ?qr=1) se muestra SIEMPRE en cada sesión.
  * Si la app ya está en standalone (PWA instalada) NO se muestra.
  * En desktop NO se muestra (no hace falta).
  */
 export default function PantallaBienvenida() {
+  const modoCliente = esModoCliente()
   const [mostrar, setMostrar] = useState(() => {
     try {
       // No mostrar si ya está instalada como PWA
       if (window.matchMedia?.('(display-mode: standalone)').matches) return false
+      // En modo cliente, mostrar SIEMPRE (no se ha podido ir al admin)
+      if (modoCliente) return true
       // No mostrar en desktop (>900px y sin touch)
       const esTactil = 'ontouchstart' in window || navigator.maxTouchPoints > 0
       if (window.innerWidth > 900 && !esTactil) return false

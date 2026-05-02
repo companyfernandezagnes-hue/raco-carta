@@ -261,21 +261,12 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
       for (const idioma of ['ca','en','de']) {
         const t = traducciones[idioma]
         if (!t) { errorMsg += `\n• ${idioma}: respuesta vacía de Groq`; continue }
-        const trad = {
-          bebida_id: bebida.id, idioma,
-          nombre: t.nombre || null, descripcion: t.descripcion || null,
-          nota_cata: t.nota_cata || null, nota_visual: t.nota_visual || null,
-          nota_nariz: t.nota_nariz || null, nota_boca: t.nota_boca || null,
-          maridajes: Array.isArray(t.maridajes) ? t.maridajes : null,
-          historia: t.historia || null, curiosidad: t.curiosidad || null,
-          actualizado_en: new Date().toISOString(),
+        const result = await upsertTraduccionDefensivo(bebida.id, idioma, t)
+        if (result.error) {
+          errorMsg += `\n• ${idioma}: ${result.error}`
+        } else {
+          okIdiomas.push(idioma.toUpperCase() + (result.camposOmitidos.length ? ` (sin: ${result.camposOmitidos.join(',')})` : ''))
         }
-        const { error } = await supabaseAdmin.from('bebidas_traducciones').upsert(trad, { onConflict: 'bebida_id,idioma' })
-        if (error) {
-          errorMsg += `\n• ${idioma}: ${error.message}`
-          console.error(`Upsert ${idioma} error:`, error)
-        }
-        else okIdiomas.push(idioma.toUpperCase())
       }
       if (okIdiomas.length === 3) {
         setTraduccionDebug(`✅ Traducido OK en ${okIdiomas.join(', ')}\n\nPuedes verificarlo cambiando el idioma arriba (ES → CA → EN → DE)`)
@@ -290,6 +281,37 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
       setTraduciendoUno(false)
     }
   }
+  // Upsert defensivo: si la tabla bebidas_traducciones no tiene alguna
+  // columna (ej. nota_boca) Supabase devuelve "Could not find column ...".
+  // Vamos eliminando los campos que dan error hasta que el insert funciona.
+  async function upsertTraduccionDefensivo(bebidaId, idioma, t, intentos = 0) {
+    const trad = {
+      bebida_id: bebidaId, idioma,
+      nombre: t.nombre || null, descripcion: t.descripcion || null,
+      nota_cata: t.nota_cata || null,
+      nota_visual: t.nota_visual || null, nota_nariz: t.nota_nariz || null, nota_boca: t.nota_boca || null,
+      maridajes: Array.isArray(t.maridajes) ? t.maridajes : null,
+      historia: t.historia || null, curiosidad: t.curiosidad || null,
+      actualizado_en: new Date().toISOString(),
+    }
+    const camposOmitidos = []
+    let datos = { ...trad }
+    while (true) {
+      const { error } = await supabaseAdmin.from('bebidas_traducciones').upsert(datos, { onConflict: 'bebida_id,idioma' })
+      if (!error) return { ok: true, camposOmitidos }
+      // Si el error es por columna inexistente, la quitamos y reintentamos
+      const m = (error.message || '').match(/Could not find the '([^']+)' column/i)
+      if (m && intentos < 12) {
+        const campoMalo = m[1]
+        delete datos[campoMalo]
+        camposOmitidos.push(campoMalo)
+        intentos++
+        continue
+      }
+      return { error: error.message, camposOmitidos }
+    }
+  }
+
   // Traducción masiva de todos los vinos
   const [traduciendoTodo, setTraduciendoTodo] = useState(false)
   const [traduccionProgreso, setTraduccionProgreso] = useState({ hechos: 0, total: 0, actual: '', errores: 0 })
@@ -311,7 +333,8 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
     let errores = 0
     try {
       const { removeBackground } = await import('@imgly/background-removal')
-      const publicPath = import.meta.env.BASE_URL + 'imgly/'
+      // URL absoluta para que la lib no falle al construir new URL(chunk, base)
+      const publicPath = new URL('imgly/', window.location.origin + import.meta.env.BASE_URL).toString()
       for (let i = 0; i < conFoto.length; i++) {
         const b = conFoto[i]
         // Permitir abortar entre fotos
@@ -370,20 +393,7 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
         for (const idioma of ['ca','en','de']) {
           const t = traducciones[idioma]
           if (!t) continue
-          await supabaseAdmin.from('bebidas_traducciones').upsert({
-            bebida_id: b.id,
-            idioma,
-            nombre: t.nombre || null,
-            descripcion: t.descripcion || null,
-            nota_cata: t.nota_cata || null,
-            nota_visual: t.nota_visual || null,
-            nota_nariz: t.nota_nariz || null,
-            nota_boca: t.nota_boca || null,
-            maridajes: Array.isArray(t.maridajes) ? t.maridajes : null,
-            historia: t.historia || null,
-            curiosidad: t.curiosidad || null,
-            actualizado_en: new Date().toISOString(),
-          }, { onConflict: 'bebida_id,idioma' })
+          await upsertTraduccionDefensivo(b.id, idioma, t)
         }
       } catch (e) {
         console.warn(`Error traduciendo ${b.nombre}:`, e.message)
@@ -715,21 +725,7 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
           for (const idioma of ['ca','en','de']) {
             const t = traducciones[idioma]
             if (!t) continue
-            const trad = {
-              bebida_id: bebidaId,
-              idioma,
-              nombre: t.nombre || null,
-              descripcion: t.descripcion || null,
-              nota_cata: t.nota_cata || null,
-              nota_visual: t.nota_visual || null,
-              nota_nariz: t.nota_nariz || null,
-              nota_boca: t.nota_boca || null,
-              maridajes: Array.isArray(t.maridajes) ? t.maridajes : null,
-              historia: t.historia || null,
-              curiosidad: t.curiosidad || null,
-              actualizado_en: new Date().toISOString(),
-            }
-            await supabaseAdmin.from('bebidas_traducciones').upsert(trad, { onConflict: 'bebida_id,idioma' })
+            await upsertTraduccionDefensivo(bebidaId, idioma, t)
           }
         } catch(e) {
           console.warn('No se pudo traducir:', e.message)
@@ -745,14 +741,14 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
       setToastGuardado(true)
       clearTimeout(toastRef.current)
       toastRef.current = setTimeout(() => setToastGuardado(false), 2200)
-      // Si pidió "Guardar y siguiente", abre el siguiente vino directamente
+      // Solo cerrar el editor si el usuario lo pidió expresamente.
+      // Por defecto se queda editando (más UX-friendly).
       if (guardarYSiguiente && siguienteBebida) {
         abrirEditar(siguienteBebida)
         setPestañaEditar('ficha')
         setGuardarYSiguiente(false)
-      } else {
-        setFase('lista')
       }
+      // Si NO es "guardar y siguiente", nos quedamos donde estábamos.
     } catch (e) {
       alert('Error al guardar: ' + e.message)
     } finally {

@@ -3,6 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <!-- No cachear el HTML para que cada visita coja la última versión.
+         Los assets con hash en el nombre (assets/index-XXX.js) sí se
+         cachean siempre, pero el index.html es el "índice" que apunta
+         a la versión actual. -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>RACO · Carta de Bebidas</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     <link rel="manifest" href="manifest.webmanifest" />

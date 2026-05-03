@@ -54,6 +54,9 @@ function normalizarSubcategoria(raw) {
   // Lower + sin acentos + espacios simples
   const s = raw
     .toLowerCase()
+    // Quitar acentos (combining marks U+0300-U+036F). Usamos escape unicode
+    // explícito (̀-ͯ) para evitar que distintos editores guarden
+    // los caracteres combinantes con encoding raro y rompan el regex.
     .normalize('NFD').replace(/[̀-ͯ]/g, '')
     .replace(/[-_/]+/g, ' ')
     .replace(/\s+/g, ' ')

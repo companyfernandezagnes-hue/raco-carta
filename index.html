@@ -27,6 +27,57 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- Detector de chunks rotos.
+         Si tras un deploy el navegador tenía cacheado un index.html viejo
+         que apunta a chunks JS/CSS con hash que ya no existen, daría 404 y
+         la app no cargaría ("página no responde"). Aquí escuchamos esos
+         errores de carga y forzamos un reload con cache-bust UNA sola vez
+         por 30s. No afecta al uso normal — solo se activa ante un fallo. -->
+    <script>
+      (function () {
+        var KEY = 'raco_chunk_recover_ts';
+        function intentarRecuperar(motivo) {
+          try {
+            var ultimo = parseInt(sessionStorage.getItem(KEY) || '0', 10);
+            if (Date.now() - ultimo < 30000) return; // anti-bucle
+            sessionStorage.setItem(KEY, String(Date.now()));
+            console.warn('Chunk recovery:', motivo, '— recargando con cache-bust');
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.getRegistrations().then(function (regs) {
+                regs.forEach(function (r) { r.unregister(); });
+              }).catch(function () {});
+            }
+            if (window.caches && caches.keys) {
+              caches.keys().then(function (keys) {
+                keys.forEach(function (k) { caches.delete(k); });
+              }).catch(function () {});
+            }
+            var u = new URL(window.location.href);
+            u.searchParams.set('v', Date.now());
+            window.location.replace(u.toString());
+          } catch (e) { /* swallow */ }
+        }
+        // Errores al cargar scripts/links de /assets/
+        window.addEventListener('error', function (e) {
+          var t = e.target;
+          if (!t || !t.tagName) return;
+          var tag = t.tagName.toLowerCase();
+          if (tag === 'script' || tag === 'link') {
+            var src = t.src || t.href || '';
+            if (/\/assets\/.+\.(js|css|mjs)/.test(src)) {
+              intentarRecuperar('Asset 404: ' + src);
+            }
+          }
+        }, true);
+        // Errores de import dinámico (chunks lazy)
+        window.addEventListener('unhandledrejection', function (e) {
+          var msg = (e.reason && (e.reason.message || e.reason.toString())) || '';
+          if (/Failed to fetch dynamically imported module|Importing a module script failed|Loading chunk \d+ failed/i.test(msg)) {
+            intentarRecuperar('Dynamic import: ' + msg.slice(0, 100));
+          }
+        });
+      })();
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

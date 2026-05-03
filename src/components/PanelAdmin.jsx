@@ -2934,11 +2934,29 @@ function RadarEditor({ form, setForm }) {
 // Carga las filas de bebidas_traducciones para el vino actual y permite ver
 // el español al lado de cada idioma, editando a mano si la IA no convence.
 // Guarda en upsert con la service key (igual que traducirSoloEsteVino).
+
+// Google Translate gratis sin API key (endpoint público).
+// Sirve como fallback rápido cuando Groq está agotada o si Agnes prefiere
+// una traducción literal sin esperar a la IA.
+async function googleTranslate(texto, idiomaDestino, idiomaOrigen = 'es') {
+  if (!texto || !String(texto).trim()) return ''
+  const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${idiomaOrigen}&tl=${idiomaDestino}&dt=t&q=${encodeURIComponent(texto)}`
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`Google Translate ${res.status}`)
+  const data = await res.json()
+  // Formato: [[[traduccion_chunk, original_chunk, ...], ...], ...]
+  // Concatenamos todos los chunks de traducción.
+  return (data[0] || []).map(c => c[0]).filter(Boolean).join('')
+}
+
 function TraduccionesEditor({ bebidaId, apiKey, datosES }) {
   const [estado, setEstado] = useState('idle') // idle | cargando | listo | guardando | error
   const [trads, setTrads] = useState({ ca: {}, en: {}, de: {} })
   const [msg, setMsg] = useState('')
   const [retraduciendo, setRetraduciendo] = useState(false)
+  // Traducción Google: 'todo' mientras barre todos los campos, o {idioma, key}
+  // mientras retraduce solo una celda. Sirve para mostrar spinner en el sitio.
+  const [translatingGoogle, setTranslatingGoogle] = useState(null)
 
   // Campos visibles en la UI (los que más se editan a mano)
   const CAMPOS = [
@@ -3025,6 +3043,41 @@ function TraduccionesEditor({ bebidaId, apiKey, datosES }) {
     setTrads(prev => ({ ...prev, [idioma]: { ...(prev[idioma] || {}), [key]: val } }))
   }
 
+  // Auto-traducir TODO con Google: rellena las 3 columnas CA/EN/DE con la
+  // traducción de Google del campo en español. Es gratis, rápido, sin cuota.
+  async function autoTraducirGoogle() {
+    if (!datosES) return
+    setTranslatingGoogle('todo'); setMsg('Traduciendo con Google…')
+    const next = { ca: { ...trads.ca }, en: { ...trads.en }, de: { ...trads.de } }
+    let ok = 0, err = 0
+    for (const c of CAMPOS) {
+      const valES = datosES?.[c.key]
+      if (!valES || !String(valES).trim()) continue
+      for (const idioma of ['ca','en','de']) {
+        try {
+          const traducido = await googleTranslate(valES, idioma)
+          next[idioma][c.key] = traducido
+          ok++
+        } catch (e) { err++ }
+      }
+    }
+    setTrads(next)
+    setTranslatingGoogle(null)
+    setMsg(`✓ Auto-traducidos ${ok} campos con Google${err ? ` (${err} errores)` : ''}. Revisa y guarda.`)
+  }
+
+  // Retraduce una sola celda (idioma + campo) — botón mini 🔄
+  async function traducirCelda(idioma, campoKey) {
+    const valES = datosES?.[campoKey]
+    if (!valES) return
+    setTranslatingGoogle({ idioma, key: campoKey })
+    try {
+      const traducido = await googleTranslate(valES, idioma)
+      setCampo(idioma, campoKey, traducido)
+    } catch (e) { setMsg('Google falló: ' + e.message) }
+    finally { setTranslatingGoogle(null) }
+  }
+
   if (!bebidaId) {
     return <div style={{ padding:'18px', color:'#888', fontSize:'13px' }}>
       Guarda el vino primero (pestaña Ficha) para poder editar sus traducciones.
@@ -3043,15 +3096,25 @@ function TraduccionesEditor({ bebidaId, apiKey, datosES }) {
             ✦ Edición manual de traducciones
           </div>
           <div style={{ fontSize:'11px', color:'#888', marginTop:'2px' }}>
-            Si la IA traduce raro, edítalo aquí. La columna ES no se toca.
+            Auto-traduce con Google (rápido, gratis), con IA Groq (mejor pero limitada) o edita a mano.
           </div>
         </div>
         <div style={{ display:'flex', gap:'8px', flexWrap:'wrap' }}>
+          {/* Botón Google: gratis, sin cuota, rellena las 3 columnas en segundos */}
+          <button type="button" onClick={autoTraducirGoogle} disabled={translatingGoogle === 'todo'}
+            title="Traduce todos los campos con Google Translate (rápido y gratis, calidad media-alta). Luego puedes retocar a mano."
+            style={{ background:'#0e3a4a', color:'#7adcff', border:'1px solid #1d6e8c', borderRadius:'8px',
+              padding:'8px 14px', cursor: translatingGoogle === 'todo' ? 'wait' : 'pointer',
+              fontSize:'12px', fontWeight:'600',
+              opacity: translatingGoogle === 'todo' ? 0.6 : 1 }}>
+            {translatingGoogle === 'todo' ? '⏳ Google traduciendo…' : '🌐 Auto-traducir con Google'}
+          </button>
           <button type="button" onClick={reTraducirIA} disabled={retraduciendo}
+            title="Traduce con IA Groq (mejor calidad pero respeta cuota TPD). Si está agotada, falla silenciosamente."
             style={{ background:'#7c3aed', color:'#fff', border:'none', borderRadius:'8px',
               padding:'8px 14px', cursor: retraduciendo ? 'wait' : 'pointer', fontSize:'12px', fontWeight:'600',
               opacity: retraduciendo ? 0.6 : 1 }}>
-            {retraduciendo ? '⏳ Traduciendo…' : '✦ Re-traducir con IA'}
+            {retraduciendo ? '⏳ IA…' : '✦ Re-traducir con IA'}
           </button>
           <button type="button" onClick={guardarTodo} disabled={estado==='guardando'}
             style={{ background:'#4ade80', color:'#0f1f0f', border:'none', borderRadius:'8px',
@@ -3090,19 +3153,41 @@ function TraduccionesEditor({ bebidaId, apiKey, datosES }) {
                   { id:'ca', label:'CA',  value: trads.ca?.[c.key] || '' },
                   { id:'en', label:'🇬🇧 EN', value: trads.en?.[c.key] || '' },
                   { id:'de', label:'🇩🇪 DE', value: trads.de?.[c.key] || '' },
-                ].map(col => (
-                  <div key={col.id} style={{ display:'flex', flexDirection:'column' }}>
-                    <span style={{ fontSize:'9px', color:'#888', marginBottom:'3px' }}>{col.label}</span>
-                    <textarea value={col.value} readOnly={col.readOnly}
-                      onChange={col.readOnly ? undefined : e => setCampo(col.id, c.key, e.target.value)}
-                      rows={Math.max(2, Math.min(6, Math.ceil(valES.length / 50)))}
-                      style={{
-                        background: col.readOnly ? '#0e0e0e' : '#222', color: col.readOnly ? '#bbb' : '#fff',
-                        border:'1px solid #333', borderRadius:'6px', padding:'7px',
-                        fontSize:'12px', fontFamily:'inherit', resize:'vertical',
-                      }} />
-                  </div>
-                ))}
+                ].map(col => {
+                  const traduciendoEsta = translatingGoogle && translatingGoogle.idioma === col.id && translatingGoogle.key === c.key
+                  return (
+                    <div key={col.id} style={{ display:'flex', flexDirection:'column' }}>
+                      <div style={{
+                        display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'3px',
+                      }}>
+                        <span style={{ fontSize:'9px', color:'#888' }}>{col.label}</span>
+                        {/* Botón 🔄 solo en CA/EN/DE — retraduce esta celda con Google */}
+                        {!col.readOnly && (
+                          <button type="button"
+                            onClick={() => traducirCelda(col.id, c.key)}
+                            disabled={traduciendoEsta}
+                            title={`Retraducir este campo a ${col.id.toUpperCase()} con Google Translate`}
+                            style={{
+                              background:'transparent', border:'none', cursor: traduciendoEsta ? 'wait' : 'pointer',
+                              color:'#7adcff', fontSize:'11px', padding:'0 3px', lineHeight:1,
+                              opacity: traduciendoEsta ? 0.5 : 0.7,
+                            }}
+                            onMouseEnter={e => { if (!traduciendoEsta) e.currentTarget.style.opacity = '1' }}
+                            onMouseLeave={e => { if (!traduciendoEsta) e.currentTarget.style.opacity = '0.7' }}
+                          >{traduciendoEsta ? '⏳' : '🔄'}</button>
+                        )}
+                      </div>
+                      <textarea value={col.value} readOnly={col.readOnly}
+                        onChange={col.readOnly ? undefined : e => setCampo(col.id, c.key, e.target.value)}
+                        rows={Math.max(2, Math.min(6, Math.ceil(valES.length / 50)))}
+                        style={{
+                          background: col.readOnly ? '#0e0e0e' : '#222', color: col.readOnly ? '#bbb' : '#fff',
+                          border:'1px solid #333', borderRadius:'6px', padding:'7px',
+                          fontSize:'12px', fontFamily:'inherit', resize:'vertical',
+                        }} />
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )

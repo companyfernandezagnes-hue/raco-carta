@@ -210,9 +210,13 @@ function tt(idioma, clave) {
 }
 
 // ─── COMPONENTE ──────────────────────────────────────────────────────────────
-export default function EducacionVino({ idioma = 'es', onCerrar }) {
-  const [tab, setTab] = useState('funciona')
-
+// Recibe `tab` ('funciona' | 'news') — sin tabs internas. Cada vista
+// abre directamente el contenido correspondiente.
+export default function EducacionVino({ idioma = 'es', tab = 'funciona', onCerrar }) {
+  // El hero cambia según la vista
+  const heroLabel = tab === 'news' ? 'tabs.news' : 'tabs.funciona'
+  const heroTitulo = tab === 'news' ? 'n1' : 'titulo'
+  const heroSub = tab === 'news' ? 'n2' : 'subtitulo'
   return (
     <div style={{
       animation: 'fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) both',
@@ -228,44 +232,20 @@ export default function EducacionVino({ idioma = 'es', onCerrar }) {
         <div style={{
           fontFamily: 'var(--font-body)', fontSize: '10px', letterSpacing: '0.32em',
           textTransform: 'uppercase', color: 'var(--raco-khaki)', marginBottom: '12px',
-        }}>RACÓ · {tt(idioma, 'tabs.saber').toUpperCase()}</div>
+        }}>RACÓ · {tt(idioma, heroLabel).toUpperCase()}</div>
         <h1 style={{
-          fontFamily: 'var(--font-brand)', fontSize: '30px', fontWeight: '400',
+          fontFamily: 'var(--font-brand)', fontSize: '28px', fontWeight: '400',
           color: 'var(--raco-black)', lineHeight: '1.2', marginBottom: '10px',
-        }}>{tt(idioma, 'titulo')}</h1>
+        }}>{tt(idioma, heroTitulo)}</h1>
         <p style={{
           fontFamily: 'var(--font-body)', fontSize: '14px', fontWeight: '300',
           color: 'var(--raco-stone)', lineHeight: '1.6', maxWidth: '460px', margin: '0 auto',
-        }}>{tt(idioma, 'subtitulo')}</p>
+        }}>{tt(idioma, heroSub)}</p>
       </div>
 
-      {/* Tabs */}
-      <div style={{
-        display: 'flex', gap: '6px', justifyContent: 'center',
-        padding: '20px 14px 0', flexWrap: 'wrap',
-      }}>
-        {[
-          { id: 'funciona', label: tt(idioma, 'tabs.funciona') },
-          { id: 'saber',    label: tt(idioma, 'tabs.saber') },
-          { id: 'news',     label: tt(idioma, 'tabs.news') },
-        ].map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)} style={{
-            fontFamily: 'var(--font-body)', fontSize: '11px', fontWeight: tab === t.id ? '500' : '300',
-            letterSpacing: '0.14em', textTransform: 'uppercase',
-            padding: '10px 20px', borderRadius: '24px',
-            border: '1px solid ' + (tab === t.id ? 'var(--raco-khaki)' : 'var(--raco-sand)'),
-            background: tab === t.id ? 'var(--raco-khaki)' : 'transparent',
-            color: tab === t.id ? 'var(--raco-cream)' : 'var(--raco-stone)',
-            cursor: 'pointer', transition: 'all 0.2s',
-          }}>{t.label}</button>
-        ))}
-      </div>
-
-      {/* Contenido por tab */}
-      <div style={{ padding: '28px 22px 0', maxWidth: '720px', margin: '0 auto' }}>
-        {tab === 'funciona' && <TabFunciona idioma={idioma} />}
-        {tab === 'saber'    && <TabSaber idioma={idioma} />}
-        {tab === 'news'     && <TabNewsletter idioma={idioma} />}
+      {/* Contenido directo (sin tabs) */}
+      <div style={{ padding: '32px 22px 0', maxWidth: '720px', margin: '0 auto' }}>
+        {tab === 'news' ? <TabNewsletter idioma={idioma} /> : <TabFunciona idioma={idioma} />}
       </div>
     </div>
   )
@@ -387,15 +367,7 @@ function TabNewsletter({ idioma }) {
 
   return (
     <div style={{ maxWidth: '440px', margin: '0 auto', textAlign: 'center' }}>
-      <div style={{ fontSize: '34px', marginBottom: '14px' }}>✉</div>
-      <h3 style={{
-        fontFamily: 'var(--font-brand)', fontSize: '20px', fontWeight: '400',
-        color: 'var(--raco-black)', marginBottom: '10px', lineHeight: '1.3',
-      }}>{tt(idioma, 'n1')}</h3>
-      <p style={{
-        fontFamily: 'var(--font-body)', fontSize: '13px', fontWeight: '300',
-        color: 'var(--raco-stone)', lineHeight: '1.6', marginBottom: '24px',
-      }}>{tt(idioma, 'n2')}</p>
+      <div style={{ fontSize: '34px', marginBottom: '20px' }}>✉</div>
 
       {estado === 'ok' ? (
         <div style={{

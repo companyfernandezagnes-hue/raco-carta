@@ -19,10 +19,10 @@ const EducacionVino     = lazy(() => import('./components/EducacionVino.jsx'))
 
 // Etiquetas de los botones de acción según idioma
 const BOTON_TXT = {
-  es: { maridaje: 'Maridaje',  saber: 'Saber más'  },
-  ca: { maridaje: 'Maridatge', saber: 'Saber-ne més' },
-  en: { maridaje: 'Pairing',   saber: 'Learn more' },
-  de: { maridaje: 'Pairing',   saber: 'Mehr erfahren' },
+  es: { maridaje: 'Maridaje',  funciona: 'Cómo funciona',  newsletter: 'Newsletter' },
+  ca: { maridaje: 'Maridatge', funciona: 'Com funciona',   newsletter: 'Newsletter' },
+  en: { maridaje: 'Pairing',   funciona: 'How it works',   newsletter: 'Newsletter' },
+  de: { maridaje: 'Pairing',   funciona: 'So funktioniert', newsletter: 'Newsletter' },
 }
 
 function SelectRaco({ value, onChange, options, placeholder }) {
@@ -392,34 +392,40 @@ export default function App() {
                 {numFiltros > 0 && <span style={{ background: 'var(--raco-paper)', color: 'var(--raco-khaki)', borderRadius: '50%', width: '16px', height: '16px', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>{numFiltros}</span>}
               </button>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px', gap: '8px' }}>
-              <button onClick={() => setVista('maridaje')} style={{
-                fontFamily: 'var(--font-body)', fontWeight: '300', fontSize: '10px',
-                letterSpacing: '0.20em', textTransform: 'uppercase',
-                color: 'var(--raco-stone)', border: '1px solid var(--raco-sand)',
-                borderRadius: '14px', padding: '5px 14px', background: 'transparent',
-                cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--raco-khaki)'; e.currentTarget.style.color = 'var(--raco-khaki)' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--raco-sand)'; e.currentTarget.style.color = 'var(--raco-stone)' }}>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v6"/><path d="M5 8a7 7 0 1 0 14 0"/><path d="M12 14v8"/></svg>
-                {(BOTON_TXT[idioma] || BOTON_TXT.es).maridaje}
-              </button>
-              {/* Saber más / Cómo funciona — cápsula sólida khaki para que destaque */}
-              <button onClick={() => setVista('educacion')} style={{
-                fontFamily: 'var(--font-body)', fontWeight: '500', fontSize: '10px',
-                letterSpacing: '0.20em', textTransform: 'uppercase',
-                color: 'var(--raco-cream)', border: '1px solid var(--raco-khaki)',
-                borderRadius: '14px', padding: '5px 14px', background: 'var(--raco-khaki)',
-                cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px',
-                transition: 'all 0.2s', boxShadow: '0 2px 8px rgba(107,122,62,0.18)',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(107,122,62,0.28)' }}
-              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)';  e.currentTarget.style.boxShadow = '0 2px 8px rgba(107,122,62,0.18)' }}>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-                {(BOTON_TXT[idioma] || BOTON_TXT.es).saber}
-              </button>
+            {/* 3 botones secundarios con el mismo estilo sutil:
+                Maridaje · Cómo funciona · Newsletter. */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px', gap: '8px', flexWrap: 'wrap' }}>
+              {[
+                {
+                  vista: 'maridaje',
+                  label: (BOTON_TXT[idioma] || BOTON_TXT.es).maridaje,
+                  icon: <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v6"/><path d="M5 8a7 7 0 1 0 14 0"/><path d="M12 14v8"/></svg>,
+                },
+                {
+                  vista: 'comoFunciona',
+                  label: (BOTON_TXT[idioma] || BOTON_TXT.es).funciona,
+                  icon: <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>,
+                },
+                {
+                  vista: 'newsletter',
+                  label: (BOTON_TXT[idioma] || BOTON_TXT.es).newsletter,
+                  icon: <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>,
+                },
+              ].map(b => (
+                <button key={b.vista} onClick={() => setVista(b.vista)} style={{
+                  fontFamily: 'var(--font-body)', fontWeight: '300', fontSize: '10px',
+                  letterSpacing: '0.20em', textTransform: 'uppercase',
+                  color: 'var(--raco-stone)', border: '1px solid var(--raco-sand)',
+                  borderRadius: '14px', padding: '5px 14px', background: 'transparent',
+                  cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--raco-khaki)'; e.currentTarget.style.color = 'var(--raco-khaki)' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--raco-sand)'; e.currentTarget.style.color = 'var(--raco-stone)' }}>
+                  {b.icon}
+                  {b.label}
+                </button>
+              ))}
             </div>
             {filtrosAbiertos && (
               <div style={{ background: 'var(--raco-paper)', border: '1px solid var(--raco-sand)', borderRadius: '10px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '8px', animation: 'fadeDown 0.18s ease both' }}>
@@ -479,7 +485,8 @@ export default function App() {
       <Suspense fallback={<div style={{padding:'30px',textAlign:'center',color:'var(--raco-stone)',fontSize:'12px',letterSpacing:'0.2em'}}>CARGANDO…</div>}>
         {vista==='detalle' && bebidaseleccionada && <DetalleBebida bebida={bebidaseleccionada} onVolver={volverODetalle} todasBebidas={bebidas} idioma={idioma} />}
         {vista==='maridaje' && <Maridaje bebidas={bebidas} onSeleccionar={abrirDetalle} onVolver={volver} />}
-        {vista==='educacion' && <EducacionVino idioma={idioma} onCerrar={volver} />}
+        {vista==='comoFunciona' && <EducacionVino idioma={idioma} tab="funciona" onCerrar={volver} />}
+        {vista==='newsletter'   && <EducacionVino idioma={idioma} tab="news"     onCerrar={volver} />}
         {adminAbierto && <PanelAdmin
           bebidas={bebidas}
           onCerrar={() => setAdminAbierto(false)}

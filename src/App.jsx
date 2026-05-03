@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { supabase } from './lib/supabase'
 import { IDIOMAS, leerIdiomaGuardado, guardarIdioma } from './lib/idioma'
+import { autoTraduccionDisponible, traducirPendientes } from './lib/traduccionesAuto'
 import Header from './components/Header.jsx'
 import Categorias from './components/Categorias.jsx'
 import ListaBebidas from './components/ListaBebidas.jsx'
@@ -14,6 +15,15 @@ const DetalleBebida     = lazy(() => import('./components/DetalleBebida.jsx'))
 const Maridaje          = lazy(() => import('./components/Maridaje.jsx'))
 const PanelAdmin        = lazy(() => import('./components/PanelAdmin.jsx'))
 const VistaPresentacion = lazy(() => import('./components/VistaPresentacion.jsx'))
+const EducacionVino     = lazy(() => import('./components/EducacionVino.jsx'))
+
+// Etiquetas de los botones de acción según idioma
+const BOTON_TXT = {
+  es: { maridaje: 'Maridaje',  saber: 'Saber más'  },
+  ca: { maridaje: 'Maridatge', saber: 'Saber-ne més' },
+  en: { maridaje: 'Pairing',   saber: 'Learn more' },
+  de: { maridaje: 'Pairing',   saber: 'Mehr erfahren' },
+}
 
 function SelectRaco({ value, onChange, options, placeholder }) {
   const [open, setOpen] = useState(false)
@@ -213,7 +223,7 @@ export default function App() {
             const { data: trads } = await supabase.from('bebidas_traducciones').select('*').eq('idioma', idioma)
             if (Array.isArray(trads)) {
               const mapa = Object.fromEntries(trads.map(t => [t.bebida_id, t]))
-              const camposTraducibles = ['nombre','descripcion','nota_cata','nota_visual','nota_nariz','nota_boca','maridajes','historia','curiosidad']
+              const camposTraducibles = ['nombre','descripcion','nota_cata','nota_visual','nota_nariz','nota_boca','maridajes','historia','curiosidad','pais','crianza','elaboracion','vinedo','descripcion_bodega','clima','temperatura']
               const merged = data.map(b => {
                 const t = mapa[b.id]
                 if (!t) return b
@@ -253,6 +263,36 @@ export default function App() {
     // Las funciones de cargar comprueban lastLoadIdRef antes de setBebidas
     return () => { /* la próxima carga incrementará myId */ }
   }, [idioma])
+
+  // Auto-traducción en background: tras cargar la carta, si el dueño tiene
+  // configuradas las claves (Groq + Supabase service), barremos los vinos sin
+  // traducir y los traducimos a CA/EN/DE escalonadamente. Solo se ejecuta una
+  // vez por sesión y se salta del todo en modo cliente.
+  const [autoTrad, setAutoTrad] = useState({ activo: false, hechos: 0, total: 0, actual: '', errores: 0 })
+  const autoTradLanzadoRef = useRef(false)
+  useEffect(() => {
+    if (autoTradLanzadoRef.current) return
+    if (esCliente) return                        // No traducir desde dispositivo del cliente
+    if (loading) return
+    if (!bebidas.length) return
+    if (!autoTraduccionDisponible()) return
+    autoTradLanzadoRef.current = true
+    // Esperamos un poco para no competir con la carga inicial
+    const timer = setTimeout(() => {
+      setAutoTrad(p => ({ ...p, activo: true }))
+      traducirPendientes(bebidas, ({ hechos, total, actual, errores, terminado }) => {
+        setAutoTrad({ activo: !terminado, hechos, total, actual: actual || '', errores })
+      }).then(({ hechos }) => {
+        // Recargar la carta para que aparezcan las traducciones nuevas si el
+        // idioma activo no es español. Si es español no hace falta.
+        if (hechos > 0 && idioma !== 'es') cargar().catch(() => {})
+        setTimeout(() => setAutoTrad({ activo: false, hechos: 0, total: 0, actual: '', errores: 0 }), 4000)
+      }).catch(() => {
+        setAutoTrad({ activo: false, hechos: 0, total: 0, actual: '', errores: 0 })
+      })
+    }, 1500)
+    return () => clearTimeout(timer)
+  }, [loading, bebidas, esCliente])
   function toggleFavorito(bebida) {
     setFavoritos(prev => {
       const n = prev.includes(bebida.id) ? prev.filter(id => id !== bebida.id) : [...prev, bebida.id]
@@ -350,7 +390,7 @@ export default function App() {
                 {numFiltros > 0 && <span style={{ background: 'var(--raco-paper)', color: 'var(--raco-khaki)', borderRadius: '50%', width: '16px', height: '16px', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>{numFiltros}</span>}
               </button>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px', gap: '8px' }}>
               <button onClick={() => setVista('maridaje')} style={{
                 fontFamily: 'var(--font-body)', fontWeight: '300', fontSize: '10px',
                 letterSpacing: '0.20em', textTransform: 'uppercase',
@@ -362,7 +402,21 @@ export default function App() {
               onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--raco-khaki)'; e.currentTarget.style.color = 'var(--raco-khaki)' }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--raco-sand)'; e.currentTarget.style.color = 'var(--raco-stone)' }}>
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v6"/><path d="M5 8a7 7 0 1 0 14 0"/><path d="M12 14v8"/></svg>
-                Maridaje
+                {(BOTON_TXT[idioma] || BOTON_TXT.es).maridaje}
+              </button>
+              {/* Saber más / Cómo funciona — cápsula sólida khaki para que destaque */}
+              <button onClick={() => setVista('educacion')} style={{
+                fontFamily: 'var(--font-body)', fontWeight: '500', fontSize: '10px',
+                letterSpacing: '0.20em', textTransform: 'uppercase',
+                color: 'var(--raco-cream)', border: '1px solid var(--raco-khaki)',
+                borderRadius: '14px', padding: '5px 14px', background: 'var(--raco-khaki)',
+                cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px',
+                transition: 'all 0.2s', boxShadow: '0 2px 8px rgba(107,122,62,0.18)',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(107,122,62,0.28)' }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)';  e.currentTarget.style.boxShadow = '0 2px 8px rgba(107,122,62,0.18)' }}>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                {(BOTON_TXT[idioma] || BOTON_TXT.es).saber}
               </button>
             </div>
             {filtrosAbiertos && (
@@ -421,8 +475,9 @@ export default function App() {
         </div>
       )}
       <Suspense fallback={<div style={{padding:'30px',textAlign:'center',color:'var(--raco-stone)',fontSize:'12px',letterSpacing:'0.2em'}}>CARGANDO…</div>}>
-        {vista==='detalle' && bebidaseleccionada && <DetalleBebida bebida={bebidaseleccionada} onVolver={volverODetalle} todasBebidas={bebidas} />}
+        {vista==='detalle' && bebidaseleccionada && <DetalleBebida bebida={bebidaseleccionada} onVolver={volverODetalle} todasBebidas={bebidas} idioma={idioma} />}
         {vista==='maridaje' && <Maridaje bebidas={bebidas} onSeleccionar={abrirDetalle} onVolver={volver} />}
+        {vista==='educacion' && <EducacionVino idioma={idioma} onCerrar={volver} />}
         {adminAbierto && <PanelAdmin
           bebidas={bebidas}
           onCerrar={() => setAdminAbierto(false)}

@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { formatPrecio } from '../lib/precio'
+import { t as tLabel } from '../lib/idioma'
 import BotellaTilt3D from './BotellaTilt3D'
 
-export default function DetalleBebida({ bebida, onVolver, todasBebidas }) {
+export default function DetalleBebida({ bebida, onVolver, todasBebidas, idioma = 'es' }) {
   const relacionados = todasBebidas ? todasBebidas.filter(b =>
     b.id !== bebida.id &&
     b.categoria === bebida.categoria &&
@@ -64,7 +65,7 @@ export default function DetalleBebida({ bebida, onVolver, todasBebidas }) {
                 <p style={{
                   fontFamily: 'var(--font-body)', fontSize: '9px', letterSpacing: '0.24em',
                   textTransform: 'uppercase', color: 'var(--raco-stone)', marginBottom: '4px'
-                }}>Botella</p>
+                }}>{tLabel(idioma,'botella')}</p>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '3px' }}>
                   <span style={{
                     fontFamily: 'var(--font-brand)', fontSize: '36px', fontWeight: '400',
@@ -82,7 +83,7 @@ export default function DetalleBebida({ bebida, onVolver, todasBebidas }) {
                 <p style={{
                   fontFamily: 'var(--font-body)', fontSize: '9px', letterSpacing: '0.24em',
                   textTransform: 'uppercase', color: 'var(--raco-stone)', marginBottom: '4px'
-                }}>Copa</p>
+                }}>{tLabel(idioma,'copa')}</p>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '3px' }}>
                   <span style={{
                     fontFamily: 'var(--font-brand)', fontSize: '28px', fontWeight: '400',
@@ -106,13 +107,13 @@ export default function DetalleBebida({ bebida, onVolver, todasBebidas }) {
       </div>
 
       <div style={{ padding: '24px 20px 48px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
-        <FichaTecnica bebida={bebida} />
-        <RadarCaracteristicas bebida={bebida} />
-        <NotasVistaNariz bebida={bebida} />
-        <InfoBodegaTabs bebida={bebida} />
-        {bebida.maridajes && bebida.maridajes.length > 0 && <MaridajeExpandible maridajes={bebida.maridajes} />}
+        <FichaTecnica bebida={bebida} idioma={idioma} />
+        <RadarCaracteristicas bebida={bebida} idioma={idioma} />
+        <NotasVistaNariz bebida={bebida} idioma={idioma} />
+        <InfoBodegaTabs bebida={bebida} idioma={idioma} />
+        {bebida.maridajes && bebida.maridajes.length > 0 && <MaridajeExpandible maridajes={bebida.maridajes} idioma={idioma} />}
         {relacionados.length > 0 && (
-          <Seccion titulo="Puede que te guste">
+          <Seccion titulo={tLabel(idioma, 'puedeQueGuste')}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {relacionados.map(b => (
                 <div key={b.id} onClick={() => onVolver('relacionado', b)}
@@ -173,7 +174,7 @@ function HeroPlaceholder({ bebida }) {
   )
 }
 
-function NotasVistaNariz({ bebida }) {
+function NotasVistaNariz({ bebida, idioma = 'es' }) {
   // Si tenemos los 3 separados, los mostramos como bloques.
   // Si solo tenemos nota_cata combinado (formato "VISTA: ... · NARIZ: ... · BOCA: ..."),
   // intentamos parsearlo. Si no, mostramos la nota tal cual.
@@ -194,7 +195,7 @@ function NotasVistaNariz({ bebida }) {
   if (!vista && !nariz && !boca) {
     if (bebida.nota_cata) {
       return (
-        <Seccion titulo="Nota de cata">
+        <Seccion titulo={tLabel(idioma,'notaCata')}>
           <p style={{ fontFamily: 'var(--font-body)', fontSize: '15px', color: 'var(--raco-black)', lineHeight: '1.75', fontStyle: 'italic', fontWeight: '300' }}>"{bebida.nota_cata}"</p>
         </Seccion>
       )
@@ -203,13 +204,13 @@ function NotasVistaNariz({ bebida }) {
   }
 
   const bloques = [
-    { icon: <IcoVista />, label: 'Vista', text: vista },
-    { icon: <IcoNariz />, label: 'Nariz', text: nariz },
-    { icon: <IcoBoca  />, label: 'Boca',  text: boca  },
+    { icon: <IcoVista />, label: tLabel(idioma,'vista'), text: vista },
+    { icon: <IcoNariz />, label: tLabel(idioma,'nariz'), text: nariz },
+    { icon: <IcoBoca  />, label: tLabel(idioma,'boca'),  text: boca  },
   ].filter(b => b.text)
 
   return (
-    <Seccion titulo="Nota de cata">
+    <Seccion titulo={tLabel(idioma,'notaCata')}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         {bloques.map(b => (
           <div key={b.label} style={{
@@ -269,12 +270,19 @@ function IcoBoca() {
   )
 }
 
-function NotaCataTabs({ bebida }) {
+function NotaCataTabs({ bebida, idioma = 'es' }) {
   const [tab, setTab] = useState('general')
+  const NOTA_TABS = {
+    es: { general:'Nota', nariz:'Nariz', boca:'Boca', visual:'Visual', final:'Final', cuerpo:'Cuerpo', estructura:'Estructura' },
+    ca: { general:'Nota', nariz:'Nas',   boca:'Boca', visual:'Visual', final:'Final', cuerpo:'Cos',    estructura:'Estructura' },
+    en: { general:'Note', nariz:'Nose',  boca:'Palate', visual:'Visual', final:'Finish', cuerpo:'Body', estructura:'Structure' },
+    de: { general:'Notiz',nariz:'Nase',  boca:'Gaumen', visual:'Aussehen', final:'Abgang', cuerpo:'Körper', estructura:'Struktur' },
+  }
+  const tabsLabels = NOTA_TABS[idioma] || NOTA_TABS.es
   const tabs = [
-    {id:'general',label:'Nota'},{id:'nariz',label:'Nariz'},{id:'boca',label:'Boca'},
-    {id:'visual',label:'Visual'},{id:'final',label:'Final'},{id:'cuerpo',label:'Cuerpo'},
-    {id:'estructura',label:'Estructura'}
+    {id:'general',label:tabsLabels.general},{id:'nariz',label:tabsLabels.nariz},{id:'boca',label:tabsLabels.boca},
+    {id:'visual',label:tabsLabels.visual},{id:'final',label:tabsLabels.final},{id:'cuerpo',label:tabsLabels.cuerpo},
+    {id:'estructura',label:tabsLabels.estructura}
   ]
   const contenido = {
     general: bebida.nota_cata, nariz: bebida.nota_nariz, boca: bebida.nota_boca,
@@ -285,7 +293,7 @@ function NotaCataTabs({ bebida }) {
   if (conDatos.length === 0) return null
   const activo = conDatos.find(t => t.id === tab) || conDatos[0]
   return (
-    <Seccion titulo="Nota de cata">
+    <Seccion titulo={tLabel(idioma,'notaCata')}>
       {conDatos.length > 1 && (
         <div style={{ display: 'flex', gap: '6px', marginBottom: '14px', flexWrap: 'wrap' }}>
           {conDatos.map(t => (
@@ -309,13 +317,20 @@ function NotaCataTabs({ bebida }) {
   )
 }
 
-function RadarCaracteristicas({ bebida }) {
+function RadarCaracteristicas({ bebida, idioma = 'es' }) {
   if (!bebida.caracteristicas) return null
   const c = bebida.caracteristicas
+  const RADAR_LABELS = {
+    es: { potencia:'Cuerpo',  acidez:'Acidez',  taninos:'Taninos',  dulzura:'Dulzor',  afrutado:'Frutal' },
+    ca: { potencia:'Cos',     acidez:'Acidesa', taninos:'Tanins',   dulzura:'Dolçor',  afrutado:'Afruitat' },
+    en: { potencia:'Body',    acidez:'Acidity', taninos:'Tannins',  dulzura:'Sweetness', afrutado:'Fruity' },
+    de: { potencia:'Körper',  acidez:'Säure',   taninos:'Tannine',  dulzura:'Süße',    afrutado:'Fruchtig' },
+  }
+  const labelMap = RADAR_LABELS[idioma] || RADAR_LABELS.es
   const ejes = [
-    {label:'Cuerpo',key:'potencia'},{label:'Acidez',key:'acidez'},
-    {label:'Taninos',key:'taninos'},{label:'Dulzor',key:'dulzura'},
-    {label:'Frutal',key:'afrutado'}
+    {label:labelMap.potencia,key:'potencia'},{label:labelMap.acidez,key:'acidez'},
+    {label:labelMap.taninos,key:'taninos'},{label:labelMap.dulzura,key:'dulzura'},
+    {label:labelMap.afrutado,key:'afrutado'}
   ]
   const vals = ejes.map(e => (c[e.key]||0)/10)
   const n = ejes.length, cx=140, cy=110, r=70
@@ -339,7 +354,7 @@ function RadarCaracteristicas({ bebida }) {
   })
   const gridLevels = [0.25,0.5,0.75,1]
   return (
-    <Seccion titulo="Perfil">
+    <Seccion titulo={tLabel(idioma,'perfil')}>
       <div style={{ display: 'flex', justifyContent: 'center' }}>
         <svg width="280" height="220" viewBox="0 0 280 220" style={{ maxWidth: '100%' }}>
           {gridLevels.map((lv,gi) => {
@@ -356,21 +371,21 @@ function RadarCaracteristicas({ bebida }) {
   )
 }
 
-function FichaTecnica({ bebida }) {
+function FichaTecnica({ bebida, idioma = 'es' }) {
   const specs = [
-    {label:'Region',    val: bebida.region},
-    {label:'Pais',      val: bebida.pais},
-    {label:'Anada',     val: bebida.anada},
-    {label:'Uvas',      val: bebida.uvas},
-    {label:'Parcela',   val: bebida.parcela},
-    {label:'Crianza',   val: bebida.crianza},
-    {label:'Servir a',  val: bebida.temperatura},
-    {label:'Graduacion',val: bebida.graduacion ? bebida.graduacion + '%' : null},
+    {label: tLabel(idioma,'region'),     val: bebida.region},
+    {label: tLabel(idioma,'pais'),       val: bebida.pais},
+    {label: tLabel(idioma,'anada'),      val: bebida.anada},
+    {label: tLabel(idioma,'uvas'),       val: bebida.uvas},
+    {label: tLabel(idioma,'parcela'),    val: bebida.parcela},
+    {label: tLabel(idioma,'crianza'),    val: bebida.crianza},
+    {label: tLabel(idioma,'servirA'),    val: bebida.temperatura},
+    {label: tLabel(idioma,'graduacion'), val: bebida.graduacion ? bebida.graduacion + '%' : null},
   ].filter(s => hasVal(s.val))
 
   if (specs.length === 0) return null
   return (
-    <Seccion titulo="Ficha tecnica">
+    <Seccion titulo={tLabel(idioma,'fichaTecnica')}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
         {specs.map(s => <Spec key={s.label} label={s.label} valor={s.val} />)}
       </div>
@@ -378,19 +393,19 @@ function FichaTecnica({ bebida }) {
   )
 }
 
-function InfoBodegaTabs({ bebida }) {
+function InfoBodegaTabs({ bebida, idioma = 'es' }) {
   const [tab, setTab] = useState('crianza')
   const tabs = [
-    {id:'crianza',    label:'Crianza',    val: bebida.crianza},
-    {id:'elaboracion',label:'Elaboracion',val: bebida.elaboracion},
-    {id:'vinedo',     label:'Vinedo',     val: bebida.vinedo},
-    {id:'bodega',     label:'Bodega',     val: bebida.descripcion_bodega},
-    {id:'clima',      label:'Clima',      val: bebida.clima},
+    {id:'crianza',    label: tLabel(idioma,'crianza'),     val: bebida.crianza},
+    {id:'elaboracion',label: tLabel(idioma,'elaboracion'), val: bebida.elaboracion},
+    {id:'vinedo',     label: tLabel(idioma,'vinedo'),      val: bebida.vinedo},
+    {id:'bodega',     label: tLabel(idioma,'bodega'),      val: bebida.descripcion_bodega},
+    {id:'clima',      label: tLabel(idioma,'clima'),       val: bebida.clima},
   ].filter(t => hasVal(t.val))
   if (tabs.length < 2) return null
   const activo = tabs.find(t => t.id === tab) || tabs[0]
   return (
-    <Seccion titulo="Elaboracion">
+    <Seccion titulo={tLabel(idioma,'elaboracion')}>
       <div style={{ display: 'flex', gap: '6px', marginBottom: '14px', flexWrap: 'wrap' }}>
         {tabs.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={{
@@ -421,7 +436,7 @@ const ICONOS_MARIDAJE = {
   'Iberico':'X1F437','Cerdo':'X1F437'
 }
 
-function MaridajeExpandible({ maridajes }) {
+function MaridajeExpandible({ maridajes, idioma = 'es' }) {
   const [abierto, setAbierto] = useState(false)
   return (
     <div>
@@ -433,7 +448,7 @@ function MaridajeExpandible({ maridajes }) {
         <p style={{
           fontFamily:'var(--font-body)',fontSize:'10px',letterSpacing:'0.28em',
           textTransform:'uppercase',color:'var(--raco-stone)',margin:0
-        }}>Marida con</p>
+        }}>{tLabel(idioma,'maridaCon')}</p>
         <span style={{
           fontSize:'12px',color:'var(--raco-stone)',
           transform:abierto?'rotate(180deg)':'rotate(0)',

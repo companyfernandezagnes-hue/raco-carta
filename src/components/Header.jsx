@@ -1,7 +1,9 @@
 import { useRef } from 'react'
 import { IDIOMAS } from '../lib/idioma'
 
-export default function Header({ vista, onVolver, onMaridaje, onAdmin, idioma, onIdioma }) {
+const VOLVER_TXT = { es: 'Volver', ca: 'Tornar', en: 'Back', de: 'Zurück' }
+
+export default function Header({ vista, onVolver, onMaridaje, onAdmin, idioma = 'es', onIdioma }) {
   const tapCount = useRef(0)
   const tapTimer = useRef(null)
 
@@ -96,7 +98,7 @@ export default function Header({ vista, onVolver, onMaridaje, onAdmin, idioma, o
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
               <path d="M10 3L5 8L10 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            Volver
+            {VOLVER_TXT[idioma] || VOLVER_TXT.es}
           </button>
 
           <div style={{ textAlign: 'center' }}>

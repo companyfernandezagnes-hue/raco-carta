@@ -158,8 +158,8 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
 }
 
 async function traducirConGroq({ vinoData, apiKey }) {
-  const systemPrompt = `Eres un traductor experto en vinos y gastronomía. Traduces fichas de vino del español a tres idiomas: catalán (ca), inglés (en) y alemán (de). Mantén el tono comercial y elegante. Devuelve JSON puro con esta estructura: {"ca": {...}, "en": {...}, "de": {...}}, donde cada idioma tiene los campos: nombre, descripcion, nota_cata, nota_visual, nota_nariz, nota_boca, maridajes (array), historia, curiosidad. NO inventes información — solo traduce.`
-  const campos = ['nombre','descripcion','nota_cata','nota_visual','nota_nariz','nota_boca','maridajes','historia','curiosidad']
+  const systemPrompt = `Eres un traductor experto en vinos y gastronomía. Traduces fichas de vino del español a tres idiomas: catalán (ca), inglés (en) y alemán (de). Mantén el tono comercial y elegante. Devuelve JSON puro con esta estructura: {"ca": {...}, "en": {...}, "de": {...}}, donde cada idioma tiene TODOS los campos recibidos: nombre, descripcion, nota_cata, nota_visual, nota_nariz, nota_boca, maridajes (array), historia, curiosidad, pais, crianza, temperatura, elaboracion, vinedo, descripcion_bodega, clima.\n\nReglas:\n- Traduce 'pais' (España→Spain/Spanien/Espanya).\n- 'crianza', 'elaboracion', 'vinedo', 'descripcion_bodega', 'clima' son texto libre descriptivo: tradúcelos.\n- 'temperatura': si es solo número-unidad ('6-8°C') déjalo igual; si lleva texto ('Servir frío') tradúcelo.\n- NO traduzcas nombres propios de DO ni de regiones (Rioja, Priorat, Cava Brut, Champagne se mantienen).\n- NO traduzcas variedades de uva (Trepat, Garnacha, Tempranillo se mantienen).\n- NO inventes nada — solo traduce.`
+  const campos = ['nombre','descripcion','nota_cata','nota_visual','nota_nariz','nota_boca','maridajes','historia','curiosidad','pais','crianza','temperatura','elaboracion','vinedo','descripcion_bodega','clima']
   const datos = Object.fromEntries(campos.map(c => [c, vinoData[c]]).filter(([k,v]) => v))
   const text = await llamarGroq({
     systemPrompt,
@@ -292,6 +292,9 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
       nota_visual: t.nota_visual || null, nota_nariz: t.nota_nariz || null, nota_boca: t.nota_boca || null,
       maridajes: Array.isArray(t.maridajes) ? t.maridajes : null,
       historia: t.historia || null, curiosidad: t.curiosidad || null,
+      pais: t.pais || null, crianza: t.crianza || null, temperatura: t.temperatura || null,
+      elaboracion: t.elaboracion || null, vinedo: t.vinedo || null,
+      descripcion_bodega: t.descripcion_bodega || null, clima: t.clima || null,
       actualizado_en: new Date().toISOString(),
     }
     const camposOmitidos = []
@@ -718,19 +721,22 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
           throw new Error(result.error.message)
         }
       }
+      // Traducción CA/EN/DE en background — no bloquea el guardado.
+      // Si falla, el barrido automático al cargar la carta lo reintentará.
       if (bebidaId && apiKey) {
-        try {
-          setIaError('')
-          const traducciones = await traducirConGroq({ vinoData: datos, apiKey })
-          for (const idioma of ['ca','en','de']) {
-            const t = traducciones[idioma]
-            if (!t) continue
-            await upsertTraduccionDefensivo(bebidaId, idioma, t)
+        ;(async () => {
+          try {
+            const traducciones = await conReintento(() => traducirConGroq({ vinoData: datos, apiKey }))
+            for (const idioma of ['ca','en','de']) {
+              const t = traducciones[idioma]
+              if (!t) continue
+              await upsertTraduccionDefensivo(bebidaId, idioma, t)
+            }
+            console.log('🌐 Traducido CA/EN/DE:', datos.nombre)
+          } catch(e) {
+            console.warn('No se pudo traducir (reintento en próximo barrido):', e.message)
           }
-        } catch(e) {
-          console.warn('No se pudo traducir:', e.message)
-          setIaError('Guardado, pero no se tradujo: ' + e.message)
-        }
+        })()
       }
       onActualizar()
       // Borrar el borrador autoguardado, ya tenemos los datos en BD

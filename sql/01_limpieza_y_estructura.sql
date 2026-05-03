@@ -63,9 +63,26 @@ CREATE TABLE IF NOT EXISTS bebidas_traducciones (
   historia    text,
   curiosidad  text,
   notas_ia    text,
+  -- Campos extra que también deben traducirse (añadidos para que el cliente
+  -- vea TODA la ficha técnica en su idioma, no solo las notas de cata)
+  pais         text,
+  crianza      text,
+  temperatura  text,
+  elaboracion  text,
+  vinedo       text,
+  descripcion_bodega text,
+  clima        text,
   actualizado_en timestamptz DEFAULT now(),
   PRIMARY KEY (bebida_id, idioma)
 );
+-- Si la tabla ya existe, añadir las columnas extra (no falla si ya están)
+ALTER TABLE bebidas_traducciones ADD COLUMN IF NOT EXISTS pais text;
+ALTER TABLE bebidas_traducciones ADD COLUMN IF NOT EXISTS crianza text;
+ALTER TABLE bebidas_traducciones ADD COLUMN IF NOT EXISTS temperatura text;
+ALTER TABLE bebidas_traducciones ADD COLUMN IF NOT EXISTS elaboracion text;
+ALTER TABLE bebidas_traducciones ADD COLUMN IF NOT EXISTS vinedo text;
+ALTER TABLE bebidas_traducciones ADD COLUMN IF NOT EXISTS descripcion_bodega text;
+ALTER TABLE bebidas_traducciones ADD COLUMN IF NOT EXISTS clima text;
 CREATE INDEX IF NOT EXISTS idx_traducciones_idioma ON bebidas_traducciones(idioma);
 ALTER TABLE bebidas_traducciones ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "lectura_publica_traducciones" ON bebidas_traducciones;

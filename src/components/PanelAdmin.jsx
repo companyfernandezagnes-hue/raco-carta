@@ -130,7 +130,7 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
     if (fotoBase64) {
       throw new Error('Análisis de foto no disponible con Groq. Escribe el nombre del vino y la IA rellenará el resto.')
     }
-    const systemPrompt = `Eres un sumiller experto. Dado el nombre de un vino/bebida, devuelves una ficha completa en JSON puro con estos campos: nombre, categoria (Vino/Cerveza/Coctel/Refresco/Agua/Cafe/Destilado/Otro), subcategoria (espumoso/blanco mallorca/blanco nacional/blanco internacional/rosado/tinto mallorca/tinto nacional/tinto internacional/dulce), descripcion (frase comercial corta), bodega, productor, pais, region (denominación de origen), anada (año o null), uvas, tipo_uva_secundaria, parcela, nota_cata, maridajes (array), temperatura, graduacion (número o null), precio_copa (null), precio_botella (null), notas_ia (historia + curiosidad). REGLAS: solo datos reales y conocidos; si no sabes algo, null; NO inventes; devuelve SOLO JSON sin texto extra.`
+    const systemPrompt = `Eres un sumiller experto. Dado el nombre de un vino/bebida, devuelves una ficha completa en JSON puro con estos campos: nombre, categoria (SIEMPRE EN MINÚSCULAS, valores válidos: vino|cerveza|coctel|refresco|agua|cafe|destilado|otro), subcategoria (espumoso/blanco mallorca/blanco nacional/blanco internacional/rosado/tinto mallorca/tinto nacional/tinto internacional/dulce), descripcion (frase comercial corta), bodega, productor, pais, region (denominación de origen), anada (año o null), uvas, tipo_uva_secundaria, parcela, nota_cata, maridajes (array), temperatura, graduacion (número o null), precio_copa (null), precio_botella (null), notas_ia (historia + curiosidad). REGLAS: solo datos reales y conocidos; si no sabes algo, null; NO inventes; devuelve SOLO JSON sin texto extra.`
     const text = await llamarGroq({
       systemPrompt,
       userPrompt: `Rellena la ficha completa de este vino: ${nombre}`,
@@ -143,6 +143,11 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
     } catch {
       throw new Error('Groq devolvió JSON inválido. Texto: ' + text.slice(0, 100))
     }
+    // Normalizar categoría y subcategoría a minúsculas para cumplir el
+    // check constraint de Supabase (categoria IN ('vino','cerveza',...)).
+    // Si la IA devuelve "Vino" → lo dejamos en "vino".
+    if (typeof json.categoria === 'string') json.categoria = json.categoria.toLowerCase().trim()
+    if (typeof json.subcategoria === 'string') json.subcategoria = json.subcategoria.toLowerCase().trim()
     setForm(prev => ({
       ...prev,
       ...Object.fromEntries(
@@ -682,6 +687,10 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
       const precioCosteVal = parsePrecio(calc.precioIva) ?? parsePrecio(form.precio_coste)
       const datos = {
         ...form,
+        // Forzar minúsculas en categoria/subcategoria para no romper el
+        // check constraint de Supabase (categoria IN ('vino','cerveza',...))
+        categoria:    typeof form.categoria === 'string' ? form.categoria.toLowerCase().trim() : form.categoria,
+        subcategoria: typeof form.subcategoria === 'string' ? form.subcategoria.toLowerCase().trim() : form.subcategoria,
         anada: form.anada ? parseInt(form.anada) : null,
         graduacion: parsePrecio(form.graduacion),
         precio_copa: parsePrecio(form.precio_copa),

@@ -35,8 +35,19 @@ const CAMPOS_IA = [
   'pais','region','anada','uvas','tipo_uva_secundaria','parcela',
   'nota_cata','nota_visual','nota_nariz','nota_boca',
   'maridajes','temperatura','graduacion',
-  'precio_copa','precio_botella','notas_ia'
+  'precio_copa','precio_botella','notas_ia','caracteristicas'
 ]
+
+// Valor por defecto de las características (radar). Si la IA no las rellena
+// y el usuario no las edita, al menos no salen todas a 0.
+const CARACTERISTICAS_DEFAULT = { potencia: 5, acidez: 5, taninos: 3, dulzura: 2, afrutado: 5 }
+
+// Clamp un número 0-10 para caracteristicas del radar. Si no es número, default.
+function clamp10(v, def = 5) {
+  const n = Number(v)
+  if (!Number.isFinite(n)) return def
+  return Math.max(0, Math.min(10, Math.round(n)))
+}
 
 // --- Normalización de subcategoría ---
 // Los 9 valores válidos que reconoce el filtro de la carta (App.jsx + Categorias.jsx).
@@ -124,7 +135,32 @@ function redondearPrecio(precio, modo) {
   }
 }
 
+// Si Groq devuelve 429, marcamos un "no llamar hasta" en localStorage para
+// no volver a hacer la petición durante el tiempo que diga el header
+// Retry-After. Las traducciones en background al guardar respetan ese tope
+// y no llenan la consola de errores 429 cuando la cuota está agotada.
+const KEY_GROQ_BLOQUEADO = 'raco_groq_bloqueado_hasta'
+function groqBloqueadoHasta() {
+  try { return parseInt(localStorage.getItem(KEY_GROQ_BLOQUEADO) || '0', 10) }
+  catch { return 0 }
+}
+function marcarGroqBloqueado(retryAfterSeg) {
+  try {
+    const segs = Math.max(60, Math.min(retryAfterSeg || 60 * 30, 60 * 60 * 6)) // 1min–6h
+    localStorage.setItem(KEY_GROQ_BLOQUEADO, String(Date.now() + segs * 1000))
+  } catch {}
+}
+
 async function llamarGroq({ systemPrompt, userPrompt, apiKey, modelo = 'llama-3.3-70b-versatile', json = true }) {
+  // Si recibimos 429 reciente, abortar de raíz para no inundar consola
+  const bloqueadoHasta = groqBloqueadoHasta()
+  if (bloqueadoHasta > Date.now()) {
+    const minRest = Math.ceil((bloqueadoHasta - Date.now()) / 60000)
+    const err = new Error(`Groq agotado (espera ~${minRest}min)`)
+    err.status = 429
+    err.bloqueado = true
+    throw err
+  }
   const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -148,8 +184,8 @@ async function llamarGroq({ systemPrompt, userPrompt, apiKey, modelo = 'llama-3.
     try { detalle = JSON.parse(txt)?.error?.message || txt } catch {}
     const err = new Error(`Groq ${res.status}: ${detalle.slice(0, 300)}`)
     err.status = res.status
-    // Headers de rate limit que envía Groq
     err.retryAfter = parseInt(res.headers.get('retry-after') || '0')
+    if (res.status === 429) marcarGroqBloqueado(err.retryAfter)
     throw err
   }
   const data = await res.json()
@@ -179,7 +215,7 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
     if (fotoBase64) {
       throw new Error('Análisis de foto no disponible con Groq. Escribe el nombre del vino y la IA rellenará el resto.')
     }
-    const systemPrompt = `Eres un sumiller experto. Dado el nombre de un vino/bebida, devuelves una ficha completa en JSON puro con estos campos: nombre, categoria (SIEMPRE EN MINÚSCULAS, valores válidos: vino|cerveza|coctel|refresco|agua|cafe|destilado|otro), subcategoria (espumoso/blanco mallorca/blanco nacional/blanco internacional/rosado/tinto mallorca/tinto nacional/tinto internacional/dulce), descripcion (frase comercial corta), bodega, productor, pais, region (denominación de origen), anada (año o null), uvas, tipo_uva_secundaria, parcela, nota_cata (frase resumen corta tipo titular), nota_visual (color, limpidez, brillo — 1 frase), nota_nariz (aromas a fruta/flores/madera — 1 frase), nota_boca (ataque, acidez, taninos, cuerpo — 1 frase), maridajes (array), temperatura, graduacion (número o null), precio_copa (null), precio_botella (null), notas_ia (historia + curiosidad). MUY IMPORTANTE: rellena nota_visual, nota_nariz y nota_boca con frases independientes y diferentes (NO repetir lo mismo en las tres). nota_cata puede ser un titular general o quedar vacío si las otras tres están bien. REGLAS: solo datos reales y conocidos; si no sabes algo, null; NO inventes; devuelve SOLO JSON sin texto extra.`
+    const systemPrompt = `Eres un sumiller experto. Dado el nombre de un vino/bebida, devuelves una ficha completa en JSON puro con estos campos: nombre, categoria (SIEMPRE EN MINÚSCULAS, valores válidos: vino|cerveza|coctel|refresco|agua|cafe|destilado|otro), subcategoria (espumoso/blanco mallorca/blanco nacional/blanco internacional/rosado/tinto mallorca/tinto nacional/tinto internacional/dulce), descripcion (frase comercial corta), bodega, productor, pais, region (denominación de origen), anada (año o null), uvas, tipo_uva_secundaria, parcela, nota_cata (frase resumen corta tipo titular), nota_visual (color, limpidez, brillo — 1 frase), nota_nariz (aromas a fruta/flores/madera — 1 frase), nota_boca (ataque, acidez, taninos, cuerpo — 1 frase), maridajes (array), temperatura, graduacion (número o null), precio_copa (null), precio_botella (null), notas_ia (historia + curiosidad), caracteristicas (objeto con potencia, acidez, taninos, dulzura, afrutado en escala 0-10). REGLAS PARA caracteristicas: los 5 valores son enteros 0-10 que reflejan el perfil sensorial real del vino. Ejemplo blanco joven: {"potencia":3,"acidez":7,"taninos":1,"dulzura":2,"afrutado":7}. Tinto crianza: {"potencia":7,"acidez":5,"taninos":7,"dulzura":2,"afrutado":6}. Champagne brut: {"potencia":4,"acidez":8,"taninos":1,"dulzura":2,"afrutado":5}. MUY IMPORTANTE: rellena nota_visual, nota_nariz y nota_boca con frases independientes y diferentes (NO repetir lo mismo en las tres). nota_cata puede ser un titular general o quedar vacío. REGLAS: solo datos reales y conocidos; si no sabes algo, null; NO inventes; devuelve SOLO JSON sin texto extra.`
     const text = await llamarGroq({
       systemPrompt,
       userPrompt: `Rellena la ficha completa de este vino: ${nombre}`,
@@ -200,6 +236,17 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
     if (typeof json.subcategoria === 'string') {
       const norm = normalizarSubcategoria(json.subcategoria)
       json.subcategoria = norm || json.subcategoria.toLowerCase().trim()
+    }
+    // Normalizar caracteristicas: clamp 0-10 y rellenar las que falten con default
+    if (json.caracteristicas && typeof json.caracteristicas === 'object') {
+      const c = json.caracteristicas
+      json.caracteristicas = {
+        potencia: clamp10(c.potencia, CARACTERISTICAS_DEFAULT.potencia),
+        acidez:   clamp10(c.acidez,   CARACTERISTICAS_DEFAULT.acidez),
+        taninos:  clamp10(c.taninos,  CARACTERISTICAS_DEFAULT.taninos),
+        dulzura:  clamp10(c.dulzura,  CARACTERISTICAS_DEFAULT.dulzura),
+        afrutado: clamp10(c.afrutado, CARACTERISTICAS_DEFAULT.afrutado),
+      }
     }
     setForm(prev => ({
       ...prev,
@@ -669,6 +716,9 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
       tipo_uva_secundaria: b.tipo_uva_secundaria || '', parcela: b.parcela || '',
       nota_cata: b.nota_cata || '',
       nota_visual: b.nota_visual || '', nota_nariz: b.nota_nariz || '', nota_boca: b.nota_boca || '',
+      caracteristicas: (b.caracteristicas && typeof b.caracteristicas === 'object')
+        ? { ...CARACTERISTICAS_DEFAULT, ...b.caracteristicas }
+        : { ...CARACTERISTICAS_DEFAULT },
       maridajes: Array.isArray(b.maridajes) ? b.maridajes.join(', ') : (b.maridajes || ''),
       temperatura: b.temperatura || '', graduacion: b.graduacion || '',
       precio_copa: b.precio_copa || '', precio_botella: b.precio_botella || '',
@@ -722,6 +772,7 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
       nombre:'',categoria:'',subcategoria:'',descripcion:'',bodega:'',productor:'',
       pais:'Espana',region:'',anada:'',uvas:'',tipo_uva_secundaria:'',parcela:'',
       nota_cata:'',nota_visual:'',nota_nariz:'',nota_boca:'',
+      caracteristicas: { ...CARACTERISTICAS_DEFAULT },
       maridajes:'',temperatura:'',graduacion:'',precio_copa:'',
       precio_botella:'',precio_coste:'',disponible:true,destacado:false,
       foto_url:'',orden:0,notas_ia:'',puntuaciones:[]
@@ -2003,6 +2054,12 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
               </p>
             </div>
 
+            {/* Perfil sensorial — los 5 ejes del gráfico radar.
+                Estos valores 0-10 controlan EXACTAMENTE cómo se dibuja el
+                pentágono que ve el cliente en la sección "Perfil" de la ficha.
+                La IA los rellena al cargar; aquí los puedes afinar a mano. */}
+            <RadarEditor form={form} setForm={setForm} />
+
             <label style={label}>Maridajes (separados por coma)</label>
             <input style={inp} value={form.maridajes||''}
               onChange={e=>setForm(p=>({...p,maridajes:e.target.value}))} />
@@ -2360,3 +2417,83 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
     </div>
   )
       }
+
+// ─── Editor del radar (Perfil sensorial) ─────────────────────────────────────
+// 5 sliders 0-10 que controlan el pentágono "Perfil" de la ficha del cliente.
+// El cambio se previsualiza en un mini-radar al lado para tomar conciencia
+// inmediata de cómo queda.
+function RadarEditor({ form, setForm }) {
+  const c = form.caracteristicas || { potencia: 5, acidez: 5, taninos: 3, dulzura: 2, afrutado: 5 }
+  const ejes = [
+    { key: 'potencia', label: '💪 Cuerpo / Potencia', tip: '0 = ligero · 10 = poderoso' },
+    { key: 'acidez',   label: '🍋 Acidez',            tip: '0 = sin acidez · 10 = muy ácido' },
+    { key: 'taninos',  label: '🌰 Taninos',           tip: 'Solo tintos. 0 = sedoso · 10 = astringente' },
+    { key: 'dulzura',  label: '🍯 Dulzor',            tip: '0 = seco · 10 = dulce' },
+    { key: 'afrutado', label: '🍒 Afrutado',          tip: '0 = nada de fruta · 10 = muy frutal' },
+  ]
+  function set(key, val) {
+    setForm(prev => ({
+      ...prev,
+      caracteristicas: { ...(prev.caracteristicas || {}), [key]: clamp10(val, 5) }
+    }))
+  }
+  // Mini radar para previsualizar
+  const n = ejes.length, cx = 60, cy = 60, r = 42
+  const points = ejes.map((e, i) => {
+    const a = (Math.PI * 2 * i / n) - Math.PI / 2
+    const v = (c[e.key] || 0) / 10
+    return [cx + r * v * Math.cos(a), cy + r * v * Math.sin(a)]
+  })
+  return (
+    <div style={{
+      background:'#1a1a1a', border:'1px solid #333', borderRadius:'10px',
+      padding:'14px 16px', marginTop:'10px', marginBottom:'10px',
+    }}>
+      <div style={{
+        fontSize:'11px', color:'var(--raco-khaki)', fontWeight:'600',
+        letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:'12px',
+      }}>
+        ✦ Perfil sensorial (radar de la ficha del cliente)
+      </div>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr auto', gap:'18px', alignItems:'start' }}>
+        <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
+          {ejes.map(e => (
+            <div key={e.key}>
+              <div style={{
+                display:'flex', justifyContent:'space-between', fontSize:'12px',
+                color:'#ddd', marginBottom:'3px',
+              }}>
+                <span>{e.label}</span>
+                <span style={{ color:'var(--raco-khaki)', fontWeight:'600' }}>{c[e.key] ?? 0}/10</span>
+              </div>
+              <input type="range" min="0" max="10" step="1"
+                value={c[e.key] ?? 0}
+                onChange={ev => set(e.key, ev.target.value)}
+                style={{ width:'100%', accentColor:'var(--raco-khaki)' }}
+                title={e.tip}
+              />
+              <div style={{ fontSize:'10px', color:'#888' }}>{e.tip}</div>
+            </div>
+          ))}
+        </div>
+        {/* Preview radar */}
+        <svg width="120" height="120" viewBox="0 0 120 120" style={{ flexShrink: 0 }}>
+          {[0.25,0.5,0.75,1].map((lv, gi) => {
+            const gpts = ejes.map((_, i) => {
+              const a = (Math.PI * 2 * i / n) - Math.PI / 2
+              return [cx + r * lv * Math.cos(a), cy + r * lv * Math.sin(a)]
+            })
+            return <polygon key={gi} points={gpts.map(p=>p.join(',')).join(' ')} fill="none" stroke="#444" strokeWidth="0.5"/>
+          })}
+          {ejes.map((_, i) => {
+            const a = (Math.PI * 2 * i / n) - Math.PI / 2
+            return <line key={i} x1={cx} y1={cy} x2={cx + r * Math.cos(a)} y2={cy + r * Math.sin(a)} stroke="#444" strokeWidth="0.5"/>
+          })}
+          <polygon points={points.map(p=>p.join(',')).join(' ')}
+            fill="rgba(182,154,106,0.25)" stroke="var(--raco-khaki)" strokeWidth="1.5"/>
+          {points.map((p, i) => <circle key={i} cx={p[0]} cy={p[1]} r="2.5" fill="var(--raco-khaki)"/>)}
+        </svg>
+      </div>
+    </div>
+  )
+}

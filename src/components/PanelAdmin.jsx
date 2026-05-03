@@ -261,8 +261,8 @@ async function llamarGroq({ systemPrompt, userPrompt, apiKey, modelo = 'llama-3.
         { role: 'system', content: systemPrompt },
         { role: 'user',   content: userPrompt },
       ],
-      temperature: 0.2,
-      max_tokens: 1500,
+      temperature: 0.1,   // Bajo para traducción fiel y datos exactos
+      max_tokens: 2000,
       ...(json ? { response_format: { type: 'json_object' } } : {}),
     }),
   })
@@ -351,7 +351,56 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
 }
 
 async function traducirConGroq({ vinoData, apiKey }) {
-  const systemPrompt = `Eres un traductor experto en vinos y gastronomía. Traduces fichas de vino del español a tres idiomas: catalán (ca), inglés (en) y alemán (de). Mantén el tono comercial y elegante. Devuelve JSON puro con esta estructura: {"ca": {...}, "en": {...}, "de": {...}}, donde cada idioma tiene TODOS los campos recibidos: nombre, descripcion, nota_cata, nota_visual, nota_nariz, nota_boca, maridajes (array), historia, curiosidad, pais, crianza, temperatura, elaboracion, vinedo, descripcion_bodega, clima.\n\nReglas:\n- Traduce 'pais' (España→Spain/Spanien/Espanya).\n- 'crianza', 'elaboracion', 'vinedo', 'descripcion_bodega', 'clima' son texto libre descriptivo: tradúcelos.\n- 'temperatura': si es solo número-unidad ('6-8°C') déjalo igual; si lleva texto ('Servir frío') tradúcelo.\n- NO traduzcas nombres propios de DO ni de regiones (Rioja, Priorat, Cava Brut, Champagne se mantienen).\n- NO traduzcas variedades de uva (Trepat, Garnacha, Tempranillo se mantienen).\n- NO inventes nada — solo traduce.`
+  const systemPrompt = `Eres un sumiller-traductor profesional para una carta de restaurante mediterráneo en Palma de Mallorca. Traduces fichas de vino del español a tres idiomas: catalán de Mallorca (ca), inglés británico de carta refinada (en) y alemán formal (de).
+
+REGISTRO Y ESTILO
+- Tono: elegante, sobrio, evocador. Lenguaje de carta de restaurante, NO publicidad agresiva.
+- Frases cortas y precisas. Evita "exquisito", "delicioso", "increíble", "una experiencia".
+- Mantén el RITMO de la frase original: si el ES es seco, el EN/DE/CA también.
+- En alemán usa la forma neutra (sin Sie ni du, sin imperativos).
+- En inglés usa British English (colour, flavour, neighbourhood).
+- En catalán mallorquín suave: "raïm", "celler", "tast", "criança", "vinya" (NO "uva", "bodega", "cata", "viñedo").
+
+GLOSARIO — términos que se MANTIENEN tal cual en TODOS los idiomas (nombres propios y términos técnicos universales):
+- Denominaciones de Origen y zonas: Rioja, Ribera del Duero, Priorat, Penedès, Rías Baixas, Jerez, Cava, Champagne, Burgundy/Bourgogne (deja Bourgogne), Toscana/Tuscany (deja Toscana), Mallorca, Binissalem, Pla i Llevant.
+- Variedades de uva: Tempranillo, Garnacha, Mantonegro, Callet, Prensal, Macabeo, Xarel·lo, Parellada, Cabernet Sauvignon, Merlot, Syrah, Pinot Noir, Chardonnay, Sauvignon Blanc, Riesling, Albariño, Verdejo, Moscatel, Trepat. Solo traduce variedades cuando tengan nombre estandarizado (Garnacha→Grenache solo si el resto del texto está en EN/FR; en DE déjalo Garnacha).
+- Términos enológicos: Crianza, Reserva, Gran Reserva, Brut Nature, Brut, Extra Brut, Demi-Sec, Cava, Champagne, Tokaji, Pedro Ximénez, Solera, Joven (en EN: 'young'; en DE: 'jung'; en CA: 'jove').
+- Crianza/elaboración: barrica francesa/americana → French/American oak / französische Eiche / bóta francesa. "Sobre lías" → "on lees" / "Sur Hefe" / "sobre lies".
+- "VT Mallorca" se queda igual.
+- "Bodega" en EN: 'winery'; en DE: 'Weingut'; en CA: 'celler'.
+- "Vendimia" en EN: 'harvest'; en DE: 'Lese'; en CA: 'verema'.
+- "Bota" (envase) en EN: 'cask'; en DE: 'Fass'; en CA: 'bóta'.
+
+CAMPOS A DEVOLVER
+JSON puro con esta forma EXACTA:
+{
+  "ca": {nombre, descripcion, nota_cata, nota_visual, nota_nariz, nota_boca, maridajes (array), historia, curiosidad, pais, crianza, temperatura, elaboracion, vinedo, descripcion_bodega, clima},
+  "en": {los mismos},
+  "de": {los mismos}
+}
+
+Reglas por campo:
+- 'nombre': se mantiene EN GENERAL en español (es nombre comercial). Solo traduce si claramente es una palabra común ('Sin alcohol' → 'Alcohol-free' / 'Alkoholfrei' / 'Sense alcohol').
+- 'pais': SÍ traducir → España/Spain/Spanien/Espanya · Francia/France/Frankreich/França · Italia/Italy/Italien/Itàlia · Catalunya/Catalonia/Katalonien/Catalunya.
+- 'temperatura': si es 'X-Y °C' déjalo idéntico. Si lleva texto descriptivo ('Servir muy frío') sí traduce.
+- 'maridajes': traducir cada item (es un array). Mantén la cantidad de items.
+- Si un campo viene null o vacío en español, devuélvelo null o '' en los 3 idiomas (NO inventes contenido).
+
+NO INVENTES NADA. Si no hay información en algún campo, no lo añadas en la traducción. Devuelve SOLO JSON, sin markdown, sin texto extra.
+
+EJEMPLO de buena traducción (ES→EN):
+ES: "Amarillo limón con reflejos dorados, burbuja fina."
+EN: "Lemon-yellow with golden hints, fine bead."
+ES: "Untuoso, fresco y seco; final con toque de pomelo."
+EN: "Smooth, fresh and dry; finish with a hint of grapefruit."
+
+EJEMPLO ES→DE:
+ES: "Cereza, ciruela, especias, tabaco y vainilla."
+DE: "Kirsche, Pflaume, Gewürze, Tabak und Vanille."
+
+EJEMPLO ES→CA mallorquí:
+ES: "Bodega familiar de cuarta generación."
+CA: "Celler familiar de quarta generació."`
   const campos = ['nombre','descripcion','nota_cata','nota_visual','nota_nariz','nota_boca','maridajes','historia','curiosidad','pais','crianza','temperatura','elaboracion','vinedo','descripcion_bodega','clima']
   const datos = Object.fromEntries(campos.map(c => [c, vinoData[c]]).filter(([k,v]) => v))
   const text = await llamarGroq({
@@ -626,11 +675,12 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
     foto:    !!form?.foto_url,
   }
   const PESTAÑAS_EDITAR = [
-    { id: 'ficha',   icon: '📝', label: 'Ficha',     opcional: false },
-    { id: 'precios', icon: '💰', label: 'Precios',   opcional: false },
-    { id: 'notas',   icon: '📜', label: 'Notas',     opcional: false },
-    { id: 'premios', icon: '🏆', label: 'Premios',   opcional: true  },
-    { id: 'foto',    icon: '📷', label: 'Foto',      opcional: false },
+    { id: 'ficha',    icon: '📝', label: 'Ficha',     opcional: false },
+    { id: 'precios',  icon: '💰', label: 'Precios',   opcional: false },
+    { id: 'notas',    icon: '📜', label: 'Notas',     opcional: false },
+    { id: 'idiomas',  icon: '🌐', label: 'Idiomas',   opcional: true  },
+    { id: 'premios',  icon: '🏆', label: 'Premios',   opcional: true  },
+    { id: 'foto',     icon: '📷', label: 'Foto',      opcional: false },
   ]
   const totalCompletas = PESTAÑAS_EDITAR.filter(p => !p.opcional).length
   const completas = PESTAÑAS_EDITAR.filter(p => !p.opcional && completitud[p.id]).length
@@ -2256,6 +2306,11 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
               onChange={e=>setForm(p=>({...p,notas_ia:e.target.value}))} />
             </>)}
 
+            {/* PESTAÑA: IDIOMAS — revisar/editar traducciones a mano */}
+            {pestañaEditar === 'idiomas' && (
+              <TraduccionesEditor bebidaId={bebida?.id} apiKey={apiKey} datosES={form} />
+            )}
+
             {/* PESTAÑA: PREMIOS */}
             {pestañaEditar === 'premios' && (<>
             <div style={{marginTop:'16px',background:'#1e2a1e',border:'1px solid #4ade80',borderRadius:'10px',padding:'14px'}}>
@@ -2702,6 +2757,188 @@ function RadarEditor({ form, setForm }) {
             fill="rgba(182,154,106,0.25)" stroke="var(--raco-khaki)" strokeWidth="1.5"/>
           {points.map((p, i) => <circle key={i} cx={p[0]} cy={p[1]} r="2.5" fill="var(--raco-khaki)"/>)}
         </svg>
+      </div>
+    </div>
+  )
+}
+
+// ─── Editor de traducciones (CA / EN / DE) ──────────────────────────────────
+// Carga las filas de bebidas_traducciones para el vino actual y permite ver
+// el español al lado de cada idioma, editando a mano si la IA no convence.
+// Guarda en upsert con la service key (igual que traducirSoloEsteVino).
+function TraduccionesEditor({ bebidaId, apiKey, datosES }) {
+  const [estado, setEstado] = useState('idle') // idle | cargando | listo | guardando | error
+  const [trads, setTrads] = useState({ ca: {}, en: {}, de: {} })
+  const [msg, setMsg] = useState('')
+  const [retraduciendo, setRetraduciendo] = useState(false)
+
+  // Campos visibles en la UI (los que más se editan a mano)
+  const CAMPOS = [
+    { key: 'nombre',       label: 'Nombre' },
+    { key: 'descripcion',  label: 'Descripción' },
+    { key: 'pais',         label: 'País' },
+    { key: 'crianza',      label: 'Crianza' },
+    { key: 'temperatura',  label: 'Temperatura' },
+    { key: 'nota_cata',    label: 'Nota de cata' },
+    { key: 'nota_visual',  label: '👁 Vista' },
+    { key: 'nota_nariz',   label: '👃 Nariz' },
+    { key: 'nota_boca',    label: '👅 Boca' },
+    { key: 'elaboracion',  label: 'Elaboración' },
+    { key: 'vinedo',       label: 'Viñedo' },
+    { key: 'descripcion_bodega', label: 'Bodega (descripción)' },
+    { key: 'clima',        label: 'Clima' },
+    { key: 'historia',     label: 'Historia' },
+    { key: 'curiosidad',   label: 'Curiosidad' },
+  ]
+
+  async function cargar() {
+    if (!bebidaId) return
+    if (!hasSupabaseAdmin()) { setEstado('error'); setMsg('Falta service key de Supabase en ⚙ Ajustes.'); return }
+    setEstado('cargando'); setMsg('')
+    try {
+      const { data, error } = await supabaseAdmin.from('bebidas_traducciones').select('*').eq('bebida_id', bebidaId)
+      if (error) throw error
+      const next = { ca: {}, en: {}, de: {} }
+      for (const r of data || []) {
+        if (next[r.idioma]) next[r.idioma] = r
+      }
+      setTrads(next)
+      setEstado('listo')
+    } catch (e) { setEstado('error'); setMsg(e.message) }
+  }
+  useEffect(() => { cargar() }, [bebidaId])
+
+  async function guardarTodo() {
+    if (!bebidaId) return
+    setEstado('guardando'); setMsg('')
+    try {
+      for (const idioma of ['ca','en','de']) {
+        const t = trads[idioma] || {}
+        const fila = {
+          bebida_id: bebidaId, idioma,
+          nombre: t.nombre || null, descripcion: t.descripcion || null,
+          nota_cata: t.nota_cata || null,
+          nota_visual: t.nota_visual || null, nota_nariz: t.nota_nariz || null, nota_boca: t.nota_boca || null,
+          maridajes: Array.isArray(t.maridajes) ? t.maridajes : null,
+          historia: t.historia || null, curiosidad: t.curiosidad || null,
+          pais: t.pais || null, crianza: t.crianza || null, temperatura: t.temperatura || null,
+          elaboracion: t.elaboracion || null, vinedo: t.vinedo || null,
+          descripcion_bodega: t.descripcion_bodega || null, clima: t.clima || null,
+          actualizado_en: new Date().toISOString(),
+        }
+        const { error } = await supabaseAdmin.from('bebidas_traducciones').upsert(fila, { onConflict: 'bebida_id,idioma' })
+        if (error) throw error
+      }
+      setEstado('listo'); setMsg('✓ Traducciones guardadas')
+      setTimeout(() => setMsg(''), 3000)
+    } catch (e) { setEstado('error'); setMsg('Error guardando: ' + e.message) }
+  }
+
+  async function reTraducirIA() {
+    if (!apiKey) { setMsg('Falta API key Groq en ⚙ Ajustes.'); return }
+    if (!bebidaId) { setMsg('Guarda primero el vino.'); return }
+    setRetraduciendo(true); setMsg('Pidiendo traducción a Groq…')
+    try {
+      const res = await traducirConGroq({ vinoData: datosES, apiKey })
+      const next = { ca: { ...trads.ca }, en: { ...trads.en }, de: { ...trads.de } }
+      for (const idioma of ['ca','en','de']) {
+        const t = res[idioma]
+        if (!t) continue
+        // Conservar bebida_id e idioma; sobrescribir el resto con la nueva traducción.
+        next[idioma] = { ...next[idioma], ...t, bebida_id: bebidaId, idioma }
+      }
+      setTrads(next)
+      setMsg('✓ Traducciones rellenadas. Revisa y guarda.')
+    } catch (e) { setMsg('Error IA: ' + e.message) }
+    finally { setRetraduciendo(false) }
+  }
+
+  function setCampo(idioma, key, val) {
+    setTrads(prev => ({ ...prev, [idioma]: { ...(prev[idioma] || {}), [key]: val } }))
+  }
+
+  if (!bebidaId) {
+    return <div style={{ padding:'18px', color:'#888', fontSize:'13px' }}>
+      Guarda el vino primero (pestaña Ficha) para poder editar sus traducciones.
+    </div>
+  }
+  if (estado === 'cargando') return <div style={{ padding:'18px', color:'#aaa' }}>Cargando traducciones…</div>
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
+      <div style={{
+        background:'#1a2a1a', border:'1px solid #3a5a20', borderRadius:'10px',
+        padding:'12px 14px', display:'flex', justifyContent:'space-between', alignItems:'center', gap:'10px', flexWrap:'wrap',
+      }}>
+        <div>
+          <div style={{ fontSize:'12px', color:'#7dcc50', fontWeight:'600', letterSpacing:'0.06em' }}>
+            ✦ Edición manual de traducciones
+          </div>
+          <div style={{ fontSize:'11px', color:'#888', marginTop:'2px' }}>
+            Si la IA traduce raro, edítalo aquí. La columna ES no se toca.
+          </div>
+        </div>
+        <div style={{ display:'flex', gap:'8px', flexWrap:'wrap' }}>
+          <button type="button" onClick={reTraducirIA} disabled={retraduciendo}
+            style={{ background:'#7c3aed', color:'#fff', border:'none', borderRadius:'8px',
+              padding:'8px 14px', cursor: retraduciendo ? 'wait' : 'pointer', fontSize:'12px', fontWeight:'600',
+              opacity: retraduciendo ? 0.6 : 1 }}>
+            {retraduciendo ? '⏳ Traduciendo…' : '✦ Re-traducir con IA'}
+          </button>
+          <button type="button" onClick={guardarTodo} disabled={estado==='guardando'}
+            style={{ background:'#4ade80', color:'#0f1f0f', border:'none', borderRadius:'8px',
+              padding:'8px 14px', cursor:'pointer', fontSize:'12px', fontWeight:'700' }}>
+            💾 Guardar traducciones
+          </button>
+        </div>
+      </div>
+
+      {msg && (
+        <div style={{
+          padding:'8px 12px', borderRadius:'8px', fontSize:'12px',
+          background: msg.startsWith('✓') ? '#1a2a1a' : '#2a1a1a',
+          color:    msg.startsWith('✓') ? '#7dcc50' : '#ff8888',
+          border:'1px solid '+(msg.startsWith('✓') ? '#3a5a20' : '#5a2020'),
+        }}>{msg}</div>
+      )}
+
+      {/* Una fila por campo, con 4 columnas: ES (readonly) | CA | EN | DE */}
+      <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
+        {CAMPOS.map(c => {
+          const valES = datosES?.[c.key] || ''
+          // Si el campo ES está vacío, ocultamos toda la fila para no abrumar
+          if (!valES) return null
+          return (
+            <div key={c.key} style={{
+              background:'#1a1a1a', border:'1px solid #333', borderRadius:'10px', padding:'12px',
+            }}>
+              <div style={{ fontSize:'10px', color:'var(--raco-khaki)', fontWeight:'600',
+                letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:'8px' }}>
+                {c.label}
+              </div>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap:'8px' }}>
+                {[
+                  { id:'es', label:'🇪🇸 ES (original)', value: valES, readOnly:true },
+                  { id:'ca', label:'CA',  value: trads.ca?.[c.key] || '' },
+                  { id:'en', label:'🇬🇧 EN', value: trads.en?.[c.key] || '' },
+                  { id:'de', label:'🇩🇪 DE', value: trads.de?.[c.key] || '' },
+                ].map(col => (
+                  <div key={col.id} style={{ display:'flex', flexDirection:'column' }}>
+                    <span style={{ fontSize:'9px', color:'#888', marginBottom:'3px' }}>{col.label}</span>
+                    <textarea value={col.value} readOnly={col.readOnly}
+                      onChange={col.readOnly ? undefined : e => setCampo(col.id, c.key, e.target.value)}
+                      rows={Math.max(2, Math.min(6, Math.ceil(valES.length / 50)))}
+                      style={{
+                        background: col.readOnly ? '#0e0e0e' : '#222', color: col.readOnly ? '#bbb' : '#fff',
+                        border:'1px solid #333', borderRadius:'6px', padding:'7px',
+                        fontSize:'12px', fontFamily:'inherit', resize:'vertical',
+                      }} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )

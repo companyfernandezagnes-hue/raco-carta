@@ -38,6 +38,26 @@ export function desactivarAutoTraduccion() {
   try { localStorage.removeItem(KEY_LS_ACTIVADO) } catch {}
 }
 
+// Mismo prompt avanzado que PanelAdmin (glosario + tono + ejemplos).
+// Mantenerlos sincronizados — si lo cambias en uno, cámbialo en el otro.
+const SYSTEM_PROMPT_TRADUCCION = `Eres un sumiller-traductor profesional para una carta de restaurante mediterráneo en Palma de Mallorca. Traduces fichas de vino del español a tres idiomas: catalán de Mallorca (ca), inglés británico de carta refinada (en) y alemán formal (de).
+
+REGISTRO Y ESTILO
+- Tono: elegante, sobrio, evocador. Lenguaje de carta de restaurante, NO publicidad agresiva.
+- Frases cortas y precisas. Evita "exquisito", "delicioso", "increíble", "una experiencia".
+- Mantén el RITMO de la frase original: si el ES es seco, el EN/DE/CA también.
+- En alemán usa la forma neutra. En inglés usa British English. En catalán mallorquín suave (raïm, celler, tast, criança, vinya).
+
+GLOSARIO — se MANTIENEN tal cual en TODOS los idiomas:
+- DOs y zonas: Rioja, Ribera del Duero, Priorat, Penedès, Rías Baixas, Jerez, Cava, Champagne, Bourgogne, Toscana, Mallorca, Binissalem, Pla i Llevant, VT Mallorca.
+- Variedades: Tempranillo, Garnacha, Mantonegro, Callet, Prensal, Macabeo, Xarel·lo, Parellada, Cabernet Sauvignon, Merlot, Syrah, Pinot Noir, Chardonnay, Sauvignon Blanc, Riesling, Albariño, Verdejo, Moscatel, Trepat.
+- Términos enológicos: Crianza, Reserva, Gran Reserva, Brut Nature, Brut, Extra Brut, Demi-Sec, Cava, Champagne, Pedro Ximénez, Solera.
+- "Bodega" → 'winery' / 'Weingut' / 'celler'.
+
+NO INVENTES. Si un campo viene null o vacío en español, devuélvelo null en los 3 idiomas.
+
+Devuelve SOLO JSON puro, sin markdown.`
+
 async function llamarGroq({ apiKey, prompt, modelo = 'llama-3.3-70b-versatile' }) {
   const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
@@ -48,11 +68,11 @@ async function llamarGroq({ apiKey, prompt, modelo = 'llama-3.3-70b-versatile' }
     body: JSON.stringify({
       model: modelo,
       messages: [
-        { role: 'system', content: 'Eres un traductor experto en vinos y gastronomía. Devuelves SOLO JSON puro, sin markdown ni explicaciones.' },
+        { role: 'system', content: SYSTEM_PROMPT_TRADUCCION },
         { role: 'user', content: prompt },
       ],
-      temperature: 0.2,
-      max_tokens: 1500,
+      temperature: 0.1,    // Bajo para traducción fiel
+      max_tokens: 2000,
       response_format: { type: 'json_object' },
     }),
   })

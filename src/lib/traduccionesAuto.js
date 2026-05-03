@@ -1,38 +1,41 @@
 // Auto-traducción CA/EN/DE en background.
-// Inspirado en el flujo de arume-carta: al cargar la carta detectamos vinos
-// que tienen nota_cata en español pero no están traducidos y los traducimos
-// escalonadamente con Groq, guardándolos en bebidas_traducciones via service key.
+// Detecta vinos sin traducir y los traduce con Groq, guardándolos en
+// bebidas_traducciones vía service key.
 //
-// Solo se dispara si:
-//   - Hay groq_api_key en localStorage (admin la configuró)
-//   - Hay supabase_service_key en localStorage (admin la configuró)
-//   - Hay vinos con texto en es que no tienen fila para CA/EN/DE
+// IMPORTANTE — el barrido automático al cargar está APAGADO por defecto
+// porque consume rápido la cuota TPD de Groq free tier (100k tokens/día).
+// Para activarlo: localStorage.setItem('raco_auto_traducir_on', '1')
+// O usar el botón "Traducir todos los vinos" del PanelAdmin (manual).
 //
-// Si solo está la anon key (modo cliente), no se hace nada.
+// La auto-traducción AL GUARDAR un vino sí se mantiene activa siempre que
+// haya groq_api_key — se gasta solo 1 vino → ~3-5k tokens, asumible.
 
 import { getSupabaseAdmin, getSupabaseServiceKey } from './supabaseAdmin'
 
 const IDIOMAS_OBJETIVO = ['ca', 'en', 'de']
-const ESPACIO_ENTRE_VINOS_MS = 3500   // Para no saturar Groq (rate limit free tier)
-const KEY_LS_DESACTIVADO = 'raco_auto_traducir_off'
+const ESPACIO_ENTRE_VINOS_MS = 8000   // 8s para no saturar el rate limit (RPM)
+const MAX_POR_SESION = 3              // Máximo 3 vinos por carga (conservador)
+const KEY_LS_ACTIVADO = 'raco_auto_traducir_on'
 
 function leerGroqKey() {
   try { return localStorage.getItem('groq_api_key') || import.meta.env.VITE_GROQ_API_KEY || '' }
   catch { return '' }
 }
 
+// Por defecto APAGADO. Hay que activar explícitamente con
+// localStorage.setItem('raco_auto_traducir_on', '1')
 export function autoTraduccionDisponible() {
   if (!leerGroqKey()) return false
   if (!getSupabaseServiceKey()) return false
-  try { if (localStorage.getItem(KEY_LS_DESACTIVADO) === '1') return false } catch {}
+  try { if (localStorage.getItem(KEY_LS_ACTIVADO) !== '1') return false } catch { return false }
   return true
 }
 
-export function desactivarAutoTraduccion() {
-  try { localStorage.setItem(KEY_LS_DESACTIVADO, '1') } catch {}
-}
 export function activarAutoTraduccion() {
-  try { localStorage.removeItem(KEY_LS_DESACTIVADO) } catch {}
+  try { localStorage.setItem(KEY_LS_ACTIVADO, '1') } catch {}
+}
+export function desactivarAutoTraduccion() {
+  try { localStorage.removeItem(KEY_LS_ACTIVADO) } catch {}
 }
 
 async function llamarGroq({ apiKey, prompt, modelo = 'llama-3.3-70b-versatile' }) {
@@ -141,10 +144,13 @@ export async function traducirPendientes(bebidas, onProgreso) {
   const supa = getSupabaseAdmin()
   if (!supa) return { hechos: 0, errores: 0, motivo: 'sin_admin' }
 
-  const pendientes = await detectarPendientes(bebidas)
-  if (pendientes.length === 0) return { hechos: 0, errores: 0, motivo: 'sin_pendientes' }
+  const todosPendientes = await detectarPendientes(bebidas)
+  if (todosPendientes.length === 0) return { hechos: 0, errores: 0, motivo: 'sin_pendientes' }
 
-  console.log(`🌐 Auto-traducción: ${pendientes.length} vinos pendientes de traducir`)
+  // Limitar a MAX_POR_SESION para no agotar la cuota diaria de Groq.
+  // El resto se traducirán en cargas posteriores o desde el botón "Traducir todos".
+  const pendientes = todosPendientes.slice(0, MAX_POR_SESION)
+  console.log(`🌐 Auto-traducción: ${pendientes.length} de ${todosPendientes.length} vinos esta sesión`)
   let hechos = 0, errores = 0
   for (let i = 0; i < pendientes.length; i++) {
     const vino = pendientes[i]

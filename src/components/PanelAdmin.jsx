@@ -862,14 +862,23 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
     } catch (e) { alert('Error: ' + e.message); return false }
   }
 
-  // Auto-ordena toda la carta según el esquema:
-  //   100 espumosos · 200 blanco mallorca · 300 blanco nacional · 400 blanco internacional
-  //   500 rosados · 600 tinto mallorca · 700 tinto nacional · 800 tinto internacional · 900 dulces
-  // Dentro de cada bloque, precio botella ascendente. Hueco de 10 entre vinos
-  // para poder insertar manualmente sin reordenar todos.
-  async function autoOrdenarCarta() {
+  // Auto-ordena toda la carta. NO toca el orden de los grandes bloques
+  // (espumosos → blancos por origen → rosados → tintos por origen → dulces).
+  // Solo cambia el orden DENTRO de cada subgrupo según el modo elegido.
+  //
+  // Modo 'clasico'  → precio botella ascendente (sumelería tradicional)
+  // Modo 'engineer' → menu engineering:
+  //   1. Vinos destacados (⭐ destacado=true) abren el subgrupo
+  //   2. Posiciones 2-3-4: mayor margen (los que más interesa vender)
+  //   3. Resto: por margen descendente
+  //   4. Última posición: el más caro (ancla psicológica)
+  async function autoOrdenarCarta(modo = 'clasico') {
     if (!hasSupabaseAdmin()) { alert('Falta service key Supabase en ⚙ Ajustes.'); return }
-    if (!confirm('Esto reordena TODA la carta según el esquema:\n\n• Espumosos (100s)\n• Blancos Mallorca/Nacional/Internacional (200/300/400s)\n• Rosados (500s)\n• Tintos Mallorca/Nacional/Internacional (600/700/800s)\n• Dulces (900s)\n\nDentro de cada bloque: precio botella ascendente.\n\nLos números nuevos te dejan margen para insertar manualmente. ¿Continuar?')) return
+    const desc = modo === 'engineer'
+      ? '✦ MENU ENGINEERING\n\nDentro de cada subgrupo (Mallorca / Nacional / Internacional):\n\n1️⃣ Vinos marcados ⭐ Destacado abren la categoría\n2️⃣ Después, los de MAYOR MARGEN (los que más te interesa vender)\n3️⃣ El resto por margen descendente\n4️⃣ El MÁS CARO al final (ancla psicológica)\n\nNO se toca el orden Espumoso→Blanco→Rosado→Tinto→Dulce ni los subgrupos por origen.\n\n¿Aplicar?'
+      : '✦ ORDEN CLÁSICO\n\nDentro de cada subgrupo: precio botella ascendente (del más barato al más caro).\n\nNO se toca el orden grande ni los subgrupos.\n\n¿Aplicar?'
+    if (!confirm(desc)) return
+
     const bloques = {
       'espumoso': 100,
       'blanco mallorca': 200, 'blanco nacional': 300, 'blanco internacional': 400,
@@ -877,39 +886,69 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
       'tinto mallorca': 600, 'tinto nacional': 700, 'tinto internacional': 800,
       'dulce': 900,
     }
-    // Agrupar
     const grupos = {}
     for (const b of bebidas) {
       const sub = (b.subcategoria || '').toLowerCase().trim()
-      if (!(sub in bloques)) continue   // si no encaja, no tocar
+      if (!(sub in bloques)) continue
       if (!grupos[sub]) grupos[sub] = []
       grupos[sub].push(b)
     }
-    // Calcular nuevo orden
+
+    function ordenarSubgrupo(lista, modo) {
+      const lst = lista.slice()
+      if (modo === 'clasico') {
+        return lst.sort((a, b) => {
+          const pa = parseFloat(a.precio_botella) || 99999
+          const pb = parseFloat(b.precio_botella) || 99999
+          return pa - pb
+        })
+      }
+      // Menu engineering
+      function margenEur(b) {
+        const venta = parseFloat(b.precio_botella) || 0
+        const coste = parseFloat(b.precio_coste) || 0
+        if (venta && coste) return venta - coste
+        return -1
+      }
+      const destacados = lst.filter(b => b.destacado === true)
+      const restoSinDestacar = lst.filter(b => b.destacado !== true)
+      let ancla = null
+      const sinAncla = restoSinDestacar.slice()
+      if (sinAncla.length >= 3) {
+        sinAncla.sort((a, b) => (parseFloat(b.precio_botella)||0) - (parseFloat(a.precio_botella)||0))
+        ancla = sinAncla.shift()
+      }
+      sinAncla.sort((a, b) => {
+        const ma = margenEur(a), mb = margenEur(b)
+        if (ma === -1 && mb === -1) return 0
+        if (ma === -1) return 1
+        if (mb === -1) return -1
+        return mb - ma
+      })
+      const final = [...destacados, ...sinAncla]
+      if (ancla) final.push(ancla)
+      return final
+    }
+
     const updates = []
     for (const [sub, base] of Object.entries(bloques)) {
-      const lista = (grupos[sub] || []).slice()
-      // Precio botella asc; sin precio botella va al final del bloque
-      lista.sort((a, b) => {
-        const pa = parseFloat(a.precio_botella) || 99999
-        const pb = parseFloat(b.precio_botella) || 99999
-        return pa - pb
-      })
+      const lista = ordenarSubgrupo(grupos[sub] || [], modo)
       lista.forEach((b, i) => {
         const nuevoOrden = base + (i + 1) * 10
         if (b.orden !== nuevoOrden) updates.push({ id: b.id, orden: nuevoOrden })
       })
     }
-    if (updates.length === 0) { alert('Ya estaba ordenada según el esquema.'); return }
-    // Aplicar uno a uno (Supabase REST no soporta upsert masivo de un solo campo
-    // sin chocar con otras columnas; mejor updates atómicos)
+    if (updates.length === 0) { alert('Ya estaba ordenada según ese modo.'); return }
     let ok = 0, err = 0
     for (const u of updates) {
       const r = await supabaseAdmin.from('carta_bebidas').update({ orden: u.orden }).eq('id', u.id)
       if (r.error) err++; else ok++
     }
     onActualizar()
-    alert(`Reordenado: ${ok} OK · ${err} error.`)
+    const mensaje = modo === 'engineer'
+      ? `✦ Reordenado en modo Menu Engineering: ${ok} vinos.\n\nRevisa: ⭐ destacados al principio · más rentables en posición 2-3 · más caro al final.`
+      : `✦ Reordenado por precio ascendente: ${ok} vinos.`
+    alert(mensaje + (err ? `\n\n${err} errores (mira consola).` : ''))
   }
 
   // Mover un vino arriba/abajo respecto a su grupo visible (cambia su 'orden'
@@ -1799,20 +1838,50 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
                       ? `Sin resultados para "${busquedaAdmin}"`
                       : `${filtradas.length} resultado${filtradas.length !== 1 ? 's' : ''}`}
                   </div>
-                  {/* Botón auto-ordenar: aplica el esquema clásico
-                      (espumoso→blancos→rosado→tintos→dulces, precio asc dentro)
-                      Solo visible cuando no hay filtro/búsqueda activa */}
+                  {/* Auto-ordenar — DOS modos. Solo aparecen si no hay filtros
+                      activos para no liar (no tendría sentido ordenar la lista
+                      filtrada). El orden grande Espumoso→Blanco→Rosado→Tinto→
+                      Dulce y los subgrupos por origen NUNCA se tocan. Solo
+                      cambia la posición de los vinos DENTRO de cada subgrupo. */}
                   {!q && filtroSubAdmin === 'todas' && (
-                    <button onClick={autoOrdenarCarta}
-                      title="Reordena toda la carta según el esquema clásico de sumelería: espumosos (100s) → blancos por origen (200/300/400s) → rosados (500s) → tintos por origen (600/700/800s) → dulces (900s). Dentro de cada bloque, precio botella ascendente."
-                      style={{
-                        background:'#1a2a3a', color:'#7ab8e8', border:'1px solid #2a5a8a',
-                        borderRadius:'8px', padding:'7px 12px', cursor:'pointer',
-                        fontSize:'11px', fontWeight:'600', letterSpacing:'0.05em',
-                        marginBottom:'8px',
-                      }}>
-                      ✦ Auto-ordenar carta (categoría · origen · precio)
-                    </button>
+                    <div style={{
+                      display:'flex', flexDirection:'column', gap:'8px',
+                      marginBottom:'10px', padding:'10px',
+                      background:'#1a1a1a', border:'1px solid #333', borderRadius:'8px',
+                    }}>
+                      <div style={{ fontSize:'10px', color:'#888', letterSpacing:'0.06em',
+                        textTransform:'uppercase', fontWeight:'600' }}>
+                        ✦ Auto-ordenar (no toca el orden de Espumoso/Blanco/Rosado/Tinto/Dulce ni los subgrupos)
+                      </div>
+                      <div style={{ display:'flex', gap:'8px', flexWrap:'wrap' }}>
+                        <button onClick={() => autoOrdenarCarta('engineer')}
+                          title="Menu engineering: ⭐ destacados al principio · más rentables en pos 2-3 · más caro al final como ancla psicológica."
+                          style={{
+                            background:'#3a2a1a', color:'#ffb86c', border:'1px solid #6a4a20',
+                            borderRadius:'8px', padding:'8px 14px', cursor:'pointer',
+                            fontSize:'11px', fontWeight:'700', letterSpacing:'0.04em',
+                            flex:'1 1 220px',
+                          }}>
+                          🎯 Modo Menu Engineering<br/>
+                          <span style={{ fontSize:'9px', fontWeight:'400', color:'#daa07a', textTransform:'lowercase', letterSpacing:0 }}>
+                            destacados · margen · ancla
+                          </span>
+                        </button>
+                        <button onClick={() => autoOrdenarCarta('clasico')}
+                          title="Sumelería clásica: dentro de cada subgrupo, del más barato al más caro."
+                          style={{
+                            background:'#1a2a3a', color:'#7ab8e8', border:'1px solid #2a5a8a',
+                            borderRadius:'8px', padding:'8px 14px', cursor:'pointer',
+                            fontSize:'11px', fontWeight:'600', letterSpacing:'0.04em',
+                            flex:'1 1 180px',
+                          }}>
+                          📖 Modo Clásico<br/>
+                          <span style={{ fontSize:'9px', fontWeight:'400', color:'#88a0c0', textTransform:'lowercase', letterSpacing:0 }}>
+                            precio asc dentro de cada subgrupo
+                          </span>
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </div>
               )
@@ -1831,16 +1900,49 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
                   .some(v => (v || '').toString().toLowerCase().includes(q))) return false
                 return true
               }).sort((a, b) => (a.orden ?? 99999) - (b.orden ?? 99999))
-              return listaFiltrada.map((b, i) => (
-                <FilaListaAdmin key={b.id}
-                  bebida={b}
-                  esPrimera={i === 0}
-                  esUltima={i === listaFiltrada.length - 1}
-                  onEditar={() => abrirEditar(b)}
-                  onActualizarCampo={(campo, valor) => actualizarCampo(b.id, campo, valor)}
-                  onMover={dir => moverEnLista(b, dir, listaFiltrada)}
-                />
-              ))
+              // Cabeceras visuales de bloque: cada vez que cambia la subcategoría
+              // entre dos vinos consecutivos, insertamos un divisor con el nombre
+              // del bloque para que Agnes vea claro dónde empieza cada uno.
+              const ETIQUETAS_BLOQUE = {
+                'espumoso': '🥂 Espumosos · Cavas · Champagne',
+                'blanco mallorca': '🍷 Blancos · Mallorca',
+                'blanco nacional': '🍷 Blancos · Nacional',
+                'blanco internacional': '🍷 Blancos · Internacional',
+                'rosado': '🌸 Rosados',
+                'tinto mallorca': '🍇 Tintos · Mallorca',
+                'tinto nacional': '🍇 Tintos · Nacional',
+                'tinto internacional': '🍇 Tintos · Internacional',
+                'dulce': '🍯 Dulces',
+              }
+              const filas = []
+              let subAnterior = null
+              listaFiltrada.forEach((b, i) => {
+                const sub = (b.subcategoria || '').toLowerCase().trim()
+                if (sub !== subAnterior) {
+                  filas.push(
+                    <div key={`hdr-${sub}-${i}`} style={{
+                      marginTop: i === 0 ? '0' : '14px', marginBottom: '6px',
+                      fontSize:'10px', color:'var(--raco-khaki)', fontWeight:'700',
+                      letterSpacing:'0.12em', textTransform:'uppercase',
+                      borderBottom:'1px solid #333', paddingBottom:'4px',
+                    }}>
+                      {ETIQUETAS_BLOQUE[sub] || sub || '— sin subcategoría —'}
+                    </div>
+                  )
+                  subAnterior = sub
+                }
+                filas.push(
+                  <FilaListaAdmin key={b.id}
+                    bebida={b}
+                    esPrimera={i === 0}
+                    esUltima={i === listaFiltrada.length - 1}
+                    onEditar={() => abrirEditar(b)}
+                    onActualizarCampo={(campo, valor) => actualizarCampo(b.id, campo, valor)}
+                    onMover={dir => moverEnLista(b, dir, listaFiltrada)}
+                  />
+                )
+              })
+              return filas
             })()}
             </>)}
           </>

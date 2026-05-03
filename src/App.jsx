@@ -332,7 +332,9 @@ export default function App() {
       if (filtroFormato === 'ambos' && !(tieneCopa && tieneBot)) return false
     }
     if (categoriaActiva === 'todas') return true
-    const sub = (b.subcategoria || '').toLowerCase()
+    // .trim() defensivo: algunos vinos tienen espacios sobrantes en subcategoria
+    // (ej: " blanco nacional") que rompen startsWith. Limpiamos al filtrar.
+    const sub = (b.subcategoria || '').toLowerCase().trim()
     // Match grupo principal (espumoso, blanco, rosado, tinto, dulce)
     let okGrupo = false
     if (categoriaActiva === 'espumoso') okGrupo = sub === 'espumoso'

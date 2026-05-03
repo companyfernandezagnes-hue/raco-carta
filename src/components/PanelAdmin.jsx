@@ -37,6 +37,51 @@ const CAMPOS_IA = [
   'precio_copa','precio_botella','notas_ia'
 ]
 
+// --- Normalización de subcategoría ---
+// Los 9 valores válidos que reconoce el filtro de la carta (App.jsx + Categorias.jsx).
+// Si la IA devuelve "Blanco-Mallorca", "tinto crianza", "white", etc., los
+// mapeamos al valor canónico para que el vino aparezca en su categoría.
+const SUBCATEGORIAS_VALIDAS = [
+  'espumoso',
+  'blanco mallorca', 'blanco nacional', 'blanco internacional',
+  'rosado',
+  'tinto mallorca', 'tinto nacional', 'tinto internacional',
+  'dulce',
+]
+function normalizarSubcategoria(raw) {
+  if (!raw || typeof raw !== 'string') return ''
+  // Lower + sin acentos + espacios simples
+  const s = raw
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[-_/]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (SUBCATEGORIAS_VALIDAS.includes(s)) return s
+  // Espumosos / cava / champagne / prosecco / cremant
+  if (/(espumoso|cava|champagne|champan|prosecco|cremant|frizzante)/.test(s)) return 'espumoso'
+  // Dulce / oloroso / pedro ximenez / mistela
+  if (/(dulce|oloroso|moscatel dulce|pedro ximenez|mistela|porto|oporto|sherry|jerez)/.test(s)) return 'dulce'
+  // Rosado / rose / rosat / rosé
+  if (/(rosado|rosat|rose|pink)/.test(s)) return 'rosado'
+  // Blancos
+  if (/blanco|white|blanc/.test(s)) {
+    if (/mallorca|baleares|binissalem|pla i llevant/.test(s)) return 'blanco mallorca'
+    if (/internacional|francia|francais|french|italia|italian|aleman|german|austria|portugal|chile|argentina|nueva zelanda|new zealand|australia|sudafric|south africa|usa|estados unidos|california|oregon/.test(s)) return 'blanco internacional'
+    if (/nacional|espan|espan|rioja|rias baixas|ribera|priorat|penedes|rueda|verdejo|albarino|godello|valdeorras|monterrei|jumilla|navarra|catalunya|cataluna|galicia|castilla|aragon|valencia|murcia|andalucia/.test(s)) return 'blanco nacional'
+    return 'blanco internacional'
+  }
+  // Tintos
+  if (/tinto|red|negre|rouge|rosso/.test(s)) {
+    if (/mallorca|baleares|binissalem|pla i llevant/.test(s)) return 'tinto mallorca'
+    if (/internacional|francia|francais|french|italia|italian|aleman|german|austria|portugal|chile|argentina|nueva zelanda|new zealand|australia|sudafric|south africa|usa|estados unidos|california|oregon/.test(s)) return 'tinto internacional'
+    if (/nacional|espan|rioja|rias baixas|ribera|priorat|penedes|rueda|jumilla|navarra|catalunya|cataluna|galicia|castilla|aragon|valencia|murcia|andalucia|toro|bierzo|montsant/.test(s)) return 'tinto nacional'
+    return 'tinto internacional'
+  }
+  // No reconocido — devolver string vacío para que el caller decida
+  return ''
+}
+
 // --- MEJORA 4: Multiplicador por categoria ---
 // Destilados, vinos, cervezas, etc. usan baremos distintos
 const MULTIPLICADORES_CATEGORIA = {
@@ -143,11 +188,15 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
     } catch {
       throw new Error('Groq devolvió JSON inválido. Texto: ' + text.slice(0, 100))
     }
-    // Normalizar categoría y subcategoría a minúsculas para cumplir el
-    // check constraint de Supabase (categoria IN ('vino','cerveza',...)).
-    // Si la IA devuelve "Vino" → lo dejamos en "vino".
+    // Normalizar categoría a minúsculas (constraint Supabase) y subcategoría
+    // al valor canónico del filtro. Si la IA devuelve "Blanco Mallorca",
+    // "Vino Blanco de Mallorca", "blanco-mallorca"... todo cae en
+    // "blanco mallorca" para que el vino aparezca bien filtrado.
     if (typeof json.categoria === 'string') json.categoria = json.categoria.toLowerCase().trim()
-    if (typeof json.subcategoria === 'string') json.subcategoria = json.subcategoria.toLowerCase().trim()
+    if (typeof json.subcategoria === 'string') {
+      const norm = normalizarSubcategoria(json.subcategoria)
+      json.subcategoria = norm || json.subcategoria.toLowerCase().trim()
+    }
     setForm(prev => ({
       ...prev,
       ...Object.fromEntries(
@@ -685,12 +734,25 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
     setGuardando(true)
     try {
       const precioCosteVal = parsePrecio(calc.precioIva) ?? parsePrecio(form.precio_coste)
+      // Normalizar subcategoría a uno de los 9 valores válidos del filtro:
+      // espumoso, blanco mallorca, blanco nacional, blanco internacional,
+      // rosado, tinto mallorca, tinto nacional, tinto internacional, dulce.
+      // Cualquier variante (mayúsculas, guiones, plurales, palabras extra
+      // tipo "tinto crianza") se mapea al valor canónico.
+      const subcatNormalizada = normalizarSubcategoria(form.subcategoria)
       const datos = {
         ...form,
-        // Forzar minúsculas en categoria/subcategoria para no romper el
+        // Limpiar espacios sobrantes en nombre (un espacio al final hace que el
+        // ordenado y la búsqueda fallen). Igual con bodega y región.
+        nombre:  typeof form.nombre  === 'string' ? form.nombre.trim()  : form.nombre,
+        bodega:  typeof form.bodega  === 'string' ? form.bodega.trim()  : form.bodega,
+        region:  typeof form.region  === 'string' ? form.region.trim()  : form.region,
+        pais:    typeof form.pais    === 'string' ? form.pais.trim()    : form.pais,
+        // Forzar minúsculas + trim en categoria para no romper el
         // check constraint de Supabase (categoria IN ('vino','cerveza',...))
         categoria:    typeof form.categoria === 'string' ? form.categoria.toLowerCase().trim() : form.categoria,
-        subcategoria: typeof form.subcategoria === 'string' ? form.subcategoria.toLowerCase().trim() : form.subcategoria,
+        // Subcategoría: usar la normalizada (ya viene en lowercase + sin espacios sobrantes)
+        subcategoria: subcatNormalizada || (typeof form.subcategoria === 'string' ? form.subcategoria.toLowerCase().trim() : form.subcategoria),
         anada: form.anada ? parseInt(form.anada) : null,
         graduacion: parsePrecio(form.graduacion),
         precio_copa: parsePrecio(form.precio_copa),
@@ -1562,9 +1624,46 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
 
             {/* CAMPOS BASICOS */}
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 16px'}}>
+              {/* Nombre */}
+              <div>
+                <label style={label}>Nombre *</label>
+                <input style={inp} type="text" value={form.nombre ?? ''} onChange={e => setForm(p => ({...p, nombre: e.target.value}))} />
+              </div>
+              {/* Categoría — SELECT fijo (debe coincidir con el check constraint de Supabase) */}
+              <div>
+                <label style={label}>Categoria *</label>
+                <select style={inp} value={form.categoria ?? ''} onChange={e => setForm(p => ({...p, categoria: e.target.value}))}>
+                  <option value="">— elige —</option>
+                  <option value="vino">Vino</option>
+                  <option value="cerveza">Cerveza</option>
+                  <option value="coctel">Cóctel</option>
+                  <option value="refresco">Refresco</option>
+                  <option value="agua">Agua</option>
+                  <option value="cafe">Café</option>
+                  <option value="destilado">Destilado</option>
+                  <option value="otro">Otro</option>
+                </select>
+              </div>
+              {/* Subcategoría — SELECT fijo (los valores deben encajar EXACTAMENTE con
+                  el filtro de App.jsx y Categorias.jsx — texto libre se sale del filtro) */}
+              <div>
+                <label style={label}>Subcategoria</label>
+                <select style={inp} value={form.subcategoria ?? ''} onChange={e => setForm(p => ({...p, subcategoria: e.target.value}))}>
+                  <option value="">— elige —</option>
+                  <option value="espumoso">Espumoso (cava · champagne)</option>
+                  <option value="blanco mallorca">Blanco · Mallorca</option>
+                  <option value="blanco nacional">Blanco · Nacional</option>
+                  <option value="blanco internacional">Blanco · Internacional</option>
+                  <option value="rosado">Rosado</option>
+                  <option value="tinto mallorca">Tinto · Mallorca</option>
+                  <option value="tinto nacional">Tinto · Nacional</option>
+                  <option value="tinto internacional">Tinto · Internacional</option>
+                  <option value="dulce">Dulce</option>
+                </select>
+              </div>
+              {/* Resto de campos básicos (texto/número libres) */}
               {[
-                ['Nombre *','nombre','text'],['Categoria *','categoria','text'],
-                ['Subcategoria','subcategoria','text'],['Bodega','bodega','text'],
+                ['Bodega','bodega','text'],
                 ['Productor','productor','text'],['Pais','pais','text'],
                 ['Region / D.O.','region','text'],['Anada','anada','number'],
                 ['Uva principal','uvas','text'],['Uva secundaria','tipo_uva_secundaria','text'],

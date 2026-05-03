@@ -41,14 +41,14 @@ export default function Categorias({ categoriaActiva, subcategoriaActiva, onCate
   const cuentaGrupo = (gid) => {
     const grupo = GRUPOS.find(g => g.id === gid)
     if (!grupo) return 0
-    return bebidas.filter(b => grupo.match((b.subcategoria || '').toLowerCase())).length
+    return bebidas.filter(b => grupo.match((b.subcategoria || '').toLowerCase().trim())).length
   }
   const cuentaOrigen = (oid) => {
     const grupo = GRUPOS.find(g => g.id === categoriaActiva)
     const origen = ORIGENES.find(o => o.id === oid)
     if (!grupo || !origen) return 0
     return bebidas.filter(b => {
-      const s = (b.subcategoria || '').toLowerCase()
+      const s = (b.subcategoria || '').toLowerCase().trim()
       return grupo.match(s) && origen.match(s)
     }).length
   }

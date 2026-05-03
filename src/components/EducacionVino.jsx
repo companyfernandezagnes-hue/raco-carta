@@ -2,13 +2,15 @@
 // Pantalla con 3 tabs:
 //   1. Cómo funciona — explica los gestos y secciones de la carta
 //   2. Saber más     — mini-curso de vino: tipos, DO, uvas, crianzas, estilos
-//   3. Newsletter    — formulario simple de suscripción (guarda en Supabase)
+//   3. Newsletter    — botón que abre el Google Form externo
 //
 // Multi-idioma (ES/CA/EN/DE) desde el primer render.
 // Diseño en línea con la estética cream/khaki/sand de raco.
 
 import { useState } from 'react'
-import { supabaseAdmin, hasSupabaseAdmin } from '../lib/supabaseAdmin'
+
+// URL del Google Form de suscripción del Racó. Si cambia, se actualiza aquí.
+const NEWSLETTER_URL = 'https://forms.gle/AWNUjKAhcfVtjc4x7'
 
 // ─── TEXTOS ──────────────────────────────────────────────────────────────────
 const T = {
@@ -322,46 +324,10 @@ function TabSaber({ idioma }) {
 }
 
 // ─── Tab: Newsletter ─────────────────────────────────────────────────────────
+// El formulario vive en un Google Form. Aquí solo presentamos un botón
+// que lo abre en pestaña nueva. Si en el futuro cambia la URL, se cambia
+// la constante NEWSLETTER_URL arriba.
 function TabNewsletter({ idioma }) {
-  const [nombre, setNombre] = useState('')
-  const [email, setEmail] = useState('')
-  const [estado, setEstado] = useState('idle') // idle | enviando | ok | err | noconf
-  const [errMsg, setErrMsg] = useState('')
-
-  async function suscribir(e) {
-    e.preventDefault()
-    if (!email.includes('@')) { setEstado('err'); setErrMsg('Email no válido'); return }
-    if (!hasSupabaseAdmin()) { setEstado('noconf'); return }
-    setEstado('enviando')
-    try {
-      const { error } = await supabaseAdmin.from('suscripciones_newsletter').insert([{
-        nombre: nombre.trim() || null,
-        email: email.trim().toLowerCase(),
-        idioma,
-        creado_en: new Date().toISOString(),
-      }])
-      if (error) {
-        // Si la tabla no existe, mostrar mensaje específico
-        if (/does not exist|relation/i.test(error.message)) {
-          setEstado('noconf')
-          return
-        }
-        // Email ya suscrito (unique violation): tratamos como OK
-        if (/duplicate|unique/i.test(error.message)) {
-          setEstado('ok')
-          return
-        }
-        setEstado('err')
-        setErrMsg(error.message)
-        return
-      }
-      setEstado('ok')
-    } catch (e) {
-      setEstado('err')
-      setErrMsg(e.message)
-    }
-  }
-
   return (
     <div style={{ maxWidth: '440px', margin: '0 auto', textAlign: 'center' }}>
       <div style={{ fontSize: '34px', marginBottom: '14px' }}>✉</div>
@@ -371,72 +337,39 @@ function TabNewsletter({ idioma }) {
       }}>{tt(idioma, 'n1')}</h3>
       <p style={{
         fontFamily: 'var(--font-body)', fontSize: '13px', fontWeight: '300',
-        color: 'var(--raco-stone)', lineHeight: '1.6', marginBottom: '24px',
+        color: 'var(--raco-stone)', lineHeight: '1.6', marginBottom: '28px',
       }}>{tt(idioma, 'n2')}</p>
 
-      {estado === 'ok' ? (
-        <div style={{
-          padding: '24px 18px',
-          background: 'rgba(107,122,62,0.10)',
-          border: '1px solid var(--raco-khaki)',
-          borderRadius: '14px',
-          fontFamily: 'var(--font-brand)', fontSize: '17px',
-          color: 'var(--raco-khaki)',
-        }}>{tt(idioma, 'nOk')}</div>
-      ) : estado === 'noconf' ? (
-        <div style={{
-          padding: '18px',
-          background: 'rgba(196,120,106,0.10)',
-          border: '1px solid #C4786A',
-          borderRadius: '14px',
-          fontFamily: 'var(--font-body)', fontSize: '12px',
-          color: '#8a3a2a', lineHeight: '1.5',
-        }}>{tt(idioma, 'nNoConf')}</div>
-      ) : (
-        <form onSubmit={suscribir} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <input
-            type="text" placeholder={tt(idioma, 'nNombre')}
-            value={nombre} onChange={e => setNombre(e.target.value)}
-            style={inputStyle}
-          />
-          <input
-            type="email" required placeholder={tt(idioma, 'nEmail')}
-            value={email} onChange={e => setEmail(e.target.value)}
-            style={inputStyle}
-          />
-          <button type="submit" disabled={estado === 'enviando'} style={{
-            fontFamily: 'var(--font-body)', fontSize: '13px', fontWeight: '500',
-            letterSpacing: '0.14em', textTransform: 'uppercase',
-            padding: '14px', borderRadius: '12px', border: 'none',
-            background: 'var(--raco-khaki)', color: 'var(--raco-cream)',
-            cursor: 'pointer', transition: 'opacity 0.2s',
-            opacity: estado === 'enviando' ? 0.6 : 1,
-          }}>
-            {estado === 'enviando' ? tt(idioma, 'nEnviando') : tt(idioma, 'nBoton')}
-          </button>
-          {estado === 'err' && (
-            <p style={{
-              fontFamily: 'var(--font-body)', fontSize: '12px', color: '#C4786A',
-              marginTop: '4px',
-            }}>{tt(idioma, 'nErr')}{errMsg ? ' — ' + errMsg : ''}</p>
-          )}
-        </form>
-      )}
+      <a
+        href={NEWSLETTER_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+          fontFamily: 'var(--font-body)', fontSize: '13px', fontWeight: '500',
+          letterSpacing: '0.14em', textTransform: 'uppercase',
+          padding: '16px 28px', borderRadius: '12px',
+          background: 'var(--raco-khaki)', color: 'var(--raco-cream)',
+          textDecoration: 'none', cursor: 'pointer',
+          boxShadow: '0 4px 12px rgba(107,122,62,0.20)',
+          transition: 'all 0.2s',
+        }}
+        onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(107,122,62,0.28)' }}
+        onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(107,122,62,0.20)' }}
+      >
+        {tt(idioma, 'nBoton')}
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M7 17 17 7"/><path d="M7 7h10v10"/>
+        </svg>
+      </a>
 
       <p style={{
         fontFamily: 'var(--font-body)', fontSize: '11px', fontWeight: '300',
-        color: 'var(--raco-stone)', marginTop: '20px', opacity: 0.7,
+        color: 'var(--raco-stone)', marginTop: '24px', opacity: 0.7,
         fontStyle: 'italic',
       }}>{tt(idioma, 'nPriv')}</p>
     </div>
   )
-}
-
-const inputStyle = {
-  fontFamily: 'var(--font-body)', fontSize: '14px', fontWeight: '300',
-  padding: '14px 16px', borderRadius: '12px',
-  border: '1px solid var(--raco-sand)', background: 'var(--raco-paper)',
-  color: 'var(--raco-black)', outline: 'none',
 }
 
 // ─── Iconos ──────────────────────────────────────────────────────────────────

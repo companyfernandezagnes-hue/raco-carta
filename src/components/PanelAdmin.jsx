@@ -2994,12 +2994,16 @@ function TraduccionesEditor({ bebidaId, apiKey, datosES }) {
   }
   useEffect(() => { cargar() }, [bebidaId])
 
-  async function guardarTodo() {
+  // Guarda las 3 filas (CA/EN/DE) en bebidas_traducciones.
+  // Acepta `datos` opcional para no depender del state de React (que es async)
+  // — útil cuando llamamos justo después de un setTrads y no podemos esperar.
+  async function guardarTodo(datos) {
     if (!bebidaId) return
+    const fuente = datos || trads
     setEstado('guardando'); setMsg('')
     try {
       for (const idioma of ['ca','en','de']) {
-        const t = trads[idioma] || {}
+        const t = fuente[idioma] || {}
         const fila = {
           bebida_id: bebidaId, idioma,
           nombre: t.nombre || null, descripcion: t.descripcion || null,
@@ -3015,9 +3019,17 @@ function TraduccionesEditor({ bebidaId, apiKey, datosES }) {
         const { error } = await supabaseAdmin.from('bebidas_traducciones').upsert(fila, { onConflict: 'bebida_id,idioma' })
         if (error) throw error
       }
-      setEstado('listo'); setMsg('✓ Traducciones guardadas')
-      setTimeout(() => setMsg(''), 3000)
-    } catch (e) { setEstado('error'); setMsg('Error guardando: ' + e.message) }
+      setEstado('listo')
+      return { ok: true }
+    } catch (e) {
+      setEstado('error'); setMsg('Error guardando: ' + e.message)
+      return { ok: false, error: e.message }
+    }
+  }
+  // Versión "manual" que muestra confirmación al usuario al pulsar 💾
+  async function guardarTodoManual() {
+    const r = await guardarTodo()
+    if (r?.ok) { setMsg('✓ Traducciones guardadas'); setTimeout(() => setMsg(''), 3000) }
   }
 
   async function reTraducirIA() {
@@ -3030,11 +3042,16 @@ function TraduccionesEditor({ bebidaId, apiKey, datosES }) {
       for (const idioma of ['ca','en','de']) {
         const t = res[idioma]
         if (!t) continue
-        // Conservar bebida_id e idioma; sobrescribir el resto con la nueva traducción.
         next[idioma] = { ...next[idioma], ...t, bebida_id: bebidaId, idioma }
       }
       setTrads(next)
-      setMsg('✓ Traducciones rellenadas. Revisa y guarda.')
+      // Auto-guardar tras IA — igual que Google
+      setMsg('Guardando en Supabase…')
+      const r = await guardarTodo(next)
+      if (r?.ok) {
+        setMsg('✓ Traducciones IA guardadas. Revisa si quieres retocar.')
+        setTimeout(() => setMsg(''), 4000)
+      }
     } catch (e) { setMsg('Error IA: ' + e.message) }
     finally { setRetraduciendo(false) }
   }
@@ -3045,6 +3062,7 @@ function TraduccionesEditor({ bebidaId, apiKey, datosES }) {
 
   // Auto-traducir TODO con Google: rellena las 3 columnas CA/EN/DE con la
   // traducción de Google del campo en español. Es gratis, rápido, sin cuota.
+  // Auto-guarda en Supabase al terminar — Agnes no tiene que pulsar 💾.
   async function autoTraducirGoogle() {
     if (!datosES) return
     setTranslatingGoogle('todo'); setMsg('Traduciendo con Google…')
@@ -3062,18 +3080,32 @@ function TraduccionesEditor({ bebidaId, apiKey, datosES }) {
       }
     }
     setTrads(next)
+    // Auto-guardar en Supabase con los datos recién traducidos
+    setMsg('Guardando en Supabase…')
+    const r = await guardarTodo(next)
     setTranslatingGoogle(null)
-    setMsg(`✓ Auto-traducidos ${ok} campos con Google${err ? ` (${err} errores)` : ''}. Revisa y guarda.`)
+    if (r?.ok) {
+      setMsg(`✓ Traducidos y guardados ${ok} campos con Google${err ? ` (${err} errores)` : ''}.`)
+      setTimeout(() => setMsg(''), 4000)
+    }
   }
 
   // Retraduce una sola celda (idioma + campo) — botón mini 🔄
+  // Auto-guarda en Supabase al instante.
   async function traducirCelda(idioma, campoKey) {
     const valES = datosES?.[campoKey]
     if (!valES) return
     setTranslatingGoogle({ idioma, key: campoKey })
     try {
       const traducido = await googleTranslate(valES, idioma)
-      setCampo(idioma, campoKey, traducido)
+      const next = { ...trads, [idioma]: { ...(trads[idioma] || {}), [campoKey]: traducido } }
+      setTrads(next)
+      // Auto-guardar
+      const r = await guardarTodo(next)
+      if (r?.ok) {
+        setMsg(`✓ ${idioma.toUpperCase()} · ${campoKey} traducido y guardado`)
+        setTimeout(() => setMsg(''), 2500)
+      }
     } catch (e) { setMsg('Google falló: ' + e.message) }
     finally { setTranslatingGoogle(null) }
   }
@@ -3116,10 +3148,11 @@ function TraduccionesEditor({ bebidaId, apiKey, datosES }) {
               opacity: retraduciendo ? 0.6 : 1 }}>
             {retraduciendo ? '⏳ IA…' : '✦ Re-traducir con IA'}
           </button>
-          <button type="button" onClick={guardarTodo} disabled={estado==='guardando'}
+          <button type="button" onClick={guardarTodoManual} disabled={estado==='guardando'}
+            title="Guarda los cambios manuales que hayas hecho a los textos. Las traducciones automáticas (Google/IA) ya se guardan solas."
             style={{ background:'#4ade80', color:'#0f1f0f', border:'none', borderRadius:'8px',
               padding:'8px 14px', cursor:'pointer', fontSize:'12px', fontWeight:'700' }}>
-            💾 Guardar traducciones
+            💾 Guardar cambios manuales
           </button>
         </div>
       </div>

@@ -33,7 +33,8 @@ function inferirTipo(p) {
 const CAMPOS_IA = [
   'nombre','categoria','subcategoria','descripcion','bodega','productor',
   'pais','region','anada','uvas','tipo_uva_secundaria','parcela',
-  'nota_cata','maridajes','temperatura','graduacion',
+  'nota_cata','nota_visual','nota_nariz','nota_boca',
+  'maridajes','temperatura','graduacion',
   'precio_copa','precio_botella','notas_ia'
 ]
 
@@ -175,7 +176,7 @@ async function rellenarConIA({ nombre, fotoBase64, apiKey, setForm, setIaLoading
     if (fotoBase64) {
       throw new Error('Análisis de foto no disponible con Groq. Escribe el nombre del vino y la IA rellenará el resto.')
     }
-    const systemPrompt = `Eres un sumiller experto. Dado el nombre de un vino/bebida, devuelves una ficha completa en JSON puro con estos campos: nombre, categoria (SIEMPRE EN MINÚSCULAS, valores válidos: vino|cerveza|coctel|refresco|agua|cafe|destilado|otro), subcategoria (espumoso/blanco mallorca/blanco nacional/blanco internacional/rosado/tinto mallorca/tinto nacional/tinto internacional/dulce), descripcion (frase comercial corta), bodega, productor, pais, region (denominación de origen), anada (año o null), uvas, tipo_uva_secundaria, parcela, nota_cata, maridajes (array), temperatura, graduacion (número o null), precio_copa (null), precio_botella (null), notas_ia (historia + curiosidad). REGLAS: solo datos reales y conocidos; si no sabes algo, null; NO inventes; devuelve SOLO JSON sin texto extra.`
+    const systemPrompt = `Eres un sumiller experto. Dado el nombre de un vino/bebida, devuelves una ficha completa en JSON puro con estos campos: nombre, categoria (SIEMPRE EN MINÚSCULAS, valores válidos: vino|cerveza|coctel|refresco|agua|cafe|destilado|otro), subcategoria (espumoso/blanco mallorca/blanco nacional/blanco internacional/rosado/tinto mallorca/tinto nacional/tinto internacional/dulce), descripcion (frase comercial corta), bodega, productor, pais, region (denominación de origen), anada (año o null), uvas, tipo_uva_secundaria, parcela, nota_cata (frase resumen corta tipo titular), nota_visual (color, limpidez, brillo — 1 frase), nota_nariz (aromas a fruta/flores/madera — 1 frase), nota_boca (ataque, acidez, taninos, cuerpo — 1 frase), maridajes (array), temperatura, graduacion (número o null), precio_copa (null), precio_botella (null), notas_ia (historia + curiosidad). MUY IMPORTANTE: rellena nota_visual, nota_nariz y nota_boca con frases independientes y diferentes (NO repetir lo mismo en las tres). nota_cata puede ser un titular general o quedar vacío si las otras tres están bien. REGLAS: solo datos reales y conocidos; si no sabes algo, null; NO inventes; devuelve SOLO JSON sin texto extra.`
     const text = await llamarGroq({
       systemPrompt,
       userPrompt: `Rellena la ficha completa de este vino: ${nombre}`,
@@ -664,6 +665,7 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
       anada: b.anada || '', uvas: b.uvas || '',
       tipo_uva_secundaria: b.tipo_uva_secundaria || '', parcela: b.parcela || '',
       nota_cata: b.nota_cata || '',
+      nota_visual: b.nota_visual || '', nota_nariz: b.nota_nariz || '', nota_boca: b.nota_boca || '',
       maridajes: Array.isArray(b.maridajes) ? b.maridajes.join(', ') : (b.maridajes || ''),
       temperatura: b.temperatura || '', graduacion: b.graduacion || '',
       precio_copa: b.precio_copa || '', precio_botella: b.precio_botella || '',
@@ -716,7 +718,8 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
     setForm({
       nombre:'',categoria:'',subcategoria:'',descripcion:'',bodega:'',productor:'',
       pais:'Espana',region:'',anada:'',uvas:'',tipo_uva_secundaria:'',parcela:'',
-      nota_cata:'',maridajes:'',temperatura:'',graduacion:'',precio_copa:'',
+      nota_cata:'',nota_visual:'',nota_nariz:'',nota_boca:'',
+      maridajes:'',temperatura:'',graduacion:'',precio_copa:'',
       precio_botella:'',precio_coste:'',disponible:true,destacado:false,
       foto_url:'',orden:0,notas_ia:'',puntuaciones:[]
     })
@@ -1951,9 +1954,51 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
             <textarea style={{...inp,minHeight:'60px',resize:'vertical'}} value={form.descripcion||''}
               onChange={e=>setForm(p=>({...p,descripcion:e.target.value}))} />
 
-            <label style={label}>Nota de cata</label>
-            <textarea style={{...inp,minHeight:'60px',resize:'vertical'}} value={form.nota_cata||''}
-              onChange={e=>setForm(p=>({...p,nota_cata:e.target.value}))} />
+            <label style={label}>Nota de cata (resumen general — opcional)</label>
+            <textarea style={{...inp,minHeight:'50px',resize:'vertical'}} value={form.nota_cata||''}
+              onChange={e=>setForm(p=>({...p,nota_cata:e.target.value}))}
+              placeholder="Frase corta tipo titular. Si rellenas Vista/Nariz/Boca abajo, este se puede dejar vacío." />
+
+            {/* Notas de cata separadas — son las que se muestran en la ficha del cliente
+                (DetalleBebida.jsx → NotasVistaNariz). Tener los 3 campos separados
+                permite ver exactamente cómo quedará la carta y traducirlos uno a uno. */}
+            <div style={{
+              background:'#1a1a1a', border:'1px solid #333', borderRadius:'10px',
+              padding:'14px 16px', marginTop:'10px', marginBottom:'10px',
+            }}>
+              <div style={{
+                fontSize:'11px', color:'var(--raco-khaki)', fontWeight:'600',
+                letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:'10px',
+              }}>
+                ✦ Cata por fases (lo que ve el cliente en la ficha)
+              </div>
+
+              <label style={label}>👁 Vista</label>
+              <textarea style={{...inp,minHeight:'50px',resize:'vertical'}}
+                value={form.nota_visual||''}
+                onChange={e=>setForm(p=>({...p,nota_visual:e.target.value}))}
+                placeholder="Color, limpidez, brillo, capa…" />
+
+              <label style={label}>👃 Nariz / Olfato</label>
+              <textarea style={{...inp,minHeight:'50px',resize:'vertical'}}
+                value={form.nota_nariz||''}
+                onChange={e=>setForm(p=>({...p,nota_nariz:e.target.value}))}
+                placeholder="Aromas primarios (fruta, flores), secundarios (fermentación), terciarios (madera)…" />
+
+              <label style={label}>👅 Boca / Gusto</label>
+              <textarea style={{...inp,minHeight:'50px',resize:'vertical'}}
+                value={form.nota_boca||''}
+                onChange={e=>setForm(p=>({...p,nota_boca:e.target.value}))}
+                placeholder="Ataque, acidez, taninos, cuerpo, persistencia…" />
+
+              <p style={{
+                fontSize:'11px', color:'#888', margin:'6px 0 0', lineHeight:'1.5',
+              }}>
+                Si rellenas estos 3 campos, el cliente verá la cata bonita dividida
+                con iconos. Si solo rellenas "Nota de cata" arriba, saldrá como un
+                único bloque en cursiva.
+              </p>
+            </div>
 
             <label style={label}>Maridajes (separados por coma)</label>
             <input style={inp} value={form.maridajes||''}

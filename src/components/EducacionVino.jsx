@@ -9,8 +9,16 @@
 
 import { useState } from 'react'
 
-// URL del Google Form de suscripción del Racó. Si cambia, se actualiza aquí.
-const NEWSLETTER_URL = 'https://forms.gle/AWNUjKAhcfVtjc4x7'
+// Google Form de suscripción del Racó.
+// Submit silencioso vía mode:'no-cors' a /formResponse.
+// Si en el futuro se cambia el form, hay que actualizar:
+//   - FORM_ID (saca redirigiendo el shortlink)
+//   - ENTRY_EMAIL  → entry.XXXXX del campo Email
+//   - ENTRY_CONSENT → entry.XXXXX del checkbox de aceptación
+const FORM_ID = '1FAIpQLScuLJMV6q4HmRiXL_UKO7JWj3YZ60tIfWCnYiH2qVDIZZ2IZQ'
+const ENTRY_EMAIL = 'entry.12182691'
+const ENTRY_CONSENT = 'entry.1719803586'
+const FORM_SUBMIT_URL = `https://docs.google.com/forms/d/e/${FORM_ID}/formResponse`
 
 // ─── TEXTOS ──────────────────────────────────────────────────────────────────
 const T = {
@@ -51,12 +59,17 @@ const T = {
     n2: 'Suscríbete y recibirás un email puntual cuando hagamos cata, ampliemos la carta o tengamos algo especial en Racó.',
     nNombre: 'Nombre',
     nEmail: 'Email',
+    nEmailInv: 'Pon un email válido, por favor.',
     nBoton: 'Suscribirme',
     nEnviando: 'Enviando…',
     nOk: '¡Gracias! Ya estás dentro 🎉',
     nErr: 'Ha fallado. Inténtalo en un rato, por favor.',
     nNoConf: 'La suscripción aún no está conectada. Pídele al equipo que configure las claves Supabase.',
     nPriv: 'Solo te escribimos lo justo. Sin spam. Puedes darte de baja cuando quieras.',
+    tTitulo: 'Confirmación',
+    tCuerpo: 'Al confirmar aceptas recibir comunicaciones puntuales del Racó (catas, novedades, eventos). Tratamos tus datos según el RGPD; puedes darte de baja en cualquier momento contestando "BAJA" a cualquier email.',
+    tCancelar: 'Cancelar',
+    tAceptar: 'Acepto y me suscribo',
     cerrar: 'Cerrar',
   },
   ca: {
@@ -91,10 +104,15 @@ const T = {
     s7: 'Peix i marisc → blanc o escumós. Carn vermella → negre amb cos. Carn blanca → negre suau o blanc amb bóta. Plat gras → vi amb acidesa. Plat picant → vi amb un punt de dolçor. Postre → vi dolç o escumós semi.',
     n1: 'Vols que t\'avisem de novetats, tasts i esdeveniments?',
     n2: 'Subscriu-te i rebràs un correu puntual quan fem un tast, ampliem la carta o tinguem alguna cosa especial al Racó.',
-    nNombre: 'Nom', nEmail: 'Email', nBoton: 'Subscriure\'m', nEnviando: 'Enviant…',
+    nNombre: 'Nom', nEmail: 'Email', nEmailInv: 'Posa-hi un email vàlid, si us plau.',
+    nBoton: 'Subscriure\'m', nEnviando: 'Enviant…',
     nOk: 'Gràcies! Ja estàs dins 🎉', nErr: 'Hi ha hagut un error. Torna-ho a provar.',
     nNoConf: 'La subscripció encara no està connectada. Demana a l\'equip que configuri Supabase.',
     nPriv: 'Només t\'escrivim el just. Sense spam. Pots donar-te de baixa quan vulguis.',
+    tTitulo: 'Confirmació',
+    tCuerpo: 'En confirmar acceptes rebre comunicacions puntuals del Racó (tasts, novetats, esdeveniments). Tractem les teves dades segons el RGPD; pots donar-te de baixa en qualsevol moment responent "BAIXA" a qualsevol correu.',
+    tCancelar: 'Cancel·lar',
+    tAceptar: 'Accepto i em subscric',
     cerrar: 'Tancar',
   },
   en: {
@@ -129,10 +147,15 @@ const T = {
     s7: 'Fish and seafood → white or sparkling. Red meat → full-bodied red. White meat → light red or oaked white. Fatty dish → wine with acidity. Spicy dish → wine with a touch of sweetness. Dessert → sweet or semi-sparkling.',
     n1: 'Want news about tastings and events?',
     n2: 'Subscribe and you\'ll get the occasional email when we run a tasting, expand the menu or have something special at Racó.',
-    nNombre: 'Name', nEmail: 'Email', nBoton: 'Subscribe', nEnviando: 'Sending…',
+    nNombre: 'Name', nEmail: 'Email', nEmailInv: 'Please enter a valid email.',
+    nBoton: 'Subscribe', nEnviando: 'Sending…',
     nOk: 'Thanks! You\'re in 🎉', nErr: 'Something failed. Please try again.',
     nNoConf: 'Subscription is not connected yet. Ask the team to configure Supabase.',
     nPriv: 'We only write what\'s worth it. No spam. Unsubscribe anytime.',
+    tTitulo: 'Confirmation',
+    tCuerpo: 'By confirming you agree to receive occasional emails from Racó (tastings, news, events). We handle your data under GDPR; you can unsubscribe anytime by replying "UNSUBSCRIBE" to any email.',
+    tCancelar: 'Cancel',
+    tAceptar: 'Accept and subscribe',
     cerrar: 'Close',
   },
   de: {
@@ -167,10 +190,15 @@ const T = {
     s7: 'Fisch und Meeresfrüchte → weiß oder schaumig. Rotes Fleisch → kräftiger Roter. Weißes Fleisch → leichter Roter oder Holzfass-Weißer. Fettiges Gericht → Wein mit Säure. Scharfes → leicht süßlicher Wein. Dessert → süßer oder halbtrockener Schaumwein.',
     n1: 'Wir halten dich über Verkostungen und Events auf dem Laufenden?',
     n2: 'Abonniere und du bekommst gelegentlich eine E-Mail, wenn wir verkosten, die Karte erweitern oder etwas Besonderes bei Racó passiert.',
-    nNombre: 'Name', nEmail: 'E-Mail', nBoton: 'Abonnieren', nEnviando: 'Senden…',
+    nNombre: 'Name', nEmail: 'E-Mail', nEmailInv: 'Bitte gib eine gültige E-Mail ein.',
+    nBoton: 'Abonnieren', nEnviando: 'Senden…',
     nOk: 'Danke! Du bist dabei 🎉', nErr: 'Etwas ging schief. Bitte erneut versuchen.',
     nNoConf: 'Newsletter noch nicht verbunden. Bitte das Team, Supabase zu konfigurieren.',
     nPriv: 'Wir schreiben nur das Nötigste. Kein Spam. Jederzeit abbestellbar.',
+    tTitulo: 'Bestätigung',
+    tCuerpo: 'Mit der Bestätigung erklärst du dich einverstanden, gelegentliche E-Mails vom Racó zu erhalten (Verkostungen, Neuigkeiten, Events). Wir behandeln deine Daten nach DSGVO; du kannst dich jederzeit abmelden, indem du "ABMELDEN" auf eine E-Mail antwortest.',
+    tCancelar: 'Abbrechen',
+    tAceptar: 'Akzeptieren und abonnieren',
     cerrar: 'Schließen',
   },
 }
@@ -324,10 +352,39 @@ function TabSaber({ idioma }) {
 }
 
 // ─── Tab: Newsletter ─────────────────────────────────────────────────────────
-// El formulario vive en un Google Form. Aquí solo presentamos un botón
-// que lo abre en pestaña nueva. Si en el futuro cambia la URL, se cambia
-// la constante NEWSLETTER_URL arriba.
+// Formulario inline → submit silencioso al Google Form (mode: no-cors).
+// Flujo: cliente escribe email → modal de aceptación de términos →
+// confirma → POST silencioso a /formResponse → toast "✓ Gracias".
+// El cliente NUNCA ve el Google Form, todo pasa dentro de la web.
 function TabNewsletter({ idioma }) {
+  const [email, setEmail] = useState('')
+  const [estado, setEstado] = useState('idle') // idle | terminos | enviando | ok | err
+  const [errMsg, setErrMsg] = useState('')
+
+  function pedirTerminos(e) {
+    e.preventDefault()
+    if (!email.includes('@')) { setErrMsg(tt(idioma,'nEmailInv')); setEstado('err'); return }
+    setErrMsg('')
+    setEstado('terminos')
+  }
+
+  async function enviar() {
+    setEstado('enviando')
+    try {
+      // Google Forms NO soporta CORS, así que usamos mode:'no-cors'.
+      // El navegador envía la petición pero no puede leer la respuesta.
+      // Si fetch no falla por red, asumimos que llegó (Google responde 200).
+      const fd = new FormData()
+      fd.append(ENTRY_EMAIL, email.trim().toLowerCase())
+      fd.append(ENTRY_CONSENT, 'si')   // checkbox marcado
+      await fetch(FORM_SUBMIT_URL, { method: 'POST', mode: 'no-cors', body: fd })
+      setEstado('ok')
+    } catch (e) {
+      setEstado('err')
+      setErrMsg(tt(idioma,'nErr'))
+    }
+  }
+
   return (
     <div style={{ maxWidth: '440px', margin: '0 auto', textAlign: 'center' }}>
       <div style={{ fontSize: '34px', marginBottom: '14px' }}>✉</div>
@@ -337,39 +394,114 @@ function TabNewsletter({ idioma }) {
       }}>{tt(idioma, 'n1')}</h3>
       <p style={{
         fontFamily: 'var(--font-body)', fontSize: '13px', fontWeight: '300',
-        color: 'var(--raco-stone)', lineHeight: '1.6', marginBottom: '28px',
+        color: 'var(--raco-stone)', lineHeight: '1.6', marginBottom: '24px',
       }}>{tt(idioma, 'n2')}</p>
 
-      <a
-        href={NEWSLETTER_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{
-          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
-          fontFamily: 'var(--font-body)', fontSize: '13px', fontWeight: '500',
-          letterSpacing: '0.14em', textTransform: 'uppercase',
-          padding: '16px 28px', borderRadius: '12px',
-          background: 'var(--raco-khaki)', color: 'var(--raco-cream)',
-          textDecoration: 'none', cursor: 'pointer',
-          boxShadow: '0 4px 12px rgba(107,122,62,0.20)',
-          transition: 'all 0.2s',
-        }}
-        onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(107,122,62,0.28)' }}
-        onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(107,122,62,0.20)' }}
-      >
-        {tt(idioma, 'nBoton')}
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M7 17 17 7"/><path d="M7 7h10v10"/>
-        </svg>
-      </a>
+      {estado === 'ok' ? (
+        <div style={{
+          padding: '24px 18px',
+          background: 'rgba(107,122,62,0.10)',
+          border: '1px solid var(--raco-khaki)',
+          borderRadius: '14px',
+          fontFamily: 'var(--font-brand)', fontSize: '17px',
+          color: 'var(--raco-khaki)',
+        }}>{tt(idioma, 'nOk')}</div>
+      ) : (
+        <form onSubmit={pedirTerminos} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <input
+            type="email" required placeholder={tt(idioma, 'nEmail')}
+            value={email} onChange={e => { setEmail(e.target.value); if (estado === 'err') setEstado('idle') }}
+            disabled={estado === 'enviando'}
+            style={inputStyle}
+          />
+          <button type="submit" disabled={estado === 'enviando' || estado === 'terminos'} style={{
+            fontFamily: 'var(--font-body)', fontSize: '13px', fontWeight: '500',
+            letterSpacing: '0.14em', textTransform: 'uppercase',
+            padding: '14px', borderRadius: '12px', border: 'none',
+            background: 'var(--raco-khaki)', color: 'var(--raco-cream)',
+            cursor: 'pointer', transition: 'opacity 0.2s',
+            opacity: (estado === 'enviando' || estado === 'terminos') ? 0.6 : 1,
+          }}>
+            {estado === 'enviando' ? tt(idioma, 'nEnviando') : tt(idioma, 'nBoton')}
+          </button>
+          {estado === 'err' && (
+            <p style={{
+              fontFamily: 'var(--font-body)', fontSize: '12px', color: '#C4786A',
+              marginTop: '4px',
+            }}>{errMsg}</p>
+          )}
+        </form>
+      )}
 
       <p style={{
         fontFamily: 'var(--font-body)', fontSize: '11px', fontWeight: '300',
-        color: 'var(--raco-stone)', marginTop: '24px', opacity: 0.7,
+        color: 'var(--raco-stone)', marginTop: '20px', opacity: 0.7,
         fontStyle: 'italic',
       }}>{tt(idioma, 'nPriv')}</p>
+
+      {/* Modal de aceptación de términos */}
+      {estado === 'terminos' && (
+        <ModalTerminos idioma={idioma} email={email}
+          onCancelar={() => setEstado('idle')}
+          onAceptar={enviar} />
+      )}
     </div>
   )
+}
+
+function ModalTerminos({ idioma, email, onCancelar, onAceptar }) {
+  return (
+    <div
+      onClick={e => e.target === e.currentTarget && onCancelar()}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 9000,
+        background: 'rgba(28,28,14,0.55)', backdropFilter: 'blur(4px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '20px',
+      }}>
+      <div style={{
+        background: 'var(--raco-cream)', borderRadius: '18px',
+        padding: '28px 24px', maxWidth: '420px', width: '100%',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+      }}>
+        <h3 style={{
+          fontFamily: 'var(--font-brand)', fontSize: '22px', fontWeight: '400',
+          color: 'var(--raco-black)', marginBottom: '8px', lineHeight: '1.3',
+        }}>{tt(idioma, 'tTitulo')}</h3>
+        <p style={{
+          fontFamily: 'var(--font-body)', fontSize: '12px', color: 'var(--raco-stone)',
+          marginBottom: '16px',
+        }}><strong style={{ color: 'var(--raco-black)' }}>{email}</strong></p>
+        <p style={{
+          fontFamily: 'var(--font-body)', fontSize: '13px', fontWeight: '300',
+          color: 'var(--raco-stone)', lineHeight: '1.65', marginBottom: '22px',
+        }}>{tt(idioma, 'tCuerpo')}</p>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button onClick={onCancelar} style={{
+            flex: 1, fontFamily: 'var(--font-body)', fontSize: '12px', fontWeight: '400',
+            letterSpacing: '0.14em', textTransform: 'uppercase',
+            padding: '12px', borderRadius: '10px',
+            border: '1px solid var(--raco-sand)', background: 'transparent',
+            color: 'var(--raco-stone)', cursor: 'pointer',
+          }}>{tt(idioma, 'tCancelar')}</button>
+          <button onClick={onAceptar} style={{
+            flex: 2, fontFamily: 'var(--font-body)', fontSize: '12px', fontWeight: '500',
+            letterSpacing: '0.14em', textTransform: 'uppercase',
+            padding: '12px', borderRadius: '10px', border: 'none',
+            background: 'var(--raco-khaki)', color: 'var(--raco-cream)',
+            cursor: 'pointer',
+          }}>{tt(idioma, 'tAceptar')}</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const inputStyle = {
+  fontFamily: 'var(--font-body)', fontSize: '14px', fontWeight: '300',
+  padding: '14px 16px', borderRadius: '12px',
+  border: '1px solid var(--raco-sand)', background: 'var(--raco-paper)',
+  color: 'var(--raco-black)', outline: 'none',
 }
 
 // ─── Iconos ──────────────────────────────────────────────────────────────────

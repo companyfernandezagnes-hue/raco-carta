@@ -97,6 +97,94 @@ function normalizarSubcategoria(raw) {
   return ''
 }
 
+// ─── Heurística: inferir perfil sensorial desde las notas y datos del vino ──
+// Lee subcategoría + uvas + crianza + notas de cata + descripción y deduce
+// los 5 valores del radar (0-10) según palabras clave.
+// Mucho mejor que un default fijo: cada vino sale diferenciado según su
+// propia ficha. Si las notas son ricas, el radar es preciso.
+
+function perfilBaseSegunSubcategoria(sub) {
+  // Punto de partida razonable según el estilo. Luego se modifica
+  // con palabras clave de las notas.
+  if (sub.includes('espumoso')) return { potencia: 4, acidez: 8, taninos: 1, dulzura: 2, afrutado: 5 }
+  if (sub.includes('blanco'))   return { potencia: 4, acidez: 6, taninos: 1, dulzura: 2, afrutado: 6 }
+  if (sub.includes('rosado'))   return { potencia: 3, acidez: 6, taninos: 2, dulzura: 3, afrutado: 6 }
+  if (sub.includes('tinto'))    return { potencia: 6, acidez: 5, taninos: 6, dulzura: 2, afrutado: 6 }
+  if (sub.includes('dulce'))    return { potencia: 6, acidez: 4, taninos: 2, dulzura: 8, afrutado: 7 }
+  return { potencia: 5, acidez: 5, taninos: 3, dulzura: 2, afrutado: 5 }
+}
+
+function inferirPerfilDesdeNotas(vino) {
+  const sub = (vino.subcategoria || '').toLowerCase()
+  const p = perfilBaseSegunSubcategoria(sub)
+
+  // Texto agregado de TODA la ficha (notas, descripción, crianza, elaboración)
+  const texto = [
+    vino.descripcion, vino.nota_cata, vino.nota_visual, vino.nota_nariz, vino.nota_boca,
+    vino.crianza, vino.elaboracion, vino.notas_ia, vino.historia, vino.curiosidad
+  ].filter(Boolean).join(' ').toLowerCase()
+  const uvas = (vino.uvas || '').toLowerCase() + ' ' + (vino.tipo_uva_secundaria || '').toLowerCase()
+  const grad = parseFloat(vino.graduacion) || 0
+
+  const has = re => re.test(texto)
+  const hasU = re => re.test(uvas)
+
+  // ═══ POTENCIA / CUERPO ═══
+  if (has(/lías|sur lie|batonage|battonage|battonnage/))     p.potencia += 2  // lías → cremosidad
+  if (has(/barrica|crianza|reserva|gran reserva|fudre|roble|tonel/)) p.potencia += 1
+  if (has(/grand cru|grand reserve|premier cru/))            p.potencia += 2
+  if (has(/joven|fresc[oa]|ligero|ág[ií]l|delicad[oa]/))     p.potencia -= 1
+  if (has(/concentrad[oa]|untuos[oa]|cremos[oa]|denso|amplio|estructurad[oa]/)) p.potencia += 2
+  if (has(/austero|mineral puro|sutil/))                     p.potencia -= 1
+  if (has(/persistente|largo|kilométric[oa]|final muy largo/)) p.potencia += 1
+  if (grad >= 14) p.potencia += 1
+  if (grad >= 15) p.potencia += 1
+  if (grad < 12 && grad > 0) p.potencia -= 1
+
+  // ═══ ACIDEZ ═══
+  if (has(/cítric[oa]|limón|pomelo|lima|toronja|naranja sang/)) p.acidez += 1
+  if (has(/manzana verde|granny smith|piel de manzana/))       p.acidez += 1
+  if (has(/mineral|salin[oa]|tiza|llicorella|granito|caliza|pizarra/)) p.acidez += 1
+  if (has(/vibrante|chispeante|vivo|nervios[oa]|cortante/))    p.acidez += 1
+  if (has(/redondo|maduro|opulento|amplio en boca/))           p.acidez -= 1
+  if (has(/oxidad[oa]|añej[oa]|sobre madurad[oa]/))            p.acidez -= 1
+  if (hasU(/riesling|sauvignon blanc|albari[ñn]o|verdejo|garganega|trebbiano/)) p.acidez += 1
+  if (hasU(/nebbiolo|sangiovese/)) p.acidez += 1
+
+  // ═══ TANINOS (tintos sobre todo) ═══
+  if (has(/tánic[oa]|astringente|musculos[oa]|robust[oa]|nervad[oa] de taninos/)) p.taninos += 2
+  if (has(/sedos[oa]|terciopelo|suave|pulid[oa]|tanino fino|tanino noble/))       p.taninos -= 1
+  if (has(/jugos[oa]|carnos[oa]/))                                                 p.taninos += 1
+  if (has(/14 meses|18 meses|24 meses|36 meses|crianza larga|larga crianza/))     p.taninos += 1
+  if (hasU(/cabernet|nebbiolo|tempranillo|monastrell|tannat|petit verdot|mantonegro|callet/)) p.taninos += 1
+  if (hasU(/pinot noir|garnacha|gamay|grenache|cinsault|trepat/))                 p.taninos -= 1
+  if (sub.includes('blanco') || sub.includes('rosado') || sub.includes('espumoso')) p.taninos = Math.max(0, p.taninos)
+
+  // ═══ DULZOR ═══
+  if (has(/brut nature|extra brut|dosaje cero|dosage zero|sin dosaje/)) { p.dulzura = 1 }
+  else if (has(/extra dry|extra-dry/))                                  { p.dulzura = Math.max(p.dulzura, 3) }
+  else if (has(/demi-sec|semi[- ]sec[oa]|abocado/))                     { p.dulzura = Math.max(p.dulzura, 5) }
+  if (has(/dulce|moscatel|pedro xim[ée]nez|vendimia tard[ií]a|liquoros[oa]|botritis|noble/)) p.dulzura = Math.max(p.dulzura, 8)
+  if (has(/seco|sec[oa] como/))                                         p.dulzura = Math.max(1, p.dulzura - 1)
+  if (has(/azúcar residual|toque de azúcar|punto de dulzor|punto dulce|ligeramente dulce/)) p.dulzura += 1
+
+  // ═══ AFRUTADO ═══
+  if (has(/fruta blanca|pera|melocotón|albaricoque|nectarina|manzana/))   p.afrutado += 1
+  if (has(/fruta tropical|piña|mango|maracuyá|lichi|fruta exótica/))      p.afrutado += 1
+  if (has(/fruta negra|cereza|ciruela|frambuesa|grosella|cassis|arándano|mora/)) p.afrutado += 1
+  if (has(/fruta confitada|fruta madura|fruta en compota|fruta cocida/))  p.afrutado += 1
+  if (has(/floral|jazmín|rosa|violeta|azahar|flores blancas|flor de saúco/)) p.afrutado += 1
+  if (has(/biodinámic[oa]|natural|sin sulfitos|ecológic[oa]/))            p.afrutado += 1
+  if (has(/austero|mineral puro|reductivo|cerrado|tímido en nariz/))      p.afrutado -= 2
+  if (has(/cuero|tabaco|cacao|chocolate|caja de puros|alquitrán|brea|sotobosque|trufa/)) p.afrutado -= 1
+  if (has(/ahumad[oa]|tostad[oa]|vainilla|coco|caramelo|miel/))           p.afrutado -= 1
+  if (hasU(/chardonnay|viognier|gewürztraminer|moscatel/))                p.afrutado += 1
+
+  // Clamp todos a 0-10 enteros
+  for (const k of Object.keys(p)) p[k] = clamp10(p[k], 5)
+  return p
+}
+
 // --- MEJORA 4: Multiplicador por categoria ---
 // Destilados, vinos, cervezas, etc. usan baremos distintos
 const MULTIPLICADORES_CATEGORIA = {
@@ -2437,6 +2525,13 @@ function RadarEditor({ form, setForm }) {
       caracteristicas: { ...(prev.caracteristicas || {}), [key]: clamp10(val, 5) }
     }))
   }
+  // Recalcula los 5 ejes leyendo todo el contenido actual del formulario
+  // (notas de cata, crianza, uvas, subcategoría, graduación...). Útil para
+  // diferenciar vinos parecidos o cuando la IA no da un perfil convincente.
+  function recalcular() {
+    const nuevo = inferirPerfilDesdeNotas(form)
+    setForm(prev => ({ ...prev, caracteristicas: nuevo }))
+  }
   // Mini radar para previsualizar
   const n = ejes.length, cx = 60, cy = 60, r = 42
   const points = ejes.map((e, i) => {
@@ -2450,10 +2545,25 @@ function RadarEditor({ form, setForm }) {
       padding:'14px 16px', marginTop:'10px', marginBottom:'10px',
     }}>
       <div style={{
-        fontSize:'11px', color:'var(--raco-khaki)', fontWeight:'600',
-        letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:'12px',
+        display:'flex', justifyContent:'space-between', alignItems:'center',
+        marginBottom:'12px', gap:'10px', flexWrap:'wrap',
       }}>
-        ✦ Perfil sensorial (radar de la ficha del cliente)
+        <div style={{
+          fontSize:'11px', color:'var(--raco-khaki)', fontWeight:'600',
+          letterSpacing:'0.1em', textTransform:'uppercase',
+        }}>
+          ✦ Perfil sensorial (radar de la ficha del cliente)
+        </div>
+        <button type="button" onClick={recalcular}
+          title="Lee la subcategoría, uvas, crianza y notas de cata para deducir el perfil. Cada vino sale diferenciado según su propia ficha."
+          style={{
+            background:'#2a3520', border:'1px solid var(--raco-khaki)',
+            color:'var(--raco-khaki)', borderRadius:'8px',
+            padding:'6px 12px', cursor:'pointer', fontSize:'11px', fontWeight:'600',
+            letterSpacing:'0.05em',
+          }}>
+          ✦ Recalcular desde notas
+        </button>
       </div>
       <div style={{ display:'grid', gridTemplateColumns:'1fr auto', gap:'18px', alignItems:'start' }}>
         <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>

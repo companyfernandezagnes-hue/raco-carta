@@ -379,6 +379,10 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
     return () => document.removeEventListener('fullscreenchange', onChange)
   }, [])
   const [fase, setFase] = useState('login')
+  // Buscador de la lista admin: por nombre, bodega, uvas, región o subcategoría.
+  // Filtro por subcategoría rápida (todas / espumoso / blanco / rosado / tinto / dulce).
+  const [busquedaAdmin, setBusquedaAdmin] = useState('')
+  const [filtroSubAdmin, setFiltroSubAdmin] = useState('todas')
   const [tabAdmin, setTabAdmin] = useState('bebidas')   // 'bebidas' | 'platos'
   const [pass, setPass] = useState('')
   const [error, setError] = useState('')
@@ -1585,7 +1589,102 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
                 </div>
               </div>
             )}
-            {bebidas.map(b => {
+            {/* Buscador + filtros rápidos por subcategoría */}
+            {(() => {
+              const q = busquedaAdmin.toLowerCase().trim()
+              const matchSub = (s) => {
+                const sub = (s || '').toLowerCase().trim()
+                if (filtroSubAdmin === 'todas') return true
+                if (filtroSubAdmin === 'espumoso') return sub === 'espumoso'
+                if (filtroSubAdmin === 'rosado')   return sub === 'rosado'
+                if (filtroSubAdmin === 'dulce')    return sub === 'dulce'
+                if (filtroSubAdmin === 'blanco')   return sub.startsWith('blanco')
+                if (filtroSubAdmin === 'tinto')    return sub.startsWith('tinto')
+                return true
+              }
+              const filtradas = bebidas.filter(b => {
+                if (!matchSub(b.subcategoria)) return false
+                if (!q) return true
+                return [b.nombre, b.bodega, b.uvas, b.region, b.subcategoria, b.pais]
+                  .some(v => (v || '').toString().toLowerCase().includes(q))
+              })
+              return (
+                <div style={{ marginBottom:'12px' }}>
+                  {/* Input búsqueda */}
+                  <div style={{
+                    display:'flex', gap:'8px', alignItems:'center',
+                    background:'#2a2a2a', border:'1px solid #444',
+                    borderRadius:'10px', padding:'8px 12px', marginBottom:'8px',
+                  }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input
+                      type="text"
+                      value={busquedaAdmin}
+                      onChange={e => setBusquedaAdmin(e.target.value)}
+                      placeholder="Buscar por nombre, bodega, uva, región…"
+                      style={{
+                        flex:1, background:'transparent', border:'none', outline:'none',
+                        color:'#fff', fontSize:'14px',
+                      }}
+                    />
+                    {busquedaAdmin && (
+                      <button onClick={() => setBusquedaAdmin('')}
+                        title="Limpiar búsqueda"
+                        style={{
+                          background:'none', border:'none', color:'#888',
+                          cursor:'pointer', fontSize:'18px', lineHeight:1, padding:'0 4px',
+                        }}>×</button>
+                    )}
+                  </div>
+                  {/* Chips de filtro rápido por subcategoría */}
+                  <div style={{ display:'flex', gap:'6px', flexWrap:'wrap', marginBottom:'8px' }}>
+                    {[
+                      { id:'todas',    label:`Todos (${bebidas.length})` },
+                      { id:'espumoso', label:'Espumosos' },
+                      { id:'blanco',   label:'Blancos' },
+                      { id:'rosado',   label:'Rosados' },
+                      { id:'tinto',    label:'Tintos' },
+                      { id:'dulce',    label:'Dulces' },
+                    ].map(f => {
+                      const activo = filtroSubAdmin === f.id
+                      return (
+                        <button key={f.id} onClick={() => setFiltroSubAdmin(f.id)}
+                          style={{
+                            padding:'5px 12px', borderRadius:'14px', cursor:'pointer',
+                            fontSize:'11px', fontWeight: activo ? '700' : '500',
+                            letterSpacing:'0.05em', textTransform:'uppercase',
+                            background: activo ? 'var(--raco-khaki)' : '#2a2a2a',
+                            color: activo ? 'var(--raco-cream)' : '#aaa',
+                            border:'1px solid '+(activo ? 'var(--raco-khaki)' : '#444'),
+                          }}>{f.label}</button>
+                      )
+                    })}
+                  </div>
+                  {/* Contador de resultados */}
+                  <div style={{
+                    fontSize:'11px', color:'#888', marginBottom:'8px',
+                    fontStyle: filtradas.length === 0 ? 'italic' : 'normal',
+                  }}>
+                    {filtradas.length === 0
+                      ? `Sin resultados para "${busquedaAdmin}"`
+                      : `${filtradas.length} resultado${filtradas.length !== 1 ? 's' : ''}`
+                      + (q || filtroSubAdmin !== 'todas' ? '' : ' · ordena por "Orden" en la ficha')}
+                  </div>
+                </div>
+              )
+            })()}
+            {bebidas.filter(b => {
+              const q = busquedaAdmin.toLowerCase().trim()
+              const sub = (b.subcategoria || '').toLowerCase().trim()
+              if (filtroSubAdmin === 'espumoso' && sub !== 'espumoso') return false
+              if (filtroSubAdmin === 'rosado' && sub !== 'rosado') return false
+              if (filtroSubAdmin === 'dulce' && sub !== 'dulce') return false
+              if (filtroSubAdmin === 'blanco' && !sub.startsWith('blanco')) return false
+              if (filtroSubAdmin === 'tinto' && !sub.startsWith('tinto')) return false
+              if (q && ![b.nombre, b.bodega, b.uvas, b.region, b.subcategoria, b.pais]
+                .some(v => (v || '').toString().toLowerCase().includes(q))) return false
+              return true
+            }).map(b => {
               const tienePrecio = b.precio_copa || b.precio_botella
               const dot = !b.disponible ? '#fbbf24' : tienePrecio ? '#7ec87e' : '#f87171'
               return (

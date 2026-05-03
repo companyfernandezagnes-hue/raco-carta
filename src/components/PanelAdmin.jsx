@@ -847,6 +847,86 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
     }
   }
 
+  // ─── Edición rápida desde la lista (sin entrar al editor) ──────────────────
+  // Actualiza un solo campo del vino en Supabase. Útil para Orden y Disponible
+  // desde la lista sin tener que abrir cada ficha.
+  async function actualizarCampo(bebidaId, campo, valor) {
+    if (!hasSupabaseAdmin()) { alert('Falta service key Supabase en ⚙ Ajustes.'); return false }
+    try {
+      const { error } = await supabaseAdmin.from('carta_bebidas')
+        .update({ [campo]: valor, updated_at: new Date().toISOString() })
+        .eq('id', bebidaId)
+      if (error) throw error
+      onActualizar()
+      return true
+    } catch (e) { alert('Error: ' + e.message); return false }
+  }
+
+  // Auto-ordena toda la carta según el esquema:
+  //   100 espumosos · 200 blanco mallorca · 300 blanco nacional · 400 blanco internacional
+  //   500 rosados · 600 tinto mallorca · 700 tinto nacional · 800 tinto internacional · 900 dulces
+  // Dentro de cada bloque, precio botella ascendente. Hueco de 10 entre vinos
+  // para poder insertar manualmente sin reordenar todos.
+  async function autoOrdenarCarta() {
+    if (!hasSupabaseAdmin()) { alert('Falta service key Supabase en ⚙ Ajustes.'); return }
+    if (!confirm('Esto reordena TODA la carta según el esquema:\n\n• Espumosos (100s)\n• Blancos Mallorca/Nacional/Internacional (200/300/400s)\n• Rosados (500s)\n• Tintos Mallorca/Nacional/Internacional (600/700/800s)\n• Dulces (900s)\n\nDentro de cada bloque: precio botella ascendente.\n\nLos números nuevos te dejan margen para insertar manualmente. ¿Continuar?')) return
+    const bloques = {
+      'espumoso': 100,
+      'blanco mallorca': 200, 'blanco nacional': 300, 'blanco internacional': 400,
+      'rosado': 500,
+      'tinto mallorca': 600, 'tinto nacional': 700, 'tinto internacional': 800,
+      'dulce': 900,
+    }
+    // Agrupar
+    const grupos = {}
+    for (const b of bebidas) {
+      const sub = (b.subcategoria || '').toLowerCase().trim()
+      if (!(sub in bloques)) continue   // si no encaja, no tocar
+      if (!grupos[sub]) grupos[sub] = []
+      grupos[sub].push(b)
+    }
+    // Calcular nuevo orden
+    const updates = []
+    for (const [sub, base] of Object.entries(bloques)) {
+      const lista = (grupos[sub] || []).slice()
+      // Precio botella asc; sin precio botella va al final del bloque
+      lista.sort((a, b) => {
+        const pa = parseFloat(a.precio_botella) || 99999
+        const pb = parseFloat(b.precio_botella) || 99999
+        return pa - pb
+      })
+      lista.forEach((b, i) => {
+        const nuevoOrden = base + (i + 1) * 10
+        if (b.orden !== nuevoOrden) updates.push({ id: b.id, orden: nuevoOrden })
+      })
+    }
+    if (updates.length === 0) { alert('Ya estaba ordenada según el esquema.'); return }
+    // Aplicar uno a uno (Supabase REST no soporta upsert masivo de un solo campo
+    // sin chocar con otras columnas; mejor updates atómicos)
+    let ok = 0, err = 0
+    for (const u of updates) {
+      const r = await supabaseAdmin.from('carta_bebidas').update({ orden: u.orden }).eq('id', u.id)
+      if (r.error) err++; else ok++
+    }
+    onActualizar()
+    alert(`Reordenado: ${ok} OK · ${err} error.`)
+  }
+
+  // Mover un vino arriba/abajo respecto a su grupo visible (cambia su 'orden'
+  // intercambiando con el vecino inmediato — útil para ajustes finos)
+  async function moverEnLista(bebida, direccion, listaVisible) {
+    const idx = listaVisible.findIndex(b => b.id === bebida.id)
+    if (idx < 0) return
+    const otroIdx = direccion === 'arriba' ? idx - 1 : idx + 1
+    if (otroIdx < 0 || otroIdx >= listaVisible.length) return
+    const otro = listaVisible[otroIdx]
+    // Intercambiar valores de orden
+    const o1 = bebida.orden ?? 0, o2 = otro.orden ?? 0
+    await supabaseAdmin.from('carta_bebidas').update({ orden: o2 }).eq('id', bebida.id)
+    await supabaseAdmin.from('carta_bebidas').update({ orden: o1 }).eq('id', otro.id)
+    onActualizar()
+  }
+
   function abrirEditar(b) {
     setBebida(b)
     const formInicial = {
@@ -1717,65 +1797,51 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
                   }}>
                     {filtradas.length === 0
                       ? `Sin resultados para "${busquedaAdmin}"`
-                      : `${filtradas.length} resultado${filtradas.length !== 1 ? 's' : ''}`
-                      + (q || filtroSubAdmin !== 'todas' ? '' : ' · ordena por "Orden" en la ficha')}
+                      : `${filtradas.length} resultado${filtradas.length !== 1 ? 's' : ''}`}
                   </div>
+                  {/* Botón auto-ordenar: aplica el esquema clásico
+                      (espumoso→blancos→rosado→tintos→dulces, precio asc dentro)
+                      Solo visible cuando no hay filtro/búsqueda activa */}
+                  {!q && filtroSubAdmin === 'todas' && (
+                    <button onClick={autoOrdenarCarta}
+                      title="Reordena toda la carta según el esquema clásico de sumelería: espumosos (100s) → blancos por origen (200/300/400s) → rosados (500s) → tintos por origen (600/700/800s) → dulces (900s). Dentro de cada bloque, precio botella ascendente."
+                      style={{
+                        background:'#1a2a3a', color:'#7ab8e8', border:'1px solid #2a5a8a',
+                        borderRadius:'8px', padding:'7px 12px', cursor:'pointer',
+                        fontSize:'11px', fontWeight:'600', letterSpacing:'0.05em',
+                        marginBottom:'8px',
+                      }}>
+                      ✦ Auto-ordenar carta (categoría · origen · precio)
+                    </button>
+                  )}
                 </div>
               )
             })()}
-            {bebidas.filter(b => {
+            {(() => {
               const q = busquedaAdmin.toLowerCase().trim()
-              const sub = (b.subcategoria || '').toLowerCase().trim()
-              if (filtroSubAdmin === 'espumoso' && sub !== 'espumoso') return false
-              if (filtroSubAdmin === 'rosado' && sub !== 'rosado') return false
-              if (filtroSubAdmin === 'dulce' && sub !== 'dulce') return false
-              if (filtroSubAdmin === 'blanco' && !sub.startsWith('blanco')) return false
-              if (filtroSubAdmin === 'tinto' && !sub.startsWith('tinto')) return false
-              if (q && ![b.nombre, b.bodega, b.uvas, b.region, b.subcategoria, b.pais]
-                .some(v => (v || '').toString().toLowerCase().includes(q))) return false
-              return true
-            }).map(b => {
-              const tienePrecio = b.precio_copa || b.precio_botella
-              const dot = !b.disponible ? '#fbbf24' : tienePrecio ? '#7ec87e' : '#f87171'
-              return (
-                <div key={b.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',
-                  padding:'10px',marginBottom:'8px',background:'#2a2a2a',borderRadius:'8px',
-                  borderLeft: `3px solid ${dot}`}}>
-                  <div style={{flex:1}}>
-                    <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-                      <span style={{fontWeight:'600'}}>{b.nombre}</span>
-                      <span style={{color:'#aaa',fontSize:'13px'}}>{b.categoria}</span>
-                      {!b.disponible && <span style={{color:'#fbbf24',fontSize:'12px'}}>No disponible</span>}
-                    </div>
-                    {/* Precios en la lista */}
-                    <div style={{display:'flex',gap:'8px',marginTop:'3px',flexWrap:'wrap'}}>
-                      {b.precio_copa && (
-                        <span style={{fontSize:'12px',color:'#7ec87e',background:'#1a2a1a',
-                          borderRadius:'4px',padding:'1px 7px'}}>
-                          Copa {b.precio_copa}€
-                        </span>
-                      )}
-                      {b.precio_botella && (
-                        <span style={{fontSize:'12px',color:'#7ec87e',background:'#1a2a1a',
-                          borderRadius:'4px',padding:'1px 7px'}}>
-                          Bot. {b.precio_botella}€
-                        </span>
-                      )}
-                      {b.precio_coste && (
-                        <span style={{fontSize:'12px',color:'#888',background:'#222',
-                          borderRadius:'4px',padding:'1px 7px'}}>
-                          Coste {b.precio_coste}€
-                        </span>
-                      )}
-                      {!tienePrecio && (
-                        <span style={{fontSize:'12px',color:'#f87171'}}>Sin precio</span>
-                      )}
-                    </div>
-                  </div>
-                  <button style={btn()} onClick={()=>abrirEditar(b)}>Editar</button>
-                </div>
-              )
-            })}
+              // Filtro + ORDENADO POR 'orden' asc para mantener el esquema visible.
+              const listaFiltrada = bebidas.filter(b => {
+                const sub = (b.subcategoria || '').toLowerCase().trim()
+                if (filtroSubAdmin === 'espumoso' && sub !== 'espumoso') return false
+                if (filtroSubAdmin === 'rosado' && sub !== 'rosado') return false
+                if (filtroSubAdmin === 'dulce' && sub !== 'dulce') return false
+                if (filtroSubAdmin === 'blanco' && !sub.startsWith('blanco')) return false
+                if (filtroSubAdmin === 'tinto' && !sub.startsWith('tinto')) return false
+                if (q && ![b.nombre, b.bodega, b.uvas, b.region, b.subcategoria, b.pais]
+                  .some(v => (v || '').toString().toLowerCase().includes(q))) return false
+                return true
+              }).sort((a, b) => (a.orden ?? 99999) - (b.orden ?? 99999))
+              return listaFiltrada.map((b, i) => (
+                <FilaListaAdmin key={b.id}
+                  bebida={b}
+                  esPrimera={i === 0}
+                  esUltima={i === listaFiltrada.length - 1}
+                  onEditar={() => abrirEditar(b)}
+                  onActualizarCampo={(campo, valor) => actualizarCampo(b.id, campo, valor)}
+                  onMover={dir => moverEnLista(b, dir, listaFiltrada)}
+                />
+              ))
+            })()}
             </>)}
           </>
         )}
@@ -2940,6 +3006,107 @@ function TraduccionesEditor({ bebidaId, apiKey, datosES }) {
           )
         })}
       </div>
+    </div>
+  )
+}
+
+// ─── Fila de la lista admin con edición rápida ────────────────────────────
+// Cada fila permite cambiar Orden (input numérico) y Disponible (checkbox)
+// sin tener que abrir la ficha completa. Botones ↑↓ para reordenar.
+function FilaListaAdmin({ bebida, esPrimera, esUltima, onEditar, onActualizarCampo, onMover }) {
+  const b = bebida
+  const tienePrecio = b.precio_copa || b.precio_botella
+  const dot = !b.disponible ? '#fbbf24' : tienePrecio ? '#7ec87e' : '#f87171'
+  const [ordenLocal, setOrdenLocal] = useState(String(b.orden ?? 0))
+  // Re-sincronizar si el padre actualiza el orden por fuera
+  useEffect(() => { setOrdenLocal(String(b.orden ?? 0)) }, [b.orden])
+
+  async function commitOrden() {
+    const n = parseInt(ordenLocal, 10)
+    if (Number.isNaN(n)) { setOrdenLocal(String(b.orden ?? 0)); return }
+    if (n === (b.orden ?? 0)) return
+    await onActualizarCampo('orden', n)
+  }
+
+  return (
+    <div style={{
+      display:'flex', alignItems:'center', gap:'10px',
+      padding:'10px', marginBottom:'8px', background:'#2a2a2a',
+      borderRadius:'8px', borderLeft: `3px solid ${dot}`,
+    }}>
+      {/* Orden + flechas — bloque izquierdo */}
+      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'2px' }}>
+        <button onClick={() => onMover('arriba')} disabled={esPrimera}
+          title="Subir uno"
+          style={{
+            background:'transparent', border:'none', cursor: esPrimera ? 'default' : 'pointer',
+            color: esPrimera ? '#444' : '#aaa', fontSize:'14px', lineHeight:1, padding:'2px 6px',
+          }}>▲</button>
+        <input type="number"
+          value={ordenLocal}
+          onChange={e => setOrdenLocal(e.target.value)}
+          onBlur={commitOrden}
+          onKeyDown={e => { if (e.key === 'Enter') e.target.blur() }}
+          title="Orden numérico (cambia el sitio del vino en la carta)"
+          style={{
+            width:'52px', textAlign:'center', background:'#1a1a1a',
+            border:'1px solid #444', borderRadius:'6px', color:'#fff',
+            fontSize:'12px', padding:'3px 4px', fontWeight:'600',
+          }}/>
+        <button onClick={() => onMover('abajo')} disabled={esUltima}
+          title="Bajar uno"
+          style={{
+            background:'transparent', border:'none', cursor: esUltima ? 'default' : 'pointer',
+            color: esUltima ? '#444' : '#aaa', fontSize:'14px', lineHeight:1, padding:'2px 6px',
+          }}>▼</button>
+      </div>
+
+      {/* Bloque central: nombre + meta + precios */}
+      <div style={{ flex:1, minWidth:0 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:'8px', flexWrap:'wrap' }}>
+          <span style={{ fontWeight:'600' }}>{b.nombre}</span>
+          <span style={{ color:'#aaa', fontSize:'12px' }}>{b.subcategoria || b.categoria}</span>
+        </div>
+        <div style={{ display:'flex', gap:'8px', marginTop:'3px', flexWrap:'wrap' }}>
+          {b.precio_copa && (
+            <span style={{ fontSize:'12px', color:'#7ec87e', background:'#1a2a1a',
+              borderRadius:'4px', padding:'1px 7px' }}>Copa {b.precio_copa}€</span>
+          )}
+          {b.precio_botella && (
+            <span style={{ fontSize:'12px', color:'#7ec87e', background:'#1a2a1a',
+              borderRadius:'4px', padding:'1px 7px' }}>Bot. {b.precio_botella}€</span>
+          )}
+          {b.precio_coste && (
+            <span style={{ fontSize:'12px', color:'#888', background:'#222',
+              borderRadius:'4px', padding:'1px 7px' }}>Coste {b.precio_coste}€</span>
+          )}
+          {!tienePrecio && (
+            <span style={{ fontSize:'12px', color:'#f87171' }}>Sin precio</span>
+          )}
+        </div>
+      </div>
+
+      {/* Disponible (checkbox in-line) */}
+      <label style={{
+        display:'flex', alignItems:'center', gap:'5px', cursor:'pointer',
+        background: b.disponible ? '#1a2a1a' : '#2a1a1a',
+        border:'1px solid '+(b.disponible ? '#3a5a20' : '#5a2020'),
+        padding:'5px 9px', borderRadius:'8px',
+      }}
+        title={b.disponible ? 'Visible en la carta. Click para ocultarlo.' : 'Oculto. Click para volverlo a poner.'}>
+        <input type="checkbox" checked={b.disponible !== false}
+          onChange={e => onActualizarCampo('disponible', e.target.checked)}
+          style={{ width:'14px', height:'14px', cursor:'pointer', accentColor:'#7dcc50' }}/>
+        <span style={{ fontSize:'10px', fontWeight:'700', color: b.disponible ? '#7dcc50' : '#ff8888',
+          letterSpacing:'0.04em', textTransform:'uppercase', userSelect:'none' }}>
+          {b.disponible !== false ? 'Activo' : 'Oculto'}
+        </span>
+      </label>
+
+      <button onClick={onEditar} style={{
+        background:'#7c3aed', color:'#fff', border:'none', borderRadius:'8px',
+        padding:'8px 14px', cursor:'pointer', fontWeight:'600', fontSize:'12px',
+      }}>Editar</button>
     </div>
   )
 }

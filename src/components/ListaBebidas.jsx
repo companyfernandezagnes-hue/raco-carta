@@ -1,17 +1,44 @@
 import { memo } from 'react'
 import { formatPrecio } from '../lib/precio'
 
-export default function ListaBebidas({ bebidas, onSeleccionar, modoVista = 'lista', favoritos = [], onToggleFavorito, comparador = [], onToggleComparador }) {
+// Detecta el origen de un vino a partir de su subcategoría
+function origenDe(b) {
+  const s = (b.subcategoria || '').toLowerCase()
+  if (s.includes('mallorca'))      return { id: 'mallorca',      label: 'Mallorca',       orden: 1 }
+  if (s.includes('nacional'))      return { id: 'nacional',      label: 'Nacionales',     orden: 2 }
+  if (s.includes('internacional')) return { id: 'internacional', label: 'Internacionales', orden: 3 }
+  return null
+}
+
+export default function ListaBebidas({ bebidas, onSeleccionar, modoVista = 'lista', favoritos = [], onToggleFavorito, comparador = [], onToggleComparador, agruparPorOrigen = false }) {
   const fav = onToggleFavorito
   const comp = onToggleComparador
   if (bebidas.length === 0) return (
     <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--raco-stone)', fontSize: '12px', letterSpacing: '0.14em', fontFamily: 'var(--font-body)' }}>
-      Sin referencias disponibles
+      Sin vinos con estos filtros
     </div>
   )
 
   const destacados = bebidas.filter(b => b.destacado)
   const resto = bebidas.filter(b => !b.destacado)
+
+  // Si nos piden agrupar por origen (típico en Blancos / Tintos), separamos
+  // los vinos no-destacados en grupos: Mallorca → Nacionales → Internacionales.
+  const gruposOrigen = (() => {
+    if (!agruparPorOrigen) return null
+    const mapa = new Map()
+    for (const b of resto) {
+      const o = origenDe(b)
+      if (!o) continue
+      if (!mapa.has(o.id)) mapa.set(o.id, { ...o, items: [] })
+      mapa.get(o.id).items.push(b)
+    }
+    const arr = [...mapa.values()].sort((a, b) => a.orden - b.orden)
+    // Si todos los vinos pertenecen a un mismo grupo (o ninguno),
+    // no agrupamos para no añadir un header redundante
+    if (arr.length < 2) return null
+    return arr
+  })()
 
   if (modoVista === 'grid-sm' || modoVista === 'grid-lg') {
     const cols = modoVista === 'grid-sm' ? 3 : 2
@@ -25,7 +52,16 @@ export default function ListaBebidas({ bebidas, onSeleccionar, modoVista = 'list
             </div>
           </>
         )}
-        {resto.length > 0 && (
+        {gruposOrigen ? (
+          gruposOrigen.map((g, idx) => (
+            <div key={g.id} style={{ marginBottom: idx < gruposOrigen.length - 1 ? '28px' : 0 }}>
+              <SeccionHeader>{g.label} · {g.items.length}</SeccionHeader>
+              <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: '10px' }}>
+                {g.items.map(b => <TarjetaGrid key={b.id} bebida={b} onSeleccionar={onSeleccionar} esPequena={modoVista === 'grid-sm'} esFavorito={favoritos.includes(b.id)} onToggleFavorito={fav} enComparador={comparador.some(c => c.id === b.id)} onToggleComparador={comp} />)}
+              </div>
+            </div>
+          ))
+        ) : resto.length > 0 && (
           <>
             {destacados.length > 0 && <SeccionHeader>Carta completa</SeccionHeader>}
             <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: '10px' }}>
@@ -47,7 +83,16 @@ export default function ListaBebidas({ bebidas, onSeleccionar, modoVista = 'list
           </div>
         </>
       )}
-      {resto.length > 0 && (
+      {gruposOrigen ? (
+        gruposOrigen.map((g, idx) => (
+          <div key={g.id} style={{ marginBottom: idx < gruposOrigen.length - 1 ? '28px' : 0 }}>
+            <SeccionHeader>{g.label} · {g.items.length}</SeccionHeader>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {g.items.map(b => <TarjetaBebida key={b.id} bebida={b} onSeleccionar={onSeleccionar} esFavorito={favoritos.includes(b.id)} onToggleFavorito={fav} enComparador={comparador.some(c => c.id === b.id)} onToggleComparador={comp} />)}
+            </div>
+          </div>
+        ))
+      ) : resto.length > 0 && (
         <>
           {destacados.length > 0 && <SeccionHeader>Carta completa</SeccionHeader>}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

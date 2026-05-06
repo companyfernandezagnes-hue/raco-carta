@@ -476,7 +476,17 @@ export default function App() {
           {modoVista === 'botella' ? (
             <VistaBotella bebidas={bebidasFiltradas} onSeleccionar={abrirDetalle} />
           ) : (
-            <ListaBebidas bebidas={modoVista==='favoritos'?bebidasFiltradas.filter(b=>favoritos.includes(b.id)):bebidasFiltradas} onSeleccionar={abrirDetalle} modoVista={modoVista==='favoritos'?'lista':modoVista} favoritos={favoritos} onToggleFavorito={toggleFavorito} comparador={comparador} onToggleComparador={toggleComparador} />
+            <ListaBebidas
+              bebidas={modoVista==='favoritos'?bebidasFiltradas.filter(b=>favoritos.includes(b.id)):bebidasFiltradas}
+              onSeleccionar={abrirDetalle}
+              modoVista={modoVista==='favoritos'?'lista':modoVista}
+              favoritos={favoritos}
+              onToggleFavorito={toggleFavorito}
+              comparador={comparador}
+              onToggleComparador={toggleComparador}
+              // En Blancos / Tintos sin filtro de origen: agrupar por Mallorca / Nacional / Internacional
+              agruparPorOrigen={(categoriaActiva === 'blanco' || categoriaActiva === 'tinto') && !subcategoriaActiva}
+            />
           )}
           {mostrarComparador && comparador.length===2 && <ComparadorModal bebida1={comparador[0]} bebida2={comparador[1]} onCerrar={() => setMostrarComparador(false)} />}
           <FooterRaco />
@@ -586,6 +596,12 @@ function FooterRaco() {
 }
 
 function ComparadorModal({ bebida1, bebida2, onCerrar }) {
+  // Cerrar con Escape
+  useEffect(() => {
+    function onKey(e) { if (e.key === 'Escape') onCerrar() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onCerrar])
   const campos = [
     {label:'Tipo',key:'subcategoria'},{label:'Región',key:'region'},{label:'País',key:'pais'},
     {label:'Añada',key:'anada'},{label:'Uvas',key:'uvas'},{label:'Crianza',key:'crianza'},
@@ -598,7 +614,7 @@ function ComparadorModal({ bebida1, bebida2, onCerrar }) {
       <div style={{ background: 'var(--raco-paper)', borderRadius: '20px 20px 0 0', borderTop: '1px solid var(--raco-sand)', width: '100%', maxWidth: '900px', maxHeight: '90vh', overflow: 'auto', padding: '28px 20px 48px', animation: 'slideUp 0.3s cubic-bezier(0.22,1,0.36,1) both' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <p style={{ fontSize: '10px', letterSpacing: '0.24em', textTransform: 'uppercase', color: 'var(--raco-stone)', fontFamily: 'var(--font-body)' }}>Comparador</p>
-          <button onClick={onCerrar} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--raco-stone)', fontSize: '22px', lineHeight: 1 }}>×</button>
+          <button aria-label="Cerrar comparador" onClick={onCerrar} style={{ background: 'none', border: '1px solid var(--raco-sand)', borderRadius:'6px', padding:'4px 10px', cursor: 'pointer', color: 'var(--raco-stone)', fontSize: '18px', lineHeight: 1 }}>×</button>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
           {[bebida1, bebida2].map(b => <div key={b.id} style={{ textAlign: 'center' }}><p style={{ fontSize: '14px', color: 'var(--raco-khaki)', fontFamily: 'var(--font-brand)', marginBottom: '2px' }}>{b.nombre}</p><p style={{ fontSize: '11px', color: 'var(--raco-stone)', fontFamily: 'var(--font-body)', letterSpacing: '0.06em' }}>{b.bodega}</p></div>)}

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import BotellaTilt3D from './BotellaTilt3D'
 import { formatPrecio } from '../lib/precio'
+import { t } from '../lib/idioma'
 
 /**
  * Vista "Modo botella" — galería tipo museo. Una botella enorme centrada
@@ -12,7 +13,7 @@ import { formatPrecio } from '../lib/precio'
  *   onSeleccionar  — callback al pulsar el "Ver ficha completa"
  *   onSalir        — opcional, vuelve al modo grid
  */
-export default function VistaBotella({ bebidas, onSeleccionar }) {
+export default function VistaBotella({ bebidas, onSeleccionar, idioma = 'es' }) {
   const [idx, setIdx] = useState(0)
   const touchStartX = useRef(null)
 
@@ -101,7 +102,7 @@ export default function VistaBotella({ bebidas, onSeleccionar }) {
               <span style={{fontFamily:'var(--font-brand)', fontSize:'30px', color:'var(--raco-black)'}}>
                 {formatPrecio(b.precio_botella)}
               </span>
-              <span style={{fontFamily:'var(--font-body)', fontSize:'12px', color:'var(--raco-stone)'}}>€ · botella</span>
+              <span style={{fontFamily:'var(--font-body)', fontSize:'12px', color:'var(--raco-stone)'}}>€ · {t(idioma, 'botella').toLowerCase()}</span>
             </span>
           )}
           {b.precio_copa && (
@@ -109,7 +110,7 @@ export default function VistaBotella({ bebidas, onSeleccionar }) {
               <span style={{fontFamily:'var(--font-brand)', fontSize:'18px', color:'var(--raco-stone)'}}>
                 {formatPrecio(b.precio_copa)}
               </span>
-              <span style={{fontFamily:'var(--font-body)', fontSize:'11px', color:'var(--raco-stone)'}}>€ · copa</span>
+              <span style={{fontFamily:'var(--font-body)', fontSize:'11px', color:'var(--raco-stone)'}}>€ · {t(idioma, 'copa').toLowerCase()}</span>
             </span>
           )}
         </div>
@@ -119,7 +120,7 @@ export default function VistaBotella({ bebidas, onSeleccionar }) {
           border:'none', borderRadius:'30px', padding:'10px 22px',
           cursor:'pointer', fontSize:'12px', fontFamily:'var(--font-body)',
           fontWeight:'500', letterSpacing:'0.2em', textTransform:'uppercase',
-        }}>Ver ficha completa →</button>
+        }}>{t(idioma, 'verFichaCompleta')} →</button>
       </div>
 
       {/* Flechas de navegación */}
@@ -146,7 +147,7 @@ export default function VistaBotella({ bebidas, onSeleccionar }) {
         textAlign:'center', fontFamily:'var(--font-body)', fontSize:'11px',
         color:'var(--raco-stone)', letterSpacing:'0.18em',
       }}>
-        {idx + 1} / {bebidas.length} · desliza ← → o usa flechas
+        {idx + 1} / {bebidas.length} · {t(idioma, 'desliza')}
       </div>
 
       <style>{`

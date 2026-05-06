@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { t, leerIdiomaGuardado } from '../lib/idioma'
 
 const KEY_VISTO = 'raco_bienvenida_visto'
 
@@ -26,6 +27,7 @@ export function esModoCliente() {
  */
 export default function PantallaBienvenida() {
   const modoCliente = esModoCliente()
+  const idioma = leerIdiomaGuardado()
   const [mostrar, setMostrar] = useState(() => {
     try {
       // No mostrar si ya está instalada como PWA
@@ -74,7 +76,7 @@ export default function PantallaBienvenida() {
         letterSpacing: '0.4em', textTransform: 'uppercase',
         color: 'var(--raco-stone)', marginBottom: '60px',
         fontWeight: '300',
-      }}>Carta de Bebidas</p>
+      }}>{t(idioma, 'cartaDeBebidas')}</p>
 
       {/* Animación pulsante para indicar que se puede tocar */}
       <div style={{
@@ -88,7 +90,7 @@ export default function PantallaBienvenida() {
         display: 'flex', alignItems: 'center', gap: '12px',
       }}>
         <span style={{ fontSize: '18px' }}>👆</span>
-        <span>Toca para entrar</span>
+        <span>{t(idioma, 'tocaParaEntrar')}</span>
       </div>
 
       <p style={{
@@ -96,7 +98,7 @@ export default function PantallaBienvenida() {
         textAlign: 'center', fontSize: '10px',
         color: 'var(--raco-stone)', opacity: 0.6,
         letterSpacing: '0.25em', fontFamily: 'var(--font-body)',
-      }}>VINOS · CAVAS · CHAMPANES · MARIDAJES</p>
+      }}>{t(idioma, 'leyendaCategorias')}</p>
 
       <style>{`
         @keyframes bienvenidaIn {

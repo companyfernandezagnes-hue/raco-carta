@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import BotellaTilt3D from './BotellaTilt3D'
 import { formatPrecio } from '../lib/precio'
+import { t } from '../lib/idioma'
 import QRCode from 'qrcode'
 
 /**
@@ -12,7 +13,7 @@ import QRCode from 'qrcode'
  *   intervaloMs     — ms entre cambios (default 8000)
  *   onSalir         — callback al tocar/click la pantalla
  */
-export default function VistaPresentacion({ bebidas, intervaloMs = 8000, onSalir }) {
+export default function VistaPresentacion({ bebidas, intervaloMs = 8000, onSalir, idioma = 'es' }) {
   // Solo mostrar bebidas destacadas; si no hay ninguna, las primeras 5 disponibles
   const destacadas = bebidas.filter(b => b.destacado && b.disponible !== false)
   const lista = destacadas.length > 0 ? destacadas : bebidas.filter(b => b.disponible !== false).slice(0, 5)
@@ -62,7 +63,7 @@ export default function VistaPresentacion({ bebidas, intervaloMs = 8000, onSalir
         letterSpacing: '0.3em', color: 'var(--raco-stone)',
         textTransform: 'uppercase', opacity: 0.7,
       }}>
-        Toca para volver a la carta
+        {t(idioma, 'tocaParaVolver')}
       </div>
 
       {/* Logo arriba (usa el mismo PNG que el header) */}
@@ -72,7 +73,7 @@ export default function VistaPresentacion({ bebidas, intervaloMs = 8000, onSalir
         <p style={{
           fontFamily: 'var(--font-body)', fontSize: '9px', letterSpacing: '0.4em',
           textTransform: 'uppercase', color: 'var(--raco-stone)', marginTop: '4px',
-        }}>Selección de la casa</p>
+        }}>{t(idioma, 'seleccionDeLaCasa')}</p>
       </div>
 
       {/* Slide actual con animación. Layout horizontal en tablet+, vertical en móvil */}
@@ -124,7 +125,7 @@ export default function VistaPresentacion({ bebidas, intervaloMs = 8000, onSalir
                 <span className="vp-precio-grande" style={{ fontFamily: 'var(--font-brand)', fontSize: '40px', color: 'var(--raco-black)' }}>
                   {formatPrecio(b.precio_botella)}
                 </span>
-                <span style={{ fontFamily: 'var(--font-body)', fontSize: '14px', color: 'var(--raco-stone)' }}>€ · botella</span>
+                <span style={{ fontFamily: 'var(--font-body)', fontSize: '14px', color: 'var(--raco-stone)' }}>€ · {t(idioma, 'botella').toLowerCase()}</span>
               </span>
             )}
             {b.precio_copa && (
@@ -132,7 +133,7 @@ export default function VistaPresentacion({ bebidas, intervaloMs = 8000, onSalir
                 <span style={{ fontFamily: 'var(--font-brand)', fontSize: '24px', color: 'var(--raco-stone)' }}>
                   {formatPrecio(b.precio_copa)}
                 </span>
-                <span style={{ fontFamily: 'var(--font-body)', fontSize: '12px', color: 'var(--raco-stone)' }}>€ · copa</span>
+                <span style={{ fontFamily: 'var(--font-body)', fontSize: '12px', color: 'var(--raco-stone)' }}>€ · {t(idioma, 'copa').toLowerCase()}</span>
               </span>
             )}
           </div>
@@ -154,7 +155,7 @@ export default function VistaPresentacion({ bebidas, intervaloMs = 8000, onSalir
             margin: '4px 0 0', fontSize: '8px', letterSpacing: '0.18em',
             color: 'var(--raco-stone)', textTransform: 'uppercase',
             fontFamily: 'var(--font-body)',
-          }}>Carta en tu móvil</p>
+          }}>{t(idioma, 'cartaEnTuMovil')}</p>
         </div>
       )}
 

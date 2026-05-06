@@ -1,11 +1,12 @@
 import BotellaTilt3D from './BotellaTilt3D'
 import { formatPrecio } from '../lib/precio'
+import { t } from '../lib/idioma'
 
 /**
  * Hero superior con un vino destacado. Si hay varios marcados como
  * destacado, muestra el primero (por orden).
  */
-export default function HeroDestacado({ bebida, onClick }) {
+export default function HeroDestacado({ bebida, onClick, idioma = 'es' }) {
   if (!bebida) return null
   return (
     <div
@@ -36,7 +37,7 @@ export default function HeroDestacado({ bebida, onClick }) {
         textTransform: 'uppercase', fontWeight: '600',
         backdropFilter: 'blur(4px)',
       }}>
-        ★ Destacado
+        ★ {t(idioma, 'destacado')}
       </div>
 
       {/* Botella 3D a la izquierda */}
@@ -93,7 +94,7 @@ export default function HeroDestacado({ bebida, onClick }) {
           )}
           {bebida.precio_copa && (
             <span style={{ display: 'flex', alignItems: 'baseline', gap: '2px' }}>
-              <span style={{ fontFamily: 'var(--font-body)', fontSize: '10px', color: 'var(--raco-stone)' }}>copa&nbsp;</span>
+              <span style={{ fontFamily: 'var(--font-body)', fontSize: '10px', color: 'var(--raco-stone)' }}>{t(idioma, 'copa').toLowerCase()}&nbsp;</span>
               <span style={{ fontFamily: 'var(--font-brand)', fontSize: '14px', color: 'var(--raco-stone)' }}>
                 {formatPrecio(bebida.precio_copa)}
               </span>

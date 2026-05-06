@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { supabase } from './lib/supabase'
-import { IDIOMAS, leerIdiomaGuardado, guardarIdioma } from './lib/idioma'
+import { IDIOMAS, leerIdiomaGuardado, guardarIdioma, t } from './lib/idioma'
 import { autoTraduccionDisponible, traducirPendientes } from './lib/traduccionesAuto'
 import Header from './components/Header.jsx'
 import Categorias from './components/Categorias.jsx'
@@ -310,11 +310,11 @@ export default function App() {
   const tipos = [...new Set(bebidas.map(b => b.subcategoria).filter(Boolean))].sort()
   const hayFiltrosActivos = busqueda || filtroPais || filtroTipo || filtroOrden || filtroGraduacion || filtroFormato
   const numFiltros = [filtroPais, filtroTipo, filtroOrden, filtroGraduacion, filtroFormato].filter(Boolean).length
-  const opcionesTipo = [{ value: '', label: 'Tipo: todos' }, ...tipos.map(t => ({ value: t, label: t }))]
-  const opcionesPais = [{ value: '', label: 'País: todos' }, ...paises.map(p => ({ value: p, label: p }))]
-  const opcionesGraduacion = [{ value: '', label: 'Graduación: todas' }, { value: 'baja', label: '< 12% (ligero)' }, { value: 'media', label: '12–14% (medio)' }, { value: 'alta', label: '> 14% (potente)' }]
-  const opcionesFormato = [{ value: '', label: 'Formato: todos' }, { value: 'copa', label: 'Solo por copa' }, { value: 'botella', label: 'Solo por botella' }, { value: 'ambos', label: 'Copa y botella' }]
-  const opcionesOrden = [{ value: '', label: 'Orden: por defecto' }, { value: 'precio_asc', label: 'Precio: menor a mayor' }, { value: 'precio_desc', label: 'Precio: mayor a menor' }, { value: 'nombre_asc', label: 'Nombre: A–Z' }]
+  const opcionesTipo = [{ value: '', label: t(idioma,'tipoTodos') }, ...tipos.map(x => ({ value: x, label: x }))]
+  const opcionesPais = [{ value: '', label: t(idioma,'paisTodos') }, ...paises.map(p => ({ value: p, label: p }))]
+  const opcionesGraduacion = [{ value: '', label: t(idioma,'graduacionTodas') }, { value: 'baja', label: t(idioma,'graduacionSuave') }, { value: 'media', label: t(idioma,'graduacionMedia') }, { value: 'alta', label: t(idioma,'graduacionAlta') }]
+  const opcionesFormato = [{ value: '', label: t(idioma,'formatoTodos') }, { value: 'copa', label: t(idioma,'porCopa') }, { value: 'botella', label: t(idioma,'porBotella') }, { value: 'ambos', label: t(idioma,'ambosFormatos') }]
+  const opcionesOrden = [{ value: '', label: t(idioma,'ordenDefecto') }, { value: 'precio_asc', label: t(idioma,'precioAsc') }, { value: 'precio_desc', label: t(idioma,'precioDesc') }, { value: 'nombre_asc', label: t(idioma,'nombreAsc') }]
 
   let bebidasFiltradas = bebidas.filter(b => {
     const q = busqueda.toLowerCase().trim()
@@ -358,7 +358,7 @@ export default function App() {
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px', background: 'var(--raco-cream)' }}>
       <div style={{ width: '28px', height: '28px', border: '1.5px solid var(--raco-sand)', borderTop: '1.5px solid var(--raco-khaki)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}/>
       <style dangerouslySetInnerHTML={{__html: '@keyframes spin { to { transform: rotate(360deg) } }'}} />
-      <p style={{ color: 'var(--raco-stone)', fontSize: '11px', letterSpacing: '0.28em', fontFamily: 'var(--font-body)', fontWeight: '300' }}>CARGANDO CARTA</p>
+      <p style={{ color: 'var(--raco-stone)', fontSize: '11px', letterSpacing: '0.28em', fontFamily: 'var(--font-body)', fontWeight: '300' }}>{t(idioma, 'cargandoCarta')}</p>
     </div>
   )
 
@@ -371,24 +371,24 @@ export default function App() {
       <Header vista={vista} onVolver={volver} onMaridaje={() => setVista('maridaje')} onAdmin={esCliente ? undefined : () => setAdminAbierto(true)} idioma={idioma} onIdioma={cambiarIdioma} />
       {vista === 'carta' && (
         <div>
-          <Categorias categoriaActiva={categoriaActiva} subcategoriaActiva={subcategoriaActiva} onCategoria={cat => { setCategoriaActiva(cat); setSubcategoriaActiva(null) }} onSubcategoria={setSubcategoriaActiva} bebidas={bebidas} />
+          <Categorias categoriaActiva={categoriaActiva} subcategoriaActiva={subcategoriaActiva} onCategoria={cat => { setCategoriaActiva(cat); setSubcategoriaActiva(null) }} onSubcategoria={setSubcategoriaActiva} bebidas={bebidas} idioma={idioma} />
           {/* HERO destacado: aparece sólo en la vista global, sin filtros */}
           {categoriaActiva === 'todas' && !busqueda && !filtroPais && !filtroTipo && !filtroFormato && !filtroGraduacion && modoVista !== 'favoritos' && (
             (() => {
               const heroBebida = bebidas.find(b => b.destacado && b.disponible !== false)
-              return heroBebida ? <HeroDestacado bebida={heroBebida} onClick={abrirDetalle} /> : null
+              return heroBebida ? <HeroDestacado bebida={heroBebida} onClick={abrirDetalle} idioma={idioma} /> : null
             })()
           )}
           <div style={{ padding: '0 16px 12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, background: 'var(--raco-paper)', border: '1px solid var(--raco-sand)', borderRadius: '10px', padding: '10px 14px' }}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--raco-stone)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input type="text" placeholder="Buscar por nombre, bodega, uva..." value={busqueda} onChange={e => setBusqueda(e.target.value)} style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--raco-black)', fontSize: '13px', fontFamily: 'var(--font-body)', fontWeight: '300' }} />
+                <input type="text" placeholder={t(idioma, 'buscarPorNombre')} value={busqueda} onChange={e => setBusqueda(e.target.value)} style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--raco-black)', fontSize: '13px', fontFamily: 'var(--font-body)', fontWeight: '300' }} />
                 {busqueda && <button aria-label="Limpiar búsqueda" onClick={() => setBusqueda('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--raco-stone)', fontSize: '18px', lineHeight: 1, padding: 0 }}>×</button>}
               </div>
               <button aria-label="Abrir filtros" onClick={() => setFiltrosAbiertos(v => !v)} style={{ background: (filtrosAbiertos||numFiltros>0)?'var(--raco-khaki)':'var(--raco-paper)', border: '1px solid '+((filtrosAbiertos||numFiltros>0)?'var(--raco-khaki)':'var(--raco-sand)'), borderRadius: '10px', padding: '10px 14px', cursor: 'pointer', color: (filtrosAbiertos||numFiltros>0)?'var(--raco-paper)':'var(--raco-stone)', fontSize: '12px', fontFamily: 'var(--font-body)', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', transition: 'all 0.18s' }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
-                Filtros
+                {t(idioma, 'filtros')}
                 {numFiltros > 0 && <span style={{ background: 'var(--raco-paper)', color: 'var(--raco-khaki)', borderRadius: '50%', width: '16px', height: '16px', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>{numFiltros}</span>}
               </button>
             </div>
@@ -439,12 +439,12 @@ export default function App() {
                 </div>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <SelectRaco value={filtroOrden} onChange={setFiltroOrden} options={opcionesOrden} placeholder="Orden: por defecto" />
-                  {hayFiltrosActivos && <button onClick={limpiarFiltros} style={{ background: 'none', border: '1px solid var(--raco-sand)', borderRadius: '8px', padding: '8px 14px', cursor: 'pointer', color: 'var(--raco-stone)', fontSize: '11px', fontFamily: 'var(--font-body)', whiteSpace: 'nowrap', letterSpacing: '0.06em', transition: 'all 0.15s' }} onMouseEnter={e => { e.currentTarget.style.borderColor='var(--raco-khaki)'; e.currentTarget.style.color='var(--raco-khaki)' }} onMouseLeave={e => { e.currentTarget.style.borderColor='var(--raco-sand)'; e.currentTarget.style.color='var(--raco-stone)' }}>Limpiar</button>}
+                  {hayFiltrosActivos && <button onClick={limpiarFiltros} style={{ background: 'none', border: '1px solid var(--raco-sand)', borderRadius: '8px', padding: '8px 14px', cursor: 'pointer', color: 'var(--raco-stone)', fontSize: '11px', fontFamily: 'var(--font-body)', whiteSpace: 'nowrap', letterSpacing: '0.06em', transition: 'all 0.15s' }} onMouseEnter={e => { e.currentTarget.style.borderColor='var(--raco-khaki)'; e.currentTarget.style.color='var(--raco-khaki)' }} onMouseLeave={e => { e.currentTarget.style.borderColor='var(--raco-sand)'; e.currentTarget.style.color='var(--raco-stone)' }}>{t(idioma, 'limpiar')}</button>}
                 </div>
               </div>
             )}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
-              {(busqueda||filtroPais||filtroTipo) ? <p style={{ color: 'var(--raco-stone)', fontSize: '11px', letterSpacing: '0.06em', fontFamily: 'var(--font-body)' }}>{bebidasFiltradas.length} resultado{bebidasFiltradas.length!==1?'s':''}{busqueda?' para "'+busqueda+'"':''}</p> : <div />}
+              {(busqueda||filtroPais||filtroTipo) ? <p style={{ color: 'var(--raco-stone)', fontSize: '11px', letterSpacing: '0.06em', fontFamily: 'var(--font-body)' }}>{bebidasFiltradas.length} {t(idioma, bebidasFiltradas.length === 1 ? 'resultado' : 'resultados')}{busqueda?' '+t(idioma,'para')+' "'+busqueda+'"':''}</p> : <div />}
               <div style={{ display: 'flex', gap: '4px' }}>
                 {[
                   {id:'lista',title:'Lista', icon:(
@@ -474,7 +474,7 @@ export default function App() {
             </div>
           </div>
           {modoVista === 'botella' ? (
-            <VistaBotella bebidas={bebidasFiltradas} onSeleccionar={abrirDetalle} />
+            <VistaBotella bebidas={bebidasFiltradas} onSeleccionar={abrirDetalle} idioma={idioma} />
           ) : (
             <ListaBebidas
               bebidas={modoVista==='favoritos'?bebidasFiltradas.filter(b=>favoritos.includes(b.id)):bebidasFiltradas}
@@ -484,6 +484,7 @@ export default function App() {
               onToggleFavorito={toggleFavorito}
               comparador={comparador}
               onToggleComparador={toggleComparador}
+              idioma={idioma}
               // En Blancos / Tintos sin filtro de origen: agrupar por Mallorca / Nacional / Internacional
               agruparPorOrigen={(categoriaActiva === 'blanco' || categoriaActiva === 'tinto') && !subcategoriaActiva}
             />
@@ -492,7 +493,7 @@ export default function App() {
           <FooterRaco />
         </div>
       )}
-      <Suspense fallback={<div style={{padding:'30px',textAlign:'center',color:'var(--raco-stone)',fontSize:'12px',letterSpacing:'0.2em'}}>CARGANDO…</div>}>
+      <Suspense fallback={<div style={{padding:'30px',textAlign:'center',color:'var(--raco-stone)',fontSize:'12px',letterSpacing:'0.2em'}}>{t(idioma, 'cargandoMore')}</div>}>
         {vista==='detalle' && bebidaseleccionada && <DetalleBebida bebida={bebidaseleccionada} onVolver={volverODetalle} todasBebidas={bebidas} idioma={idioma} />}
         {vista==='maridaje' && <Maridaje bebidas={bebidas} onSeleccionar={abrirDetalle} onVolver={volver} />}
         {vista==='comoFunciona' && <EducacionVino idioma={idioma} tab="funciona" onCerrar={volver} />}
@@ -513,6 +514,7 @@ export default function App() {
             bebidas={bebidas}
             intervaloMs={presentacionConfig.intervaloSeg * 1000}
             onSalir={() => { setPresentacionActiva(false); reiniciarTimerPresentacion() }}
+            idioma={idioma}
           />
         )}
       </Suspense>
@@ -534,13 +536,16 @@ export default function App() {
             <h2 style={{
               margin:'0 0 10px', fontFamily:'var(--font-brand)',
               fontSize:'24px', color:'var(--raco-black)', fontWeight:'400'
-            }}>¿Sigues por aquí?</h2>
+            }}>{t(idioma, 'sigueAqui')}</h2>
             <p style={{
               margin:'0 0 20px', color:'var(--raco-stone)', fontSize:'13px',
               fontFamily:'var(--font-body)', fontWeight:'300', lineHeight:'1.5'
             }}>
-              Llevamos un rato sin actividad. En <strong style={{color:'var(--raco-khaki)'}}>{segundosCuenta} s</strong> la
-              carta volverá al inicio para el siguiente comensal.
+              {(() => {
+                // Reemplaza el placeholder %s con el contador en negrita
+                const partes = t(idioma, 'sigueAquiTexto').split('%s')
+                return <>{partes[0]}<strong style={{color:'var(--raco-khaki)'}}>{segundosCuenta}</strong>{partes[1]}</>
+              })()}
             </p>
             <div style={{
               width:'100%', height:'4px', background:'var(--raco-sand)',
@@ -557,13 +562,13 @@ export default function App() {
                 border:'none', borderRadius:'10px', padding:'12px 24px',
                 cursor:'pointer', fontSize:'14px', fontFamily:'var(--font-body)',
                 fontWeight:'500', letterSpacing:'0.06em',
-              }}>Sí, sigo aquí</button>
+              }}>{t(idioma, 'siSigoAqui')}</button>
               <button onClick={ejecutarReset} style={{
                 background:'transparent', color:'var(--raco-stone)',
                 border:'1px solid var(--raco-sand)', borderRadius:'10px',
                 padding:'12px 20px', cursor:'pointer', fontSize:'13px',
                 fontFamily:'var(--font-body)',
-              }}>Empezar de nuevo</button>
+              }}>{t(idioma, 'empezarDeNuevo')}</button>
             </div>
           </div>
         </div>

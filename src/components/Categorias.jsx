@@ -1,3 +1,5 @@
+import { t } from '../lib/idioma'
+
 // Categorías jerárquicas:
 //   Todas
 //   Cavas y Champanes  (subcategoria = 'espumoso')
@@ -7,18 +9,18 @@
 //   Dulces             (subcategoria = 'dulce')
 
 const GRUPOS = [
-  { id: 'todas',    label: 'Todas',           match: () => true },
-  { id: 'espumoso', label: 'Cavas · Champanes', match: s => s === 'espumoso' },
-  { id: 'blanco',   label: 'Blancos',          match: s => s.startsWith('blanco') },
-  { id: 'rosado',   label: 'Rosados',          match: s => s === 'rosado' },
-  { id: 'tinto',    label: 'Tintos',           match: s => s.startsWith('tinto') },
-  { id: 'dulce',    label: 'Dulces',           match: s => s === 'dulce' },
+  { id: 'todas',    txt: 'todas',           match: () => true },
+  { id: 'espumoso', txt: 'cavasChampanes',  match: s => s === 'espumoso' },
+  { id: 'blanco',   txt: 'blancos',         match: s => s.startsWith('blanco') },
+  { id: 'rosado',   txt: 'rosados',         match: s => s === 'rosado' },
+  { id: 'tinto',    txt: 'tintos',          match: s => s.startsWith('tinto') },
+  { id: 'dulce',    txt: 'dulces',          match: s => s === 'dulce' },
 ]
 
 const ORIGENES = [
-  { id: 'mallorca',      label: 'Mallorca',       match: s => s.includes('mallorca') },
-  { id: 'nacional',      label: 'Nacionales',     match: s => s.includes('nacional') },
-  { id: 'internacional', label: 'Internacionales', match: s => s.includes('internacional') },
+  { id: 'mallorca',      txt: 'mallorca',         match: s => s.includes('mallorca') },
+  { id: 'nacional',      txt: 'nacionales',       match: s => s.includes('nacional') },
+  { id: 'internacional', txt: 'internacionales',  match: s => s.includes('internacional') },
 ]
 
 const pill = (activo) => ({
@@ -37,7 +39,7 @@ const pill = (activo) => ({
   cursor: 'pointer',
 })
 
-export default function Categorias({ categoriaActiva, subcategoriaActiva, onCategoria, onSubcategoria, bebidas }) {
+export default function Categorias({ categoriaActiva, subcategoriaActiva, onCategoria, onSubcategoria, bebidas, idioma = 'es' }) {
   const cuentaGrupo = (gid) => {
     const grupo = GRUPOS.find(g => g.id === gid)
     if (!grupo) return 0
@@ -70,7 +72,7 @@ export default function Categorias({ categoriaActiva, subcategoriaActiva, onCate
           if (n === 0 && g.id !== 'todas') return null
           return (
             <button key={g.id} style={pill(categoriaActiva === g.id)} onClick={() => { onCategoria(g.id); onSubcategoria(null) }}>
-              {g.label}
+              {t(idioma, g.txt)}
             </button>
           )
         })}
@@ -94,7 +96,7 @@ export default function Categorias({ categoriaActiva, subcategoriaActiva, onCate
             }}
             onClick={() => onSubcategoria(null)}
           >
-            Todos
+            {t(idioma, 'todas')}
           </button>
           {ORIGENES.map(o => {
             const n = cuentaOrigen(o.id)
@@ -108,7 +110,7 @@ export default function Categorias({ categoriaActiva, subcategoriaActiva, onCate
                 }}
                 onClick={() => onSubcategoria(o.id)}
               >
-                {o.label}
+                {t(idioma, o.txt)}
               </button>
             ) : null
           })}

@@ -3,15 +3,23 @@ import { t, leerIdiomaGuardado } from '../lib/idioma'
 
 const KEY_VISTO = 'raco_bienvenida_visto'
 
-// Detecta si la app se abrió desde el QR del cliente (modo restringido)
+// Detecta si la app se abrió desde el QR del cliente (modo restringido).
+// Persistimos en localStorage (no sessionStorage) para que la tablet en
+// el restaurante siga en modo cliente aunque se cierre y abra el navegador.
+// El propietario sale del modo cliente borrando localStorage o usando
+// una URL especial ?qr=0 para volver al modo normal.
 export function esModoCliente() {
   try {
     const params = new URLSearchParams(window.location.search)
     if (params.get('qr') === '1' || params.get('cliente') === '1') {
-      sessionStorage.setItem('raco_modo_cliente', '1')
+      localStorage.setItem('raco_modo_cliente', '1')
       return true
     }
-    return sessionStorage.getItem('raco_modo_cliente') === '1'
+    if (params.get('qr') === '0' || params.get('admin') === '1') {
+      localStorage.removeItem('raco_modo_cliente')
+      return false
+    }
+    return localStorage.getItem('raco_modo_cliente') === '1'
   } catch { return false }
 }
 

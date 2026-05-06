@@ -4,12 +4,15 @@ import { t } from '../lib/idioma'
 
 const LABEL_ORIGEN = { mallorca: 'mallorca', nacional: 'nacionales', internacional: 'internacionales' }
 
-// Detecta el origen de un vino a partir de su subcategoría
+// Detecta el origen de un vino a partir de su subcategoría.
+// IMPORTANTE: comprobamos "internacional" ANTES que "nacional" porque
+// la palabra "internacional" contiene "nacional" como substring y un
+// .includes('nacional') daría falso positivo en vinos internacionales.
 function origenDe(b) {
   const s = (b.subcategoria || '').toLowerCase()
   if (s.includes('mallorca'))      return { id: 'mallorca',      label: 'Mallorca',       orden: 1 }
-  if (s.includes('nacional'))      return { id: 'nacional',      label: 'Nacionales',     orden: 2 }
   if (s.includes('internacional')) return { id: 'internacional', label: 'Internacionales', orden: 3 }
+  if (s.includes('nacional'))      return { id: 'nacional',      label: 'Nacionales',     orden: 2 }
   return null
 }
 

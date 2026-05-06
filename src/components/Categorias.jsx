@@ -17,9 +17,12 @@ const GRUPOS = [
   { id: 'dulce',    txt: 'dulces',          match: s => s === 'dulce' },
 ]
 
+// IMPORTANTE: el match de "nacional" debe excluir explícitamente
+// "internacional" porque la palabra contiene "nacional" como substring
+// y un includes('nacional') tonto daría falso positivo.
 const ORIGENES = [
   { id: 'mallorca',      txt: 'mallorca',         match: s => s.includes('mallorca') },
-  { id: 'nacional',      txt: 'nacionales',       match: s => s.includes('nacional') },
+  { id: 'nacional',      txt: 'nacionales',       match: s => s.includes('nacional') && !s.includes('internacional') },
   { id: 'internacional', txt: 'internacionales',  match: s => s.includes('internacional') },
 ]
 

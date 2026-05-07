@@ -25,6 +25,20 @@ const BOTON_TXT = {
   de: { maridaje: 'Pairing',   funciona: 'So funktioniert', newsletter: 'Newsletter' },
 }
 
+// Filtro con etiqueta arriba (estilo formulario premium)
+function FiltroLabeled({ label, children }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+      <span style={{
+        fontFamily: 'var(--font-body)', fontSize: '9px', fontWeight: '500',
+        letterSpacing: '0.22em', textTransform: 'uppercase',
+        color: 'var(--raco-stone)', paddingLeft: '2px',
+      }}>{label}</span>
+      {children}
+    </div>
+  )
+}
+
 function SelectRaco({ value, onChange, options, placeholder }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
@@ -439,28 +453,51 @@ export default function App() {
             {filtrosAbiertos && (
               <div style={{
                 background: 'var(--raco-paper)', border: '1px solid var(--raco-sand)',
-                borderRadius: '12px', padding: '14px',
-                display: 'grid',
-                // Grid responsivo: en tablet/desktop 2 columnas, en móvil 1
-                gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-                gap: '10px',
-                marginBottom: '8px', animation: 'fadeDown 0.18s ease both'
+                borderRadius: '14px', padding: '16px 16px 14px',
+                marginBottom: '10px', animation: 'fadeDown 0.18s ease both',
+                boxShadow: '0 2px 8px rgba(28,28,14,0.04)',
               }}>
-                <SelectRaco value={filtroTipo} onChange={setFiltroTipo} options={opcionesTipo} placeholder={t(idioma, 'tipoTodos')} />
-                <SelectRaco value={filtroPais} onChange={setFiltroPais} options={opcionesPais} placeholder={t(idioma, 'paisTodos')} />
-                <SelectRaco value={filtroFormato} onChange={setFiltroFormato} options={opcionesFormato} placeholder={t(idioma, 'formatoTodos')} />
-                <SelectRaco value={filtroGraduacion} onChange={setFiltroGraduacion} options={opcionesGraduacion} placeholder={t(idioma, 'graduacionTodas')} />
-                <SelectRaco value={filtroOrden} onChange={setFiltroOrden} options={opcionesOrden} placeholder={t(idioma, 'ordenDefecto')} />
+                <div style={{
+                  display: 'grid',
+                  // En móvil 1 col, en tablet 2 cols, en desktop 3 cols
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                  gap: '12px 14px',
+                }}>
+                  <FiltroLabeled label={t(idioma,'tipo')}>
+                    <SelectRaco value={filtroTipo} onChange={setFiltroTipo} options={opcionesTipo} placeholder={t(idioma, 'tipoTodos')} />
+                  </FiltroLabeled>
+                  <FiltroLabeled label={t(idioma,'pais')}>
+                    <SelectRaco value={filtroPais} onChange={setFiltroPais} options={opcionesPais} placeholder={t(idioma, 'paisTodos')} />
+                  </FiltroLabeled>
+                  <FiltroLabeled label={t(idioma,'formato')}>
+                    <SelectRaco value={filtroFormato} onChange={setFiltroFormato} options={opcionesFormato} placeholder={t(idioma, 'formatoTodos')} />
+                  </FiltroLabeled>
+                  <FiltroLabeled label={t(idioma,'graduacion')}>
+                    <SelectRaco value={filtroGraduacion} onChange={setFiltroGraduacion} options={opcionesGraduacion} placeholder={t(idioma, 'graduacionTodas')} />
+                  </FiltroLabeled>
+                  <FiltroLabeled label={t(idioma,'orden')}>
+                    <SelectRaco value={filtroOrden} onChange={setFiltroOrden} options={opcionesOrden} placeholder={t(idioma, 'ordenDefecto')} />
+                  </FiltroLabeled>
+                </div>
                 {hayFiltrosActivos && (
-                  <button onClick={limpiarFiltros} style={{
-                    background: 'none', border: '1px solid var(--raco-sand)',
-                    borderRadius: '10px', padding: '10px 14px', cursor: 'pointer',
-                    color: 'var(--raco-stone)', fontSize: '12px', fontFamily: 'var(--font-body)',
-                    whiteSpace: 'nowrap', letterSpacing: '0.06em', transition: 'all 0.15s'
-                  }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor='var(--raco-khaki)'; e.currentTarget.style.color='var(--raco-khaki)' }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor='var(--raco-sand)'; e.currentTarget.style.color='var(--raco-stone)' }}
-                  >× {t(idioma, 'limpiar')}</button>
+                  <div style={{
+                    marginTop: '14px', paddingTop: '12px',
+                    borderTop: '1px solid var(--raco-sand)',
+                    display: 'flex', justifyContent: 'flex-end',
+                  }}>
+                    <button onClick={limpiarFiltros} style={{
+                      background: 'transparent', border: 'none',
+                      cursor: 'pointer', color: 'var(--raco-khaki)',
+                      fontSize: '11px', fontFamily: 'var(--font-body)',
+                      whiteSpace: 'nowrap', letterSpacing: '0.18em', textTransform: 'uppercase',
+                      fontWeight: '500',
+                      display: 'inline-flex', alignItems: 'center', gap: '6px',
+                      transition: 'opacity 0.15s', padding: '4px 8px',
+                    }}
+                      onMouseEnter={e => e.currentTarget.style.opacity='0.7'}
+                      onMouseLeave={e => e.currentTarget.style.opacity='1'}
+                    >× {t(idioma, 'limpiar')} ({numFiltros})</button>
+                  </div>
                 )}
               </div>
             )}

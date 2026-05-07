@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { formatPrecio } from '../lib/precio'
+import { t } from '../lib/idioma'
 
 const CATEGORIAS = [
   { id: 'entrantes',       label: 'Entrantes' },
@@ -92,7 +93,7 @@ function razonMaridaje(plato, vino, score) {
 }
 
 
-export default function Maridaje({ bebidas, onSeleccionar, onVolver }) {
+export default function Maridaje({ bebidas, onSeleccionar, onVolver, idioma = 'es' }) {
   const [platos, setPlatos] = useState([])
   const [loading, setLoading] = useState(true)
   const [seleccionado, setSeleccionado] = useState(null)
@@ -168,7 +169,13 @@ export default function Maridaje({ bebidas, onSeleccionar, onVolver }) {
                     }}>▼</span>
                   </button>
                   {abierta && (
-                    <div style={{ padding: '0 8px 12px' }}>
+                    <div style={{
+                      padding: '0 8px 12px',
+                      // Si una categoría tiene 30+ platos, scroll interno para no
+                      // empujar las demás categorías fuera de pantalla
+                      maxHeight: '380px', overflowY: 'auto',
+                      WebkitOverflowScrolling: 'touch'
+                    }}>
                       {items.map(plato => {
                         const sel = seleccionado?.id === plato.id
                         return (
@@ -304,7 +311,7 @@ export default function Maridaje({ bebidas, onSeleccionar, onVolver }) {
                 ))}
                 {sugerencias.length === 0 && (
                   <p style={{ color: 'var(--raco-stone)', fontSize: '12px', padding: '20px', textAlign: 'center' }}>
-                    No tenemos vinos disponibles para este plato.
+                    {t(idioma, 'sinVinosMaridaje')}
                   </p>
                 )}
               </div>

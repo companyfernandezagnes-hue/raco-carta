@@ -365,7 +365,7 @@ export default function App() {
 
   if (loading) return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px', background: 'var(--raco-cream)' }}>
-      <div style={{ width: '28px', height: '28px', border: '1.5px solid var(--raco-sand)', borderTop: '1.5px solid var(--raco-khaki)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}/>
+      <div style={{ width: '28px', height: '28px', border: '1.5px solid var(--raco-sand)', borderTop: '1.5px solid var(--raco-khaki)', borderRadius: '50%', animation: 'spin 1s linear infinite', willChange: 'transform', backfaceVisibility: 'hidden' }}/>
       <style dangerouslySetInnerHTML={{__html: '@keyframes spin { to { transform: rotate(360deg) } }'}} />
       <p style={{ color: 'var(--raco-stone)', fontSize: '11px', letterSpacing: '0.28em', fontFamily: 'var(--font-body)', fontWeight: '300' }}>{t(idioma, 'cargandoCarta')}</p>
     </div>
@@ -510,13 +510,13 @@ export default function App() {
               agruparPorOrigen={(categoriaActiva === 'blanco' || categoriaActiva === 'tinto') && !subcategoriaActiva}
             />
           )}
-          {mostrarComparador && comparador.length===2 && <ComparadorModal bebida1={comparador[0]} bebida2={comparador[1]} onCerrar={() => setMostrarComparador(false)} />}
+          {mostrarComparador && comparador.length===2 && <ComparadorModal bebida1={comparador[0]} bebida2={comparador[1]} onCerrar={() => setMostrarComparador(false)} idioma={idioma} />}
           <FooterRaco />
         </div>
       )}
       <Suspense fallback={<div style={{padding:'30px',textAlign:'center',color:'var(--raco-stone)',fontSize:'12px',letterSpacing:'0.2em'}}>{t(idioma, 'cargandoMore')}</div>}>
         {vista==='detalle' && bebidaseleccionada && <DetalleBebida bebida={bebidaseleccionada} onVolver={volverODetalle} todasBebidas={bebidas} idioma={idioma} />}
-        {vista==='maridaje' && <Maridaje bebidas={bebidas} onSeleccionar={abrirDetalle} onVolver={volver} />}
+        {vista==='maridaje' && <Maridaje bebidas={bebidas} onSeleccionar={abrirDetalle} onVolver={volver} idioma={idioma} />}
         {vista==='comoFunciona' && <EducacionVino idioma={idioma} tab="funciona" onCerrar={volver} />}
         {vista==='newsletter'   && <EducacionVino idioma={idioma} tab="news"     onCerrar={volver} />}
         {adminAbierto && <PanelAdmin
@@ -621,7 +621,7 @@ function FooterRaco() {
   )
 }
 
-function ComparadorModal({ bebida1, bebida2, onCerrar }) {
+function ComparadorModal({ bebida1, bebida2, onCerrar, idioma = 'es' }) {
   // Cerrar con Escape
   useEffect(() => {
     function onKey(e) { if (e.key === 'Escape') onCerrar() }
@@ -629,18 +629,21 @@ function ComparadorModal({ bebida1, bebida2, onCerrar }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [onCerrar])
   const campos = [
-    {label:'Tipo',key:'subcategoria'},{label:'Región',key:'region'},{label:'País',key:'pais'},
-    {label:'Añada',key:'anada'},{label:'Uvas',key:'uvas'},{label:'Crianza',key:'crianza'},
-    {label:'Graduación',key:'graduacion',fmt:v=>v?v+'%':'—'},
-    {label:'Botella',key:'precio_botella',fmt:v=>v?v+'€':'—'},
-    {label:'Copa',key:'precio_copa',fmt:v=>v?v+'€':'—'},
+    {label:t(idioma,'region'),key:'region'},
+    {label:t(idioma,'pais'),key:'pais'},
+    {label:t(idioma,'anada'),key:'anada'},
+    {label:t(idioma,'uvas'),key:'uvas'},
+    {label:t(idioma,'crianza'),key:'crianza'},
+    {label:t(idioma,'graduacion'),key:'graduacion',fmt:v=>v?v+'%':'—'},
+    {label:t(idioma,'botella'),key:'precio_botella',fmt:v=>v?v+'€':'—'},
+    {label:t(idioma,'copa'),key:'precio_copa',fmt:v=>v?v+'€':'—'},
   ]
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(28,28,14,0.55)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={e => e.target===e.currentTarget && onCerrar()}>
       <div style={{ background: 'var(--raco-paper)', borderRadius: '20px 20px 0 0', borderTop: '1px solid var(--raco-sand)', width: '100%', maxWidth: '900px', maxHeight: '90vh', overflow: 'auto', padding: '28px 20px 48px', animation: 'slideUp 0.3s cubic-bezier(0.22,1,0.36,1) both' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <p style={{ fontSize: '10px', letterSpacing: '0.24em', textTransform: 'uppercase', color: 'var(--raco-stone)', fontFamily: 'var(--font-body)' }}>Comparador</p>
-          <button aria-label="Cerrar comparador" onClick={onCerrar} style={{ background: 'none', border: '1px solid var(--raco-sand)', borderRadius:'6px', padding:'4px 10px', cursor: 'pointer', color: 'var(--raco-stone)', fontSize: '18px', lineHeight: 1 }}>×</button>
+          <p style={{ fontSize: '10px', letterSpacing: '0.24em', textTransform: 'uppercase', color: 'var(--raco-stone)', fontFamily: 'var(--font-body)' }}>{t(idioma, 'comparador')}</p>
+          <button aria-label={t(idioma, 'cerrar')} onClick={onCerrar} style={{ background: 'none', border: '1px solid var(--raco-sand)', borderRadius:'6px', padding:'4px 10px', cursor: 'pointer', color: 'var(--raco-stone)', fontSize: '18px', lineHeight: 1 }}>×</button>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
           {[bebida1, bebida2].map(b => <div key={b.id} style={{ textAlign: 'center' }}><p style={{ fontSize: '14px', color: 'var(--raco-khaki)', fontFamily: 'var(--font-brand)', marginBottom: '2px' }}>{b.nombre}</p><p style={{ fontSize: '11px', color: 'var(--raco-stone)', fontFamily: 'var(--font-body)', letterSpacing: '0.06em' }}>{b.bodega}</p></div>)}

@@ -47,13 +47,15 @@ export default function ListaBebidas({ bebidas, onSeleccionar, modoVista = 'list
   })()
 
   if (modoVista === 'grid-sm' || modoVista === 'grid-lg') {
-    const cols = modoVista === 'grid-sm' ? 3 : 2
+    // Grid responsivo: en tablet 768px usamos 2 cols incluso en grid-sm,
+    // ya que con 3 las botellas se ven diminutas
+    const cols = modoVista === 'grid-sm' ? 'repeat(auto-fill, minmax(170px, 1fr))' : 'repeat(auto-fill, minmax(280px, 1fr))'
     return (
       <div style={{ padding: '0 16px 32px' }}>
         {destacados.length > 0 && (
           <>
             <SeccionHeader>{t(idioma, 'seleccionSumiller')}</SeccionHeader>
-            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: '10px', marginBottom: '28px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: cols, gap: '10px', marginBottom: '28px' }}>
               {destacados.map(b => <TarjetaGrid key={b.id} bebida={b} onSeleccionar={onSeleccionar} destacado esPequena={modoVista === 'grid-sm'} esFavorito={favoritos.includes(b.id)} onToggleFavorito={fav} enComparador={comparador.some(c => c.id === b.id)} onToggleComparador={comp} />)}
             </div>
           </>
@@ -62,7 +64,7 @@ export default function ListaBebidas({ bebidas, onSeleccionar, modoVista = 'list
           gruposOrigen.map((g, idx) => (
             <div key={g.id} style={{ marginBottom: idx < gruposOrigen.length - 1 ? '28px' : 0 }}>
               <SeccionHeader>{t(idioma, LABEL_ORIGEN[g.id])} · {g.items.length}</SeccionHeader>
-              <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: '10px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: cols, gap: '10px' }}>
                 {g.items.map(b => <TarjetaGrid key={b.id} bebida={b} onSeleccionar={onSeleccionar} esPequena={modoVista === 'grid-sm'} esFavorito={favoritos.includes(b.id)} onToggleFavorito={fav} enComparador={comparador.some(c => c.id === b.id)} onToggleComparador={comp} />)}
               </div>
             </div>
@@ -70,7 +72,7 @@ export default function ListaBebidas({ bebidas, onSeleccionar, modoVista = 'list
         ) : resto.length > 0 && (
           <>
             {destacados.length > 0 && <SeccionHeader>{t(idioma, 'cartaCompleta')}</SeccionHeader>}
-            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: '10px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: cols, gap: '10px' }}>
               {resto.map(b => <TarjetaGrid key={b.id} bebida={b} onSeleccionar={onSeleccionar} esPequena={modoVista === 'grid-sm'} esFavorito={favoritos.includes(b.id)} onToggleFavorito={fav} enComparador={comparador.some(c => c.id === b.id)} onToggleComparador={comp} />)}
             </div>
           </>

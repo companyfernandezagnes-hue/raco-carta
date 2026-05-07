@@ -87,7 +87,7 @@ export default function DetalleBebida({ bebida, onVolver, todasBebidas, idioma =
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '3px' }}>
                   <span style={{
                     fontFamily: 'var(--font-brand)', fontSize: '28px', fontWeight: '400',
-                    color: 'var(--raco-stone)', lineHeight: 1
+                    color: 'var(--raco-black)', lineHeight: 1
                   }}>{formatPrecio(bebida.precio_copa)}</span>
                   <span style={{
                     fontFamily: 'var(--font-body)', fontSize: '12px', fontWeight: '300',

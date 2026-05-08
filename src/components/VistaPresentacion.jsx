@@ -14,9 +14,17 @@ import QRCode from 'qrcode'
  *   onSalir         — callback al tocar/click la pantalla
  */
 export default function VistaPresentacion({ bebidas, intervaloMs = 8000, onSalir, idioma = 'es' }) {
-  // Solo mostrar bebidas destacadas; si no hay ninguna, las primeras 5 disponibles
+  // Solo mostrar bebidas destacadas; si no hay ninguna, las primeras 5 disponibles.
+  // Siempre incluir vinos sin alcohol para que destaquen en la rotación.
   const destacadas = bebidas.filter(b => b.destacado && b.disponible !== false)
-  const lista = destacadas.length > 0 ? destacadas : bebidas.filter(b => b.disponible !== false).slice(0, 5)
+  const sinAlcohol = bebidas.filter(b => {
+    if (b.disponible === false) return false
+    const g = parseFloat(b.graduacion)
+    return g === 0 || (!isNaN(g) && g < 0.5)
+  })
+  const base = destacadas.length > 0 ? destacadas : bebidas.filter(b => b.disponible !== false).slice(0, 5)
+  const sinAlcoholNuevos = sinAlcohol.filter(sa => !base.find(l => l.id === sa.id))
+  const lista = [...base, ...sinAlcoholNuevos]
 
   const [idx, setIdx] = useState(0)
   const [fadeKey, setFadeKey] = useState(0)
@@ -44,6 +52,7 @@ export default function VistaPresentacion({ bebidas, intervaloMs = 8000, onSalir
 
   if (lista.length === 0) return null
   const b = lista[idx]
+  const esSinAlcohol = (() => { const g = parseFloat(b.graduacion); return g === 0 || (!isNaN(g) && g < 0.5) })()
 
   return (
     <div
@@ -95,6 +104,17 @@ export default function VistaPresentacion({ bebidas, intervaloMs = 8000, onSalir
 
         {/* Texto a la derecha */}
         <div style={{ flex: 1, minWidth: 0 }}>
+          {esSinAlcohol && (
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: '8px',
+              background: 'linear-gradient(135deg, #4a7c59 0%, #6b9a3e 100%)',
+              color: '#fff', padding: '8px 20px', borderRadius: '30px',
+              fontFamily: 'var(--font-body)', fontSize: '13px', fontWeight: '600',
+              letterSpacing: '0.2em', textTransform: 'uppercase',
+              marginBottom: '16px', boxShadow: '0 4px 16px rgba(75,124,89,0.35)',
+              animation: 'pulsoBadge 2.5s ease-in-out infinite',
+            }}>🍃 {t(idioma, 'sinAlcohol')}</div>
+          )}
           {b.subcategoria && (
             <p style={{
               fontFamily: 'var(--font-body)', fontSize: '11px', letterSpacing: '0.3em',
@@ -180,6 +200,10 @@ export default function VistaPresentacion({ bebidas, intervaloMs = 8000, onSalir
         @keyframes slideIn {
           from { opacity: 0; transform: translateY(20px) scale(0.97); }
           to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes pulsoBadge {
+          0%, 100% { transform: scale(1); box-shadow: 0 4px 16px rgba(75,124,89,0.35); }
+          50%      { transform: scale(1.06); box-shadow: 0 6px 24px rgba(75,124,89,0.5); }
         }
         .vp-slide {
           display: flex;

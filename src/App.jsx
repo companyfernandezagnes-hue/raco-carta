@@ -476,7 +476,7 @@ export default function App() {
   const hayFiltrosActivos = busqueda || filtroPais || filtroTipo || filtroOrden || filtroGraduacion || filtroFormato
   const numFiltros = [filtroPais, filtroTipo, filtroOrden, filtroGraduacion, filtroFormato].filter(Boolean).length
   const opcionesTipo = [{ value: '', label: t(idioma,'tipoTodos') }, ...tipos.map(x => ({ value: x, label: x }))]
-  const opcionesPais = [{ value: '', label: t(idioma,'paisTodos') }, ...paises.map(p => ({ value: p, label: p }))]
+  const opcionesPais = [{ value: '', label: t(idioma,'doTodas') }, ...paises.map(p => ({ value: p, label: p }))]
   const opcionesGraduacion = [{ value: '', label: t(idioma,'graduacionTodas') }, { value: 'baja', label: t(idioma,'graduacionSuave') }, { value: 'media', label: t(idioma,'graduacionMedia') }, { value: 'alta', label: t(idioma,'graduacionAlta') }]
   const opcionesFormato = [{ value: '', label: t(idioma,'formatoTodos') }, { value: 'copa', label: t(idioma,'porCopa') }, { value: 'botella', label: t(idioma,'porBotella') }, { value: 'ambos', label: t(idioma,'ambosFormatos') }]
   const opcionesOrden = [{ value: '', label: t(idioma,'ordenDefecto') }, { value: 'precio_asc', label: t(idioma,'precioAsc') }, { value: 'precio_desc', label: t(idioma,'precioDesc') }, { value: 'nombre_asc', label: t(idioma,'nombreAsc') }]
@@ -608,7 +608,7 @@ export default function App() {
                   <FiltroLabeled label={t(idioma,'tipo')}>
                     <SelectRaco value={filtroTipo} onChange={setFiltroTipo} options={opcionesTipo} placeholder={t(idioma, 'tipoTodos')} />
                   </FiltroLabeled>
-                  <FiltroLabeled label={t(idioma,'pais')}>
+                  <FiltroLabeled label={t(idioma,'filtroDO')}>
                     <SelectRaco value={filtroPais} onChange={setFiltroPais} options={opcionesPais} placeholder={t(idioma, 'paisTodos')} />
                   </FiltroLabeled>
                   <FiltroLabeled label={t(idioma,'formato')}>

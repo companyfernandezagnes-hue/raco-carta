@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react'
+import { createPortal } from 'react-dom'
 import { supabase } from './lib/supabase'
 import { IDIOMAS, leerIdiomaGuardado, guardarIdioma, t } from './lib/idioma'
 import { autoTraduccionDisponible, traducirPendientes } from './lib/traduccionesAuto'
@@ -41,38 +42,70 @@ function FiltroLabeled({ label, children }) {
 
 function SelectRaco({ value, onChange, options, placeholder }) {
   const [open, setOpen] = useState(false)
+  const [pos, setPos] = useState(null)
   const ref = useRef(null)
+  const btnRef = useRef(null)
   const selected = options.find(o => o.value === value)
+
+  // Calcular posición del menú cuando se abre. Se usa "position: fixed"
+  // y un Portal en document.body para que el menú escape de cualquier
+  // stacking context (cards de vinos, etc.) y siempre esté ARRIBA DE TODO.
   useEffect(() => {
-    function handler(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    if (!open || !btnRef.current) return
+    function actualizarPos() {
+      const r = btnRef.current.getBoundingClientRect()
+      // Decidir si el menú abre arriba o abajo según haya espacio
+      const espacioAbajo = window.innerHeight - r.bottom
+      const espacioArriba = r.top
+      const abreArriba = espacioAbajo < 200 && espacioArriba > espacioAbajo
+      setPos({
+        left: r.left,
+        width: r.width,
+        top: abreArriba ? null : r.bottom + 6,
+        bottom: abreArriba ? window.innerHeight - r.top + 6 : null,
+        maxHeight: Math.min(280, abreArriba ? espacioArriba - 12 : espacioAbajo - 12),
+      })
+    }
+    actualizarPos()
+    window.addEventListener('resize', actualizarPos)
+    window.addEventListener('scroll', actualizarPos, true)
+    return () => {
+      window.removeEventListener('resize', actualizarPos)
+      window.removeEventListener('scroll', actualizarPos, true)
+    }
+  }, [open])
+
+  useEffect(() => {
+    function handler(e) {
+      if (ref.current && !ref.current.contains(e.target) && !e.target.closest('[data-select-portal]')) {
+        setOpen(false)
+      }
+    }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
+
   return (
-    <div ref={ref} style={{
-      position: 'relative', flex: 1, minWidth: 0,
-      // Cuando el dropdown está abierto, este SelectRaco se eleva por encima
-      // de los otros para que su menú no quede tapado por los demás filtros
-      zIndex: open ? 999 : 1
-    }}>
+    <div ref={ref} style={{ position: 'relative', flex: 1, minWidth: 0 }}>
       <button
+        ref={btnRef}
         onClick={() => setOpen(v => !v)}
         style={{ width: '100%', background: 'var(--raco-cream)', border: '1px solid ' + (open || value ? 'var(--raco-khaki)' : 'var(--raco-sand)'), borderRadius: '10px', padding: '10px 34px 10px 14px', color: value ? 'var(--raco-black)' : 'var(--raco-stone)', fontSize: '13px', fontFamily: 'var(--font-body)', fontWeight: value ? '400' : '300', cursor: 'pointer', textAlign: 'left', letterSpacing: '0.04em', transition: 'border-color 0.15s', position: 'relative', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
       >
         {selected ? selected.label : placeholder}
         <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%) ' + (open ? 'rotate(180deg)' : 'rotate(0)'), transition: 'transform 0.18s', color: 'var(--raco-stone)', fontSize: '9px', pointerEvents: 'none' }}>▼</span>
       </button>
-      {open && (
-        <div style={{
-          position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0,
-          // z-index muy alto para que NUNCA quede tapado por nada del panel
-          zIndex: 1000,
-          // Fondo BLANCO puro (no el cream del panel) para destacar como
-          // un dropdown propiamente dicho, no como parte del panel padre.
+      {open && pos && createPortal(
+        <div data-select-portal style={{
+          position: 'fixed',
+          left: pos.left + 'px', width: pos.width + 'px',
+          ...(pos.top != null ? { top: pos.top + 'px' } : {}),
+          ...(pos.bottom != null ? { bottom: pos.bottom + 'px' } : {}),
+          // z-index altísimo → siempre por encima de TODO (cards, header, etc.)
+          zIndex: 99999,
           background: '#ffffff',
           border: '1px solid var(--raco-khaki)', borderRadius: '12px',
-          maxHeight: '280px', overflowY: 'auto', overflowX: 'hidden',
-          // Sombra mucho más fuerte → "flota" claramente sobre el contenido
+          maxHeight: pos.maxHeight + 'px', overflowY: 'auto', overflowX: 'hidden',
           boxShadow: '0 20px 48px rgba(28,28,14,0.28), 0 4px 12px rgba(28,28,14,0.10)',
           animation: 'fadeDown 0.15s ease both',
           WebkitOverflowScrolling: 'touch',
@@ -95,7 +128,8 @@ function SelectRaco({ value, onChange, options, placeholder }) {
               onMouseLeave={e => { if (o.value !== value) e.currentTarget.style.background = 'transparent' }}
             >{o.label}</button>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )

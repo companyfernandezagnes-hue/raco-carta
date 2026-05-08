@@ -49,7 +49,12 @@ function SelectRaco({ value, onChange, options, placeholder }) {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
   return (
-    <div ref={ref} style={{ position: 'relative', flex: 1, minWidth: 0 }}>
+    <div ref={ref} style={{
+      position: 'relative', flex: 1, minWidth: 0,
+      // Cuando el dropdown está abierto, este SelectRaco se eleva por encima
+      // de los otros para que su menú no quede tapado por los demás filtros
+      zIndex: open ? 999 : 1
+    }}>
       <button
         onClick={() => setOpen(v => !v)}
         style={{ width: '100%', background: 'var(--raco-cream)', border: '1px solid ' + (open || value ? 'var(--raco-khaki)' : 'var(--raco-sand)'), borderRadius: '10px', padding: '10px 34px 10px 14px', color: value ? 'var(--raco-black)' : 'var(--raco-stone)', fontSize: '13px', fontFamily: 'var(--font-body)', fontWeight: value ? '400' : '300', cursor: 'pointer', textAlign: 'left', letterSpacing: '0.04em', transition: 'border-color 0.15s', position: 'relative', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
@@ -60,18 +65,33 @@ function SelectRaco({ value, onChange, options, placeholder }) {
       {open && (
         <div style={{
           position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0,
-          zIndex: 200, background: 'var(--raco-paper)',
-          border: '1px solid var(--raco-sand)', borderRadius: '12px',
-          // Scroll interno si hay muchas opciones (ej: 30 países)
+          // z-index muy alto para que NUNCA quede tapado por nada del panel
+          zIndex: 1000,
+          // Fondo BLANCO puro (no el cream del panel) para destacar como
+          // un dropdown propiamente dicho, no como parte del panel padre.
+          background: '#ffffff',
+          border: '1px solid var(--raco-khaki)', borderRadius: '12px',
           maxHeight: '280px', overflowY: 'auto', overflowX: 'hidden',
-          boxShadow: '0 12px 32px rgba(28,28,14,0.18)',
+          // Sombra mucho más fuerte → "flota" claramente sobre el contenido
+          boxShadow: '0 20px 48px rgba(28,28,14,0.28), 0 4px 12px rgba(28,28,14,0.10)',
           animation: 'fadeDown 0.15s ease both',
           WebkitOverflowScrolling: 'touch',
         }}>
           {options.map((o, idx) => (
             <button key={o.value} onClick={() => { onChange(o.value); setOpen(false) }}
-              style={{ display: 'block', width: '100%', textAlign: 'left', background: o.value === value ? 'rgba(107,122,62,0.10)' : 'transparent', border: 'none', borderBottom: idx < options.length - 1 ? '1px solid var(--raco-sand)' : 'none', padding: '11px 16px', cursor: 'pointer', color: o.value === value ? 'var(--raco-khaki)' : (o.value === '' ? 'var(--raco-stone)' : 'var(--raco-black)'), fontSize: '13px', fontFamily: 'var(--font-body)', fontWeight: o.value === value ? '500' : '300', letterSpacing: '0.04em', transition: 'background 0.1s', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
-              onMouseEnter={e => { if (o.value !== value) e.currentTarget.style.background = 'rgba(107,122,62,0.05)' }}
+              style={{
+                display: 'block', width: '100%', textAlign: 'left',
+                background: o.value === value ? 'rgba(107,122,62,0.12)' : 'transparent',
+                border: 'none',
+                borderBottom: idx < options.length - 1 ? '1px solid var(--raco-sand)' : 'none',
+                padding: '12px 16px', cursor: 'pointer',
+                color: o.value === value ? 'var(--raco-khaki)' : (o.value === '' ? 'var(--raco-stone)' : 'var(--raco-black)'),
+                fontSize: '13px', fontFamily: 'var(--font-body)',
+                fontWeight: o.value === value ? '500' : '400',
+                letterSpacing: '0.04em', transition: 'background 0.1s',
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
+              }}
+              onMouseEnter={e => { if (o.value !== value) e.currentTarget.style.background = 'rgba(107,122,62,0.06)' }}
               onMouseLeave={e => { if (o.value !== value) e.currentTarget.style.background = 'transparent' }}
             >{o.label}</button>
           ))}

@@ -609,7 +609,7 @@ export default function App() {
                     <SelectRaco value={filtroTipo} onChange={setFiltroTipo} options={opcionesTipo} placeholder={t(idioma, 'tipoTodos')} />
                   </FiltroLabeled>
                   <FiltroLabeled label={t(idioma,'filtroDO')}>
-                    <SelectRaco value={filtroPais} onChange={setFiltroPais} options={opcionesPais} placeholder={t(idioma, 'paisTodos')} />
+                    <SelectRaco value={filtroPais} onChange={setFiltroPais} options={opcionesPais} placeholder={t(idioma, 'doTodas')} />
                   </FiltroLabeled>
                   <FiltroLabeled label={t(idioma,'formato')}>
                     <SelectRaco value={filtroFormato} onChange={setFiltroFormato} options={opcionesFormato} placeholder={t(idioma, 'formatoTodos')} />

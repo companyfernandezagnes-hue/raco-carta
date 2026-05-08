@@ -8,6 +8,8 @@
 }
 
 :root {
+  color-scheme: light only !important;
+  forced-color-adjust: none !important;
   --raco-cream:    #F5EFE0;
   --raco-khaki:    #B69A6A;   /* Tan dorado del logo (Pantone 465) */
   --raco-black:    #1C1C0E;
@@ -44,12 +46,32 @@
 
 html, body, #root {
   height: 100%;
-  background: var(--bg);
-  color: var(--text);
+  background: var(--bg) !important;
+  color: var(--text) !important;
+  color-scheme: light only !important;
+  forced-color-adjust: none !important;
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-weight: 300;
+}
+
+html {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-overflow-scrolling: touch;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+body {
+  -webkit-user-select: none;
+  user-select: none;
+  overflow-x: hidden;
+}
+
+input, textarea, [contenteditable] {
+  -webkit-user-select: auto;
+  user-select: auto;
 }
 
 button {

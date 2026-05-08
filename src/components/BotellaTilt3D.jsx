@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useCallback } from 'react'
 
 /**
  * Botella con efecto 3D parallax + flotación + reflejo.
@@ -23,6 +23,7 @@ export default function BotellaTilt3D({
   const ref = useRef(null)
   const [rot, setRot] = useState({ x: 0, y: 0 })
   const [hover, setHover] = useState(false)
+  const rafRef = useRef(null)
 
   const dim = {
     pequeño:  { w: 70,  h: 110 },
@@ -30,20 +31,25 @@ export default function BotellaTilt3D({
     grande:   { w: 220, h: 330 },
   }[tamaño] || { w: 130, h: 200 }
 
-  function handleMove(e) {
-    const el = ref.current
-    if (!el) return
-    const rect = el.getBoundingClientRect()
-    const px = (e.clientX - rect.left) / rect.width   // 0..1
-    const py = (e.clientY - rect.top) / rect.height
-    const rotY = (px - 0.5) * intensidad * 2   // -intensidad..+intensidad
-    const rotX = (0.5 - py) * intensidad * 2
-    setRot({ x: rotX, y: rotY })
-  }
-  function handleLeave() {
+  const handleMove = useCallback((e) => {
+    if (rafRef.current) return
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null
+      const el = ref.current
+      if (!el) return
+      const rect = el.getBoundingClientRect()
+      const px = (e.clientX - rect.left) / rect.width
+      const py = (e.clientY - rect.top) / rect.height
+      const rotY = (px - 0.5) * intensidad * 2
+      const rotX = (0.5 - py) * intensidad * 2
+      setRot({ x: rotX, y: rotY })
+    })
+  }, [intensidad])
+  const handleLeave = useCallback(() => {
+    if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null }
     setRot({ x: 0, y: 0 })
     setHover(false)
-  }
+  }, [])
 
   // El reflejo se mueve en sentido contrario para dar sensación de profundidad
   const reflejoOffsetX = -rot.y * 0.4

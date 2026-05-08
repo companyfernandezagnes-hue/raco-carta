@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, lazy, Suspense } from 'react'
+import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react'
 import { createPortal } from 'react-dom'
 import { supabase } from './lib/supabase'
 import { IDIOMAS, leerIdiomaGuardado, guardarIdioma, t } from './lib/idioma'
@@ -135,7 +135,30 @@ function SelectRaco({ value, onChange, options, placeholder }) {
   )
 }
 
+function useKeepAwake() {
+  useEffect(() => {
+    let wakeLock = null
+    async function request() {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLock = await navigator.wakeLock.request('screen')
+        }
+      } catch {}
+    }
+    request()
+    function onVisChange() {
+      if (document.visibilityState === 'visible') request()
+    }
+    document.addEventListener('visibilitychange', onVisChange)
+    return () => {
+      if (wakeLock) wakeLock.release().catch(() => {})
+      document.removeEventListener('visibilitychange', onVisChange)
+    }
+  }, [])
+}
+
 export default function App() {
+  useKeepAwake()
   const [bebidas, setBebidas] = useState([])
   const [loading, setLoading] = useState(true)
   const [categoriaActiva, setCategoriaActiva] = useState('todas')

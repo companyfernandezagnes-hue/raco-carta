@@ -187,6 +187,9 @@ const TarjetaBebida = memo(function TarjetaBebida({ bebida, onSeleccionar, desta
         transition: 'border-color 0.2s, box-shadow 0.2s, transform 0.15s',
         display: 'flex', gap: '14px', alignItems: 'center', position: 'relative',
         animation: 'fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) both',
+        contain: 'layout style paint',
+        contentVisibility: 'auto',
+        containIntrinsicSize: '0 100px',
       }}
       onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--raco-khaki)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(107,122,62,0.10)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
       onMouseLeave={e => { e.currentTarget.style.borderColor = destacado ? 'rgba(107,122,62,0.45)' : 'var(--raco-sand)'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)' }}

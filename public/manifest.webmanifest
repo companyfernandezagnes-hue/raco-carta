@@ -8,7 +8,7 @@
   "display_override": ["fullscreen", "standalone", "minimal-ui"],
   "orientation": "portrait",
   "background_color": "#F5EFE0",
-  "theme_color": "#1C1A14",
+  "theme_color": "#F5EFE0",
   "icons": [
     {
       "src": "logo-raco.png",

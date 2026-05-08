@@ -135,6 +135,70 @@ function SelectRaco({ value, onChange, options, placeholder }) {
   )
 }
 
+function useAutoFullscreen() {
+  useEffect(() => {
+    const isTactil = 'ontouchstart' in window || navigator.maxTouchPoints > 0
+    if (!isTactil) return
+    const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+    if (esIOS) return
+    const esStandalone = window.matchMedia?.('(display-mode: standalone)').matches ||
+                         window.matchMedia?.('(display-mode: fullscreen)').matches
+    if (esStandalone) return
+    function intentarFullscreen() {
+      if (document.fullscreenElement || document.webkitFullscreenElement) return
+      const el = document.documentElement
+      ;(el.requestFullscreen || el.webkitRequestFullscreen)?.call(el).catch(() => {})
+    }
+    document.addEventListener('touchstart', intentarFullscreen, { passive: true })
+    return () => document.removeEventListener('touchstart', intentarFullscreen)
+  }, [])
+}
+
+function BannerInstalar() {
+  const [visible, setVisible] = useState(() => {
+    try {
+      const esStandalone = window.matchMedia?.('(display-mode: standalone)').matches ||
+                           window.matchMedia?.('(display-mode: fullscreen)').matches ||
+                           window.navigator.standalone === true
+      if (esStandalone) return false
+      const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+      if (!esIOS) return false
+      const cerrado = localStorage.getItem('raco_instalar_cerrado')
+      if (cerrado && Date.now() - parseInt(cerrado) < 86400000) return false
+      return true
+    } catch { return false }
+  })
+  if (!visible) return null
+  return (
+    <div style={{
+      position: 'fixed', bottom: '16px', left: '16px', right: '16px',
+      zIndex: 11000, background: 'rgba(28,28,14,0.95)', color: 'var(--raco-cream)',
+      padding: '16px 18px', borderRadius: '14px',
+      display: 'flex', alignItems: 'center', gap: '14px',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+      backdropFilter: 'blur(8px)',
+      animation: 'fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) both',
+    }}>
+      <div style={{ flex: 1, fontSize: '13px', fontFamily: 'var(--font-body)', lineHeight: '1.5', fontWeight: '300' }}>
+        Para <strong style={{ fontWeight: '500' }}>pantalla completa</strong>, pulsa{' '}
+        <svg style={{ display: 'inline', verticalAlign: 'middle', margin: '0 2px' }} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--raco-khaki)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+        {' '}y <strong style={{ fontWeight: '500' }}>"Añadir a inicio"</strong>
+      </div>
+      <button onClick={() => {
+        setVisible(false)
+        try { localStorage.setItem('raco_instalar_cerrado', String(Date.now())) } catch {}
+      }} style={{
+        background: 'rgba(255,255,255,0.15)', border: 'none', color: 'var(--raco-cream)',
+        fontSize: '16px', width: '28px', height: '28px', borderRadius: '50%',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        cursor: 'pointer', flexShrink: 0,
+      }}>×</button>
+    </div>
+  )
+}
+
 function useKeepAwake() {
   useEffect(() => {
     let wakeLock = null
@@ -159,6 +223,7 @@ function useKeepAwake() {
 
 export default function App() {
   useKeepAwake()
+  useAutoFullscreen()
   const [bebidas, setBebidas] = useState([])
   const [loading, setLoading] = useState(true)
   const [categoriaActiva, setCategoriaActiva] = useState('todas')
@@ -708,6 +773,7 @@ export default function App() {
           </div>
         </div>
       )}
+      <BannerInstalar />
     </div>
   )
 }

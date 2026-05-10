@@ -30,15 +30,19 @@ export default function VistaPresentacion({ bebidas, intervaloMs = 8000, onSalir
   const [fadeKey, setFadeKey] = useState(0)
   const intervalRef = useRef(null)
   const [qrUrl, setQrUrl] = useState('')
+  const [qrReviewUrl, setQrReviewUrl] = useState('')
 
-  // Generar el QR de la carta una sola vez. Añadimos ?qr=1 para que la app
-  // detecte que viene del QR del cliente y bloquee el acceso al admin.
+  // Generar los QRs una sola vez: carta + reseñas Google.
   useEffect(() => {
-    const url = window.location.origin + window.location.pathname + '?qr=1'
-    QRCode.toDataURL(url, {
+    const cartaUrl = window.location.origin + window.location.pathname + '?qr=1'
+    QRCode.toDataURL(cartaUrl, {
       margin: 1, width: 220,
       color: { dark: '#1c1c0e', light: '#f7f1e0' }
     }).then(setQrUrl).catch(() => {})
+    QRCode.toDataURL('https://g.page/r/CRlOwkmqOimzEBM/review', {
+      margin: 1, width: 220,
+      color: { dark: '#1c1c0e', light: '#f7f1e0' }
+    }).then(setQrReviewUrl).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -160,24 +164,44 @@ export default function VistaPresentacion({ bebidas, intervaloMs = 8000, onSalir
         </div>
       </div>
 
-      {/* QR del menú en esquina inferior derecha */}
-      {qrUrl && (
-        <div onClick={e => e.stopPropagation()} style={{
-          position: 'absolute', bottom: '24px', right: '24px',
-          background: 'rgba(255,255,255,0.7)',
-          padding: '10px 10px 6px', borderRadius: '12px',
-          backdropFilter: 'blur(6px)',
-          border: '1px solid rgba(107,122,62,0.18)',
-          textAlign: 'center', cursor: 'default',
-        }}>
-          <img src={qrUrl} alt="QR de la carta" style={{ width: '90px', height: '90px', display: 'block' }} />
-          <p style={{
-            margin: '4px 0 0', fontSize: '8px', letterSpacing: '0.18em',
-            color: 'var(--raco-stone)', textTransform: 'uppercase',
-            fontFamily: 'var(--font-body)',
-          }}>{t(idioma, 'cartaEnTuMovil')}</p>
-        </div>
-      )}
+      {/* QRs: carta + reseñas Google */}
+      <div onClick={e => e.stopPropagation()} style={{
+        position: 'absolute', bottom: '24px', right: '24px',
+        display: 'flex', gap: '12px', cursor: 'default',
+      }}>
+        {qrReviewUrl && (
+          <div style={{
+            background: 'rgba(255,255,255,0.7)',
+            padding: '10px 10px 6px', borderRadius: '12px',
+            backdropFilter: 'blur(6px)',
+            border: '1px solid rgba(66,133,244,0.25)',
+            textAlign: 'center',
+          }}>
+            <img src={qrReviewUrl} alt="QR reseña Google" style={{ width: '90px', height: '90px', display: 'block' }} />
+            <p style={{
+              margin: '4px 0 0', fontSize: '8px', letterSpacing: '0.18em',
+              color: '#4285F4', textTransform: 'uppercase',
+              fontFamily: 'var(--font-body)', fontWeight: '500',
+            }}>⭐ {idioma === 'en' ? 'REVIEW US' : idioma === 'de' ? 'BEWERTEN' : 'RESEÑA'}</p>
+          </div>
+        )}
+        {qrUrl && (
+          <div style={{
+            background: 'rgba(255,255,255,0.7)',
+            padding: '10px 10px 6px', borderRadius: '12px',
+            backdropFilter: 'blur(6px)',
+            border: '1px solid rgba(107,122,62,0.18)',
+            textAlign: 'center',
+          }}>
+            <img src={qrUrl} alt="QR de la carta" style={{ width: '90px', height: '90px', display: 'block' }} />
+            <p style={{
+              margin: '4px 0 0', fontSize: '8px', letterSpacing: '0.18em',
+              color: 'var(--raco-stone)', textTransform: 'uppercase',
+              fontFamily: 'var(--font-body)',
+            }}>{t(idioma, 'cartaEnTuMovil')}</p>
+          </div>
+        )}
+      </div>
 
       {/* Indicadores de progreso */}
       {lista.length > 1 && (

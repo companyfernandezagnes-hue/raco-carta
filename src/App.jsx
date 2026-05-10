@@ -330,7 +330,10 @@ export default function App() {
   // El usuario elige si está activa y cuánto tiempo de inactividad espera.
   const [presentacionActiva, setPresentacionActiva] = useState(false)
   const [presentacionConfig, setPresentacionConfig] = useState(() => {
-    const def = { activa: false, delaySeg: 60, intervaloSeg: 7 }
+    // En tablets (pantalla táctil ≥700px) se activa por defecto para que
+    // el modo kiosko funcione sin tener que configurar cada dispositivo.
+    const esTablet = ('ontouchstart' in window || navigator.maxTouchPoints > 0) && window.innerWidth >= 700
+    const def = { activa: esTablet, delaySeg: 60, intervaloSeg: 7 }
     try {
       const c = JSON.parse(localStorage.getItem('raco_presentacion') || 'null')
       if (c && typeof c.activa === 'boolean' && typeof c.delaySeg === 'number' && typeof c.intervaloSeg === 'number') return c

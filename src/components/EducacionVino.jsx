@@ -15,6 +15,8 @@ import { useState } from 'react'
 //   - FORM_ID (saca redirigiendo el shortlink)
 //   - ENTRY_EMAIL  → entry.XXXXX del campo Email
 //   - ENTRY_CONSENT → entry.XXXXX del checkbox de aceptación
+const GOOGLE_REVIEW_URL = 'https://g.page/r/CRlOwkmqOimzEBM/review'
+
 const FORM_ID = '1FAIpQLScuLJMV6q4HmRiXL_UKO7JWj3YZ60tIfWCnYiH2qVDIZZ2IZQ'
 const ENTRY_EMAIL = 'entry.12182691'
 const ENTRY_CONSENT = 'entry.1719803586'
@@ -70,6 +72,9 @@ const T = {
     tCuerpo: 'Al confirmar aceptas recibir comunicaciones puntuales del Racó (catas, novedades, eventos). Tratamos tus datos según el RGPD; puedes darte de baja en cualquier momento contestando "BAJA" a cualquier email.',
     tCancelar: 'Cancelar',
     tAceptar: 'Acepto y me suscribo',
+    reviewTitulo: '¿Te ha gustado la experiencia?',
+    reviewTexto: 'Tu opinión nos ayuda a mejorar y a que otros nos conozcan. Déjanos una reseña en Google — tarda un minuto.',
+    reviewBoton: 'Dejar reseña',
     cerrar: 'Cerrar',
   },
   ca: {
@@ -113,6 +118,9 @@ const T = {
     tCuerpo: 'En confirmar acceptes rebre comunicacions puntuals del Racó (tasts, novetats, esdeveniments). Tractem les teves dades segons el RGPD; pots donar-te de baixa en qualsevol moment responent "BAIXA" a qualsevol correu.',
     tCancelar: 'Cancel·lar',
     tAceptar: 'Accepto i em subscric',
+    reviewTitulo: 'T\'ha agradat l\'experiència?',
+    reviewTexto: 'La teva opinió ens ajuda a millorar i a que altres ens coneguin. Deixa\'ns una ressenya a Google — triga un minut.',
+    reviewBoton: 'Deixar ressenya',
     cerrar: 'Tancar',
   },
   en: {
@@ -156,6 +164,9 @@ const T = {
     tCuerpo: 'By confirming you agree to receive occasional emails from Racó (tastings, news, events). We handle your data under GDPR; you can unsubscribe anytime by replying "UNSUBSCRIBE" to any email.',
     tCancelar: 'Cancel',
     tAceptar: 'Accept and subscribe',
+    reviewTitulo: 'Enjoyed your experience?',
+    reviewTexto: 'Your feedback helps us improve and lets others discover us. Leave a Google review — it only takes a minute.',
+    reviewBoton: 'Leave a review',
     cerrar: 'Close',
   },
   de: {
@@ -199,6 +210,9 @@ const T = {
     tCuerpo: 'Mit der Bestätigung erklärst du dich einverstanden, gelegentliche E-Mails vom Racó zu erhalten (Verkostungen, Neuigkeiten, Events). Wir behandeln deine Daten nach DSGVO; du kannst dich jederzeit abmelden, indem du "ABMELDEN" auf eine E-Mail antwortest.',
     tCancelar: 'Abbrechen',
     tAceptar: 'Akzeptieren und abonnieren',
+    reviewTitulo: 'Hat es Ihnen gefallen?',
+    reviewTexto: 'Ihr Feedback hilft uns, besser zu werden. Hinterlassen Sie eine Google-Bewertung — dauert nur eine Minute.',
+    reviewBoton: 'Bewertung abgeben',
     cerrar: 'Schließen',
   },
 }
@@ -410,6 +424,34 @@ function TabNewsletter({ idioma }) {
         color: 'var(--raco-stone)', marginTop: '20px', opacity: 0.7,
         fontStyle: 'italic',
       }}>{tt(idioma, 'nPriv')}</p>
+
+      {/* Reseñas Google */}
+      <div style={{
+        marginTop: '36px', paddingTop: '28px',
+        borderTop: '1px solid var(--raco-sand)',
+      }}>
+        <div style={{ fontSize: '34px', marginBottom: '14px' }}>⭐</div>
+        <p style={{
+          fontFamily: 'var(--font-brand)', fontSize: '18px', fontWeight: '400',
+          color: 'var(--raco-black)', marginBottom: '10px', lineHeight: '1.3',
+        }}>{tt(idioma, 'reviewTitulo')}</p>
+        <p style={{
+          fontFamily: 'var(--font-body)', fontSize: '13px', fontWeight: '300',
+          color: 'var(--raco-stone)', marginBottom: '18px', lineHeight: '1.5',
+        }}>{tt(idioma, 'reviewTexto')}</p>
+        <a href={GOOGLE_REVIEW_URL} target="_blank" rel="noopener noreferrer" style={{
+          display: 'inline-flex', alignItems: 'center', gap: '10px',
+          fontFamily: 'var(--font-body)', fontSize: '13px', fontWeight: '500',
+          letterSpacing: '0.14em', textTransform: 'uppercase',
+          padding: '14px 28px', borderRadius: '12px', border: 'none',
+          background: '#4285F4', color: '#fff',
+          cursor: 'pointer', textDecoration: 'none',
+          transition: 'opacity 0.2s', boxShadow: '0 4px 14px rgba(66,133,244,0.3)',
+        }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+          {tt(idioma, 'reviewBoton')}
+        </a>
+      </div>
 
       {/* Modal de aceptación de términos */}
       {estado === 'terminos' && (

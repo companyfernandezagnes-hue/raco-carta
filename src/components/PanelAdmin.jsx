@@ -2057,6 +2057,9 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
 
             {/* PESTAÑA: FICHA */}
             {pestañaEditar === 'ficha' && (<>
+            {/* Input de foto SIEMPRE montado para que el ref funcione desde cualquier botón */}
+            <input ref={fotoInputRef} type="file" accept="image/*" style={{display:'none'}} onChange={handleFoto} />
+
             {/* BLOQUE IA */}
             <div style={{background:'#2a1f4e',borderRadius:'10px',padding:'16px',marginBottom:'16px',border:'1px solid #7c3aed'}}>
               <button style={{...btn('#7c3aed'),width:'100%',marginBottom: mostrarIA?'12px':'0'}}
@@ -2074,7 +2077,6 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
                     </button>
                   </div>
                   <div style={{textAlign:'center',color:'#aaa',fontSize:'13px'}}>o sube una foto</div>
-                  <input ref={fotoInputRef} type="file" accept="image/*" style={{display:'none'}} onChange={handleFoto} />
                   <button style={btn('#374151')} disabled={iaLoading} onClick={()=>fotoInputRef.current?.click()}>
                     {iaLoading ? 'Analizando con IA...' : 'Subir foto de la botella'}
                   </button>

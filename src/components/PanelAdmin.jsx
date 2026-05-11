@@ -1645,7 +1645,7 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
             {tabAdmin === 'platos' && <AdminPlatos />}
             {tabAdmin === 'bebidas' && (<>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'12px'}}>
-              <h2 style={{margin:0,fontSize:'18px'}}>Bebidas ({bebidas.length})</h2>
+              <h2 style={{margin:0,fontSize:'18px'}}>Bebidas ({bebidas.filter(b=>b.disponible!==false).length}{bebidas.some(b=>b.disponible===false) ? ` + ${bebidas.filter(b=>b.disponible===false).length} ocultos` : ''})</h2>
             </div>
             {/* Leyenda de precios */}
             <div style={{display:'flex',gap:'8px',marginBottom:'12px',flexWrap:'wrap',fontSize:'11px',alignItems:'center'}}>
@@ -1888,21 +1888,6 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
             })()}
             {(() => {
               const q = busquedaAdmin.toLowerCase().trim()
-              // Filtro + ORDENADO POR 'orden' asc para mantener el esquema visible.
-              const listaFiltrada = bebidas.filter(b => {
-                const sub = (b.subcategoria || '').toLowerCase().trim()
-                if (filtroSubAdmin === 'espumoso' && sub !== 'espumoso') return false
-                if (filtroSubAdmin === 'rosado' && sub !== 'rosado') return false
-                if (filtroSubAdmin === 'dulce' && sub !== 'dulce') return false
-                if (filtroSubAdmin === 'blanco' && !sub.startsWith('blanco')) return false
-                if (filtroSubAdmin === 'tinto' && !sub.startsWith('tinto')) return false
-                if (q && ![b.nombre, b.bodega, b.uvas, b.region, b.subcategoria, b.pais]
-                  .some(v => (v || '').toString().toLowerCase().includes(q))) return false
-                return true
-              }).sort((a, b) => (a.orden ?? 99999) - (b.orden ?? 99999))
-              // Cabeceras visuales de bloque: cada vez que cambia la subcategoría
-              // entre dos vinos consecutivos, insertamos un divisor con el nombre
-              // del bloque para que Agnes vea claro dónde empieza cada uno.
               const ETIQUETAS_BLOQUE = {
                 'espumoso': '🥂 Espumosos · Cavas · Champagne',
                 'blanco mallorca': '🍷 Blancos · Mallorca',
@@ -1914,6 +1899,24 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
                 'tinto internacional': '🍇 Tintos · Internacional',
                 'dulce': '🍯 Dulces',
               }
+              // Filtro + ORDENADO POR 'orden' asc para mantener el esquema visible.
+              // Separamos activos de desactivados.
+              const todasFiltradas = bebidas.filter(b => {
+                const sub = (b.subcategoria || '').toLowerCase().trim()
+                if (filtroSubAdmin === 'espumoso' && sub !== 'espumoso') return false
+                if (filtroSubAdmin === 'rosado' && sub !== 'rosado') return false
+                if (filtroSubAdmin === 'dulce' && sub !== 'dulce') return false
+                if (filtroSubAdmin === 'blanco' && !sub.startsWith('blanco')) return false
+                if (filtroSubAdmin === 'tinto' && !sub.startsWith('tinto')) return false
+                if (q && ![b.nombre, b.bodega, b.uvas, b.region, b.subcategoria, b.pais]
+                  .some(v => (v || '').toString().toLowerCase().includes(q))) return false
+                return true
+              }).sort((a, b) => (a.orden ?? 99999) - (b.orden ?? 99999))
+              const listaFiltrada = todasFiltradas.filter(b => b.disponible !== false)
+              const desactivados = todasFiltradas.filter(b => b.disponible === false)
+              // Cabeceras visuales de bloque: cada vez que cambia la subcategoría
+              // entre dos vinos consecutivos, insertamos un divisor con el nombre
+              // del bloque para que Agnes vea claro dónde empieza cada uno.
               const filas = []
               let subAnterior = null
               listaFiltrada.forEach((b, i) => {
@@ -1942,6 +1945,34 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
                   />
                 )
               })
+              // Sección de desactivados al final
+              if (desactivados.length > 0) {
+                filas.push(
+                  <div key="hdr-desactivados" style={{
+                    marginTop:'24px', marginBottom:'10px', padding:'10px 14px',
+                    background:'#2a1a1a', border:'1px solid #5a2020',
+                    borderRadius:'10px',
+                    fontSize:'11px', color:'#ff8888', fontWeight:'700',
+                    letterSpacing:'0.08em', textTransform:'uppercase',
+                    display:'flex', alignItems:'center', gap:'8px',
+                  }}>
+                    <span style={{fontSize:'16px'}}>🚫</span>
+                    Desactivados ({desactivados.length}) — no visibles en la carta
+                  </div>
+                )
+                desactivados.forEach((b, i) => {
+                  filas.push(
+                    <FilaListaAdmin key={b.id}
+                      bebida={b}
+                      esPrimera={i === 0}
+                      esUltima={i === desactivados.length - 1}
+                      onEditar={() => abrirEditar(b)}
+                      onActualizarCampo={(campo, valor) => actualizarCampo(b.id, campo, valor)}
+                      onMover={dir => moverEnLista(b, dir, desactivados)}
+                    />
+                  )
+                })
+              }
               return filas
             })()}
             </>)}

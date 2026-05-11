@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react'
 import { createPortal } from 'react-dom'
 import { supabase } from './lib/supabase'
 import { IDIOMAS, leerIdiomaGuardado, guardarIdioma, t } from './lib/idioma'
@@ -383,7 +383,7 @@ export default function App() {
   async function cargar() {
     const myId = lastLoadIdRef.current
     try {
-      const { data, error } = await supabase.from('carta_bebidas').select('*').eq('disponible', true).order('orden', { ascending: true })
+      const { data, error } = await supabase.from('carta_bebidas').select('*').order('orden', { ascending: true })
       if (!error && Array.isArray(data)) {
         // Si no es español, cargar traducciones y fusionar con cada bebida
         if (idioma !== 'es') {
@@ -474,8 +474,12 @@ export default function App() {
   function volver() { setBebidaseleccionada(null); setVista('carta') }
   function limpiarFiltros() { setBusqueda(''); setFiltroPais(''); setFiltroTipo(''); setFiltroOrden(''); setFiltroGraduacion(''); setFiltroFormato('') }
 
-  const paises = [...new Set(bebidas.map(b => b.pais).filter(Boolean))].sort()
-  const tipos = [...new Set(bebidas.map(b => b.subcategoria).filter(Boolean))].sort()
+  // Para las vistas de cliente, solo las bebidas activas (disponible !== false).
+  // El admin recibe TODAS para poder ver y reactivar las desactivadas.
+  const bebidasActivas = useMemo(() => bebidas.filter(b => b.disponible !== false), [bebidas])
+
+  const paises = [...new Set(bebidasActivas.map(b => b.pais).filter(Boolean))].sort()
+  const tipos = [...new Set(bebidasActivas.map(b => b.subcategoria).filter(Boolean))].sort()
   const hayFiltrosActivos = busqueda || filtroPais || filtroTipo || filtroOrden || filtroGraduacion || filtroFormato
   const numFiltros = [filtroPais, filtroTipo, filtroOrden, filtroGraduacion, filtroFormato].filter(Boolean).length
   const opcionesTipo = [{ value: '', label: t(idioma,'tipoTodos') }, ...tipos.map(x => ({ value: x, label: x }))]
@@ -484,7 +488,7 @@ export default function App() {
   const opcionesFormato = [{ value: '', label: t(idioma,'formatoTodos') }, { value: 'copa', label: t(idioma,'porCopa') }, { value: 'botella', label: t(idioma,'porBotella') }, { value: 'ambos', label: t(idioma,'ambosFormatos') }]
   const opcionesOrden = [{ value: '', label: t(idioma,'ordenDefecto') }, { value: 'precio_asc', label: t(idioma,'precioAsc') }, { value: 'precio_desc', label: t(idioma,'precioDesc') }, { value: 'nombre_asc', label: t(idioma,'nombreAsc') }]
 
-  let bebidasFiltradas = bebidas.filter(b => {
+  let bebidasFiltradas = bebidasActivas.filter(b => {
     const q = busqueda.toLowerCase().trim()
     if (q && ![(b.nombre||''),(b.bodega||''),(b.descripcion||''),(b.uvas||''),(b.region||'')].some(s => s.toLowerCase().includes(q))) return false
     if (filtroPais && b.pais !== filtroPais) return false
@@ -539,11 +543,11 @@ export default function App() {
       <Header vista={vista} onVolver={volver} onMaridaje={() => setVista('maridaje')} onAdmin={esCliente ? undefined : () => setAdminAbierto(true)} idioma={idioma} onIdioma={cambiarIdioma} />
       {vista === 'carta' && (
         <div>
-          <Categorias categoriaActiva={categoriaActiva} subcategoriaActiva={subcategoriaActiva} onCategoria={cat => { setCategoriaActiva(cat); setSubcategoriaActiva(null) }} onSubcategoria={setSubcategoriaActiva} bebidas={bebidas} idioma={idioma} />
+          <Categorias categoriaActiva={categoriaActiva} subcategoriaActiva={subcategoriaActiva} onCategoria={cat => { setCategoriaActiva(cat); setSubcategoriaActiva(null) }} onSubcategoria={setSubcategoriaActiva} bebidas={bebidasActivas} idioma={idioma} />
           {/* HERO destacado: aparece sólo en la vista global, sin filtros */}
           {categoriaActiva === 'todas' && !busqueda && !filtroPais && !filtroTipo && !filtroFormato && !filtroGraduacion && modoVista !== 'favoritos' && (
             (() => {
-              const heroBebida = bebidas.find(b => b.destacado && b.disponible !== false)
+              const heroBebida = bebidasActivas.find(b => b.destacado)
               return heroBebida ? <HeroDestacado bebida={heroBebida} onClick={abrirDetalle} idioma={idioma} /> : null
             })()
           )}
@@ -697,8 +701,8 @@ export default function App() {
         </div>
       )}
       <Suspense fallback={<div style={{padding:'30px',textAlign:'center',color:'var(--raco-stone)',fontSize:'12px',letterSpacing:'0.2em'}}>{t(idioma, 'cargandoMore')}</div>}>
-        {vista==='detalle' && bebidaseleccionada && <DetalleBebida bebida={bebidaseleccionada} onVolver={volverODetalle} todasBebidas={bebidas} idioma={idioma} />}
-        {vista==='maridaje' && <Maridaje bebidas={bebidas} onSeleccionar={abrirDetalle} onVolver={volver} idioma={idioma} />}
+        {vista==='detalle' && bebidaseleccionada && <DetalleBebida bebida={bebidaseleccionada} onVolver={volverODetalle} todasBebidas={bebidasActivas} idioma={idioma} />}
+        {vista==='maridaje' && <Maridaje bebidas={bebidasActivas} onSeleccionar={abrirDetalle} onVolver={volver} idioma={idioma} />}
         {vista==='comoFunciona' && <EducacionVino idioma={idioma} tab="funciona" onCerrar={volver} />}
         {vista==='newsletter'   && <EducacionVino idioma={idioma} tab="news"     onCerrar={volver} />}
         {adminAbierto && <PanelAdmin
@@ -714,7 +718,7 @@ export default function App() {
         />}
         {presentacionActiva && !adminAbierto && (
           <VistaPresentacion
-            bebidas={bebidas}
+            bebidas={bebidasActivas}
             intervaloMs={presentacionConfig.intervaloSeg * 1000}
             onSalir={() => { setPresentacionActiva(false); reiniciarTimerPresentacion() }}
             idioma={idioma}

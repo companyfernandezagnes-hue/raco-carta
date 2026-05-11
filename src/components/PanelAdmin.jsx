@@ -2055,10 +2055,11 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
               </div>
             </div>
 
+            {/* Input de foto SIEMPRE montado (fuera de pestañas) para que el ref funcione desde cualquier botón */}
+            <input ref={fotoInputRef} type="file" accept="image/*" style={{display:'none'}} onChange={handleFoto} />
+
             {/* PESTAÑA: FICHA */}
             {pestañaEditar === 'ficha' && (<>
-            {/* Input de foto SIEMPRE montado para que el ref funcione desde cualquier botón */}
-            <input ref={fotoInputRef} type="file" accept="image/*" style={{display:'none'}} onChange={handleFoto} />
 
             {/* BLOQUE IA */}
             <div style={{background:'#2a1f4e',borderRadius:'10px',padding:'16px',marginBottom:'16px',border:'1px solid #7c3aed'}}>

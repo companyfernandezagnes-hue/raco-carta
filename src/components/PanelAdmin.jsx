@@ -1614,28 +1614,42 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
             {/* Indicador de progreso del quitar fondo masivo */}
             {procesandoFotos && (
               <div style={{
-                background:'#3b1d6b', border:'1px solid #a78bfa',
-                borderRadius:'10px', padding:'12px', marginBottom:'12px'
+                background: 'linear-gradient(135deg, #2d1b4e 0%, #3b1d6b 100%)',
+                border: '2px solid #a78bfa',
+                borderRadius: '12px', padding: '16px', marginBottom: '12px',
+                boxShadow: '0 8px 24px rgba(167, 139, 250, 0.15)'
               }}>
-                <div style={{fontSize:'12px',fontWeight:'700',color:'#fff',marginBottom:'6px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                  <span>🪄 Quitando fondo: {procesoFotos.hechos} / {procesoFotos.total}
-                    {procesoFotos.errores > 0 && ` · ${procesoFotos.errores} errores`}</span>
+                <div style={{fontSize:'13px',fontWeight:'700',color:'#fff',marginBottom:'10px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                  <span>🪄 Quitando fondo: <strong>{procesoFotos.hechos}</strong> / <strong>{procesoFotos.total}</strong>
+                    {procesoFotos.errores > 0 && ` · ⚠️ ${procesoFotos.errores} ${procesoFotos.errores === 1 ? 'error' : 'errores'}`}</span>
                   <button onClick={()=>setProcesoFotos(p=>({...p,abortar:true}))} style={{
-                    background:'#7f1d1d',color:'#fff',border:'none',borderRadius:'4px',
-                    padding:'2px 8px',cursor:'pointer',fontSize:'10px'
-                  }}>Detener</button>
+                    background:'#dc2626',color:'#fff',border:'none',borderRadius:'6px',
+                    padding:'4px 12px',cursor:'pointer',fontSize:'11px',fontWeight:'600',
+                    transition: 'background 0.2s'
+                  }} onMouseOver={(e)=>e.target.style.background='#b91c1c'} onMouseOut={(e)=>e.target.style.background='#dc2626'}>
+                    ⊗ Detener
+                  </button>
                 </div>
                 <div style={{
-                  width:'100%', height:'6px', background:'#1e293b',
-                  borderRadius:'4px', overflow:'hidden', marginBottom:'6px'
+                  width:'100%', height:'10px', background:'rgba(0,0,0,0.3)',
+                  borderRadius: '6px', overflow:'hidden', marginBottom:'10px', border:'1px solid rgba(167,139,250,0.3)'
                 }}>
                   <div style={{
                     width: `${(procesoFotos.hechos / procesoFotos.total) * 100}%`,
-                    height:'100%', background:'#a78bfa', transition:'width 0.3s'
+                    height: '100%',
+                    background: 'linear-gradient(90deg, #a78bfa 0%, #c4b5fd 100%)',
+                    transition: 'width 0.4s cubic-bezier(0.22,1,0.36,1)',
+                    boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.3)'
                   }}/>
                 </div>
-                <div style={{fontSize:'10px',color:'#ddd6fe',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
-                  Foto actual: {procesoFotos.actual || '...'}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  fontSize:'11px',
+                  color:'#ddd6fe'
+                }}>
+                  <div>📸 Foto actual: <strong>{procesoFotos.actual || '...'}</strong></div>
+                  <div>{Math.round((procesoFotos.hechos / procesoFotos.total) * 100)}%</div>
                 </div>
               </div>
             )}

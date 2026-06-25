@@ -12,9 +12,9 @@
   forced-color-adjust: none !important;
   --raco-cream:    #F5EFE0;
   --raco-khaki:    #B69A6A;   /* Tan dorado del logo (Pantone 465) */
-  --raco-black:    #1C1C0E;
+  --raco-black:    #0A0A05;   /* Más oscuro: máximo contraste */
   --raco-sand:     #DACAA8;
-  --raco-stone:    #9C8A66;
+  --raco-stone:    #5C4B34;   /* Más oscuro para mejor legibilidad */
   --raco-paper:    #F9F4E6;
   --raco-khaki-lt: #C9B387;   /* Tan más claro para hover */
   --raco-earth:    #6B533A;   /* Marrón cálido para acentos oscuros */
@@ -26,9 +26,9 @@
   --border:     var(--raco-sand);
   --gold:       var(--raco-khaki);
   --gold-dim:   var(--raco-khaki-lt);
-  --text:       var(--raco-black);
-  --text-dim:   var(--raco-stone);
-  --text-muted: #B0A080;
+  --text:       var(--raco-black);       /* Texto principal: negro profundo */
+  --text-dim:   var(--raco-stone);       /* Texto secundario: más oscuro */
+  --text-muted: #6B5F4A;                 /* Texto mutado: también más oscuro */
   --accent:     var(--raco-khaki);
 
   --font-brand: 'DM Serif Display', 'Georgia', serif;

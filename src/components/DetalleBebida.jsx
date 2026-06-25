@@ -1,17 +1,22 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { formatPrecio } from '../lib/precio'
 import { t as tLabel } from '../lib/idioma'
+import { usePinchZoom } from '../lib/usePinchZoom'
 import BotellaTilt3D from './BotellaTilt3D'
 
 export default function DetalleBebida({ bebida, onVolver, todasBebidas, idioma = 'es' }) {
+  const [zoom, setZoom] = useState(1)
+  const detalleRef = useRef(null)
   const relacionados = todasBebidas ? todasBebidas.filter(b =>
     b.id !== bebida.id &&
     b.categoria === bebida.categoria &&
     (b.region === bebida.region || b.subcategoria === bebida.subcategoria)
   ).slice(0, 3) : []
 
+  usePinchZoom(detalleRef, setZoom)
+
   return (
-    <div style={{ animation: 'fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) both' }}>
+    <div ref={detalleRef} style={{ animation: 'fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) both', transformOrigin: 'center top' }}>
       <div style={{
         width: '100%',
         background: 'linear-gradient(180deg, var(--raco-paper) 0%, var(--raco-cream) 100%)',

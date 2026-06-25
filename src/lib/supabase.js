@@ -1,8 +1,8 @@
 // Supabase client — compatible con claves sb_publishable_
 // Usa fetch directo para evitar problemas de validación en supabase-js v2
 
-const SUPABASE_URL = 'https://xdnqctumnqxtfolmexcu.supabase.co'
-const SUPABASE_ANON_KEY = 'sb_publishable_5zPMuAWTuLRZlmHr4-Ymhg_SyHtdaLG'
+const SUPABASE_URL = 'https://torgtlggdnvvdarsogqu.supabase.co'
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvcmd0bGdnZG52dmRhcnNvZ3F1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2OTI3NTksImV4cCI6MjA4ODI2ODc1OX0.Q8lwUjjI0_sTQgdCtKbQgBxmavR5pVJjsiIAhomm5hk'
 
 // Mini-cliente REST compatible con la interfaz supabase-js
 function createSupabaseClient(url, key) {

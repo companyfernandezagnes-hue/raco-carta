@@ -3,17 +3,16 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  base: process.env.VERCEL ? '/' : '/raco-carta/',
+  base: '/',
   build: {
-    // Separar las dependencias pesadas en chunks propios para que la primera
-    // carga del cliente sea rápida y se cacheen mejor entre versiones.
     rollupOptions: {
       output: {
-        manualChunks: {
-          'react-vendor':  ['react', 'react-dom'],
-          'supabase':      ['@supabase/supabase-js'],
-          'qrcode':        ['qrcode'],
-          'imgly':         ['@imgly/background-removal'],
+        manualChunks: (id) => {
+          // Solo separar lo crítico
+          if (id.includes('react')) return 'react-vendor'
+          if (id.includes('supabase')) return 'supabase'
+          if (id.includes('qrcode')) return 'qrcode'
+          // imgly se carga dinámicamente, dejamos que Vite lo resuelva
         }
       }
     },

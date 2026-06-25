@@ -581,7 +581,14 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
     setProcesoFotos({ hechos: 0, total: conFoto.length, actual: '', errores: 0, abortar: false })
     let errores = 0
     try {
-      const { removeBackground } = await import('@imgly/background-removal')
+      let removeBackground
+      try {
+        const mod = await import('@imgly/background-removal')
+        removeBackground = mod.removeBackground
+      } catch (importErr) {
+        console.error('Error importando módulo:', importErr)
+        throw new Error(`No se pudo cargar la librería de IA (${importErr.message}). Intenta:\n1. Refresca la página (Cmd+Shift+R)\n2. Espera unos segundos y vuelve a intentar\n3. Si el error persiste, contacta con soporte`)
+      }
       // URL absoluta para que la lib no falle al construir new URL(chunk, base)
       const publicPath = new URL('imgly/', window.location.origin + import.meta.env.BASE_URL).toString()
       for (let i = 0; i < conFoto.length; i++) {
@@ -1272,7 +1279,14 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
     setFondoProgreso({ fase: 'Cargando librería…', pct: 0 })
     try {
       // Carga lazy del paquete (~2MB de la lib + ~40-80MB del modelo IA)
-      const { removeBackground } = await import('@imgly/background-removal')
+      let removeBackground
+      try {
+        const mod = await import('@imgly/background-removal')
+        removeBackground = mod.removeBackground
+      } catch (importErr) {
+        console.error('Error importando @imgly:', importErr)
+        throw new Error(`No se pudo cargar la librería. Error: ${importErr.message}\n\nIntenta:\n1. Refresca la página (Cmd+Shift+R)\n2. Si persiste, el navegador puede estar bloqueando las librerías grandes`)
+      }
       setFondoProgreso({ fase: 'Cargando imagen…', pct: 3 })
 
       // URL → Blob (esquivando CORS si hace falta)

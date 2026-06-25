@@ -13,7 +13,7 @@ export default defineConfig({
           'react-vendor':  ['react', 'react-dom'],
           'supabase':      ['@supabase/supabase-js'],
           'qrcode':        ['qrcode'],
-          // background-removal ya es lazy import dinámico, va en su propio chunk
+          'imgly':         ['@imgly/background-removal'],
         }
       }
     },

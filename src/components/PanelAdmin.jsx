@@ -578,15 +578,17 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
     if (!confirm(`¿Quitar el fondo a las ${conFoto.length} fotos?\n\nTarda unos 5-15 segundos por foto. Total estimado: ${Math.ceil(conFoto.length * 10 / 60)} minutos.\n\nLas fotos que ya tienen transparencia se procesarán igualmente. Puedes cerrar esta ventana mientras procesa.`)) return
 
     setProcesandoFotos(true)
-    setProcesoFotos({ hechos: 0, total: conFoto.length, actual: '', errores: 0, abortar: false })
+    setProcesoFotos({ hechos: 0, total: conFoto.length, actual: '⏳ Cargando librería IA...', errores: 0, abortar: false })
     let errores = 0
     try {
       let removeBackground
       try {
+        console.log('📦 Importando @imgly/background-removal...')
         const mod = await import('@imgly/background-removal')
         removeBackground = mod.removeBackground
+        console.log('✅ Librería cargada correctamente')
       } catch (importErr) {
-        console.error('Error importando módulo:', importErr)
+        console.error('❌ Error importando módulo:', importErr)
         throw new Error(`No se pudo cargar la librería de IA (${importErr.message}). Intenta:\n1. Refresca la página (Cmd+Shift+R)\n2. Espera unos segundos y vuelve a intentar\n3. Si el error persiste, contacta con soporte`)
       }
       // URL absoluta para que la lib no falle al construir new URL(chunk, base)
@@ -595,30 +597,40 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
         const b = conFoto[i]
         // Permitir abortar entre fotos
         if (procesoFotos.abortar) break
-        setProcesoFotos(p => ({ ...p, hechos: i, actual: b.nombre }))
+        setProcesoFotos(p => ({ ...p, hechos: i, actual: `${i+1}/${conFoto.length} ${b.nombre}` }))
+        console.log(`\n🖼️ [${i+1}/${conFoto.length}] Procesando: ${b.nombre}`)
         try {
+          console.log(`  📸 Cargando imagen...`)
           const blob = await urlAImagenBlob(b.foto_url)
+          console.log(`  ✓ Imagen cargada (${(blob.size/1024).toFixed(0)} KB)`)
+
           let sinFondo
           try {
+            console.log(`  🪄 Quitando fondo (local)...`)
             sinFondo = await removeBackground(blob, { publicPath })
+            console.log(`  ✓ Fondo quitado (local)`)
           } catch (localErr) {
+            console.warn(`  ⚠️ Local falló, intentando CDN remoto...`)
             const cdnPath = 'https://staticimgly.com/@imgly/background-removal-data/1.7.0/dist/'
             sinFondo = await removeBackground(blob, { publicPath: cdnPath })
+            console.log(`  ✓ Fondo quitado (CDN)`)
           }
-          // Convertir el resultado a data URL
+
+          console.log(`  💾 Guardando en base de datos...`)
           const dataUrl = await new Promise((res, rej) => {
             const r = new FileReader()
             r.onload = () => res(r.result)
             r.onerror = rej
             r.readAsDataURL(sinFondo)
           })
-          // Guardar en Supabase
+
           const { error } = await supabaseAdmin.from('carta_bebidas')
             .update({ foto_url: dataUrl, updated_at: new Date().toISOString() })
             .eq('id', b.id)
           if (error) throw new Error(error.message)
+          console.log(`  ✅ Guardado en Supabase`)
         } catch (e) {
-          console.warn(`Error procesando ${b.nombre}:`, e.message)
+          console.error(`  ❌ Error procesando ${b.nombre}:`, e.message)
           errores++
         }
         setProcesoFotos(p => ({ ...p, errores }))

@@ -591,7 +591,13 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
         setProcesoFotos(p => ({ ...p, hechos: i, actual: b.nombre }))
         try {
           const blob = await urlAImagenBlob(b.foto_url)
-          const sinFondo = await removeBackground(blob, { publicPath })
+          let sinFondo
+          try {
+            sinFondo = await removeBackground(blob, { publicPath })
+          } catch (localErr) {
+            const cdnPath = 'https://staticimgly.com/@imgly/background-removal-data/1.7.0/dist/'
+            sinFondo = await removeBackground(blob, { publicPath: cdnPath })
+          }
           // Convertir el resultado a data URL
           const dataUrl = await new Promise((res, rej) => {
             const r = new FileReader()
@@ -1286,22 +1292,38 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
         throw new Error(`No se puede acceder a los archivos del modelo en ${publicPath}. ${e.message}. Verifica que el deploy se completó.`)
       }
 
-      const sinFondo = await removeBackground(blob, {
-        publicPath,
-        debug: true,
-        progress: (key, current, total) => {
-          console.log(`🪄 [imgly] progress: ${key}`, current, '/', total)
-          if (!total) return
-          const pct = Math.round((current / total) * 100)
-          const esModelo = /\.onnx|\.json|\.bin|\.wasm|chunk/i.test(key) || key.length > 20
-          setFondoProgreso({
-            fase: esModelo
-              ? `Descargando modelo IA: ${pct}%`
-              : `Procesando: ${pct}%`,
-            pct
-          })
-        }
-      })
+      let sinFondo
+      try {
+        sinFondo = await removeBackground(blob, {
+          publicPath,
+          debug: true,
+          progress: (key, current, total) => {
+            console.log(`🪄 [imgly] progress: ${key}`, current, '/', total)
+            if (!total) return
+            const pct = Math.round((current / total) * 100)
+            const esModelo = /\.onnx|\.json|\.bin|\.wasm|chunk/i.test(key) || key.length > 20
+            setFondoProgreso({
+              fase: esModelo
+                ? `Descargando modelo IA: ${pct}%`
+                : `Procesando: ${pct}%`,
+              pct
+            })
+          }
+        })
+      } catch (localErr) {
+        console.warn('🪄 Archivos locales no disponibles, usando CDN remoto:', localErr.message)
+        setFondoProgreso({ fase: 'Usando CDN remoto…', pct: 10 })
+        const cdnPath = 'https://staticimgly.com/@imgly/background-removal-data/1.7.0/dist/'
+        sinFondo = await removeBackground(blob, {
+          publicPath: cdnPath,
+          debug: true,
+          progress: (key, current, total) => {
+            if (!total) return
+            const pct = Math.round((current / total) * 100)
+            setFondoProgreso({ fase: `Descargando modelo: ${pct}%`, pct })
+          }
+        })
+      }
 
       setFondoProgreso({ fase: 'Aplicando…', pct: 100 })
       const reader2 = new FileReader()

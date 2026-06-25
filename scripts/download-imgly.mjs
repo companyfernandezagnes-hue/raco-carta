@@ -18,12 +18,26 @@ const DEST_DIR = path.resolve('public/imgly')
 // Solo necesitamos los wasm + el modelo por defecto
 const KEEP = (key) => /onnxruntime-web|isnet_fp16/.test(key)
 
-async function descargarArchivo(url, destino) {
-  const r = await fetch(url)
-  if (!r.ok) throw new Error(`HTTP ${r.status} ${url}`)
-  const buf = Buffer.from(await r.arrayBuffer())
-  await fs.writeFile(destino, buf)
-  return buf.length
+async function descargarArchivo(url, destino, reintento = 0) {
+  try {
+    const r = await fetch(url, {
+      timeout: 30000,
+      headers: { 'User-Agent': 'Mozilla/5.0' }
+    })
+    if (!r.ok) throw new Error(`HTTP ${r.status}`)
+    const buf = Buffer.from(await r.arrayBuffer())
+    if (buf.length === 0) throw new Error('Respuesta vacía del servidor')
+    await fs.writeFile(destino, buf)
+    return buf.length
+  } catch (e) {
+    if (reintento < 3) {
+      const espera = 1000 * Math.pow(2, reintento)
+      console.log(`   ⚠️ Reintentando en ${espera}ms... (${reintento + 1}/3)`)
+      await new Promise(r => setTimeout(r, espera))
+      return descargarArchivo(url, destino, reintento + 1)
+    }
+    throw e
+  }
 }
 
 async function main() {

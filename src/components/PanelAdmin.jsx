@@ -616,19 +616,28 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
             console.log(`  ✓ Fondo quitado (CDN)`)
           }
 
-          console.log(`  💾 Guardando en base de datos...`)
-          const dataUrl = await new Promise((res, rej) => {
-            const r = new FileReader()
-            r.onload = () => res(r.result)
-            r.onerror = rej
-            r.readAsDataURL(sinFondo)
-          })
+          console.log(`  💾 Subiendo a Storage...`)
+          const timestamp = Date.now()
+          const nombreArchivo = `vino-${b.id}-${timestamp}.png`
+          const rutaStorage = `vinos/${nombreArchivo}`
+
+          const { error: uploadError } = await supabaseAdmin.storage
+            .from('vinos')
+            .upload(rutaStorage, sinFondo, {
+              contentType: 'image/png',
+              upsert: true
+            })
+          if (uploadError) throw new Error(`Storage: ${uploadError.message}`)
+
+          const { data: { publicUrl } } = supabaseAdmin.storage
+            .from('vinos')
+            .getPublicUrl(rutaStorage)
 
           const { error } = await supabaseAdmin.from('carta_bebidas')
-            .update({ foto_url: dataUrl, updated_at: new Date().toISOString() })
+            .update({ foto_url: publicUrl, updated_at: new Date().toISOString() })
             .eq('id', b.id)
           if (error) throw new Error(error.message)
-          console.log(`  ✅ Guardado en Supabase`)
+          console.log(`  ✅ Guardado en Supabase (${publicUrl})`)
         } catch (e) {
           console.error(`  ❌ Error procesando ${b.nombre}:`, e.message)
           errores++
@@ -1351,19 +1360,31 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
         })
       }
 
-      setFondoProgreso({ fase: 'Aplicando…', pct: 100 })
-      const reader2 = new FileReader()
-      reader2.onload = ev => {
-        setForm(prev => ({ ...prev, foto_url: ev.target.result }))
-        setFondoLoading(false)
-        setFondoProgreso({ fase: '', pct: 0 })
-      }
-      reader2.onerror = () => {
-        setFondoError('No se pudo procesar la imagen')
-        setFondoLoading(false)
-        setFondoProgreso({ fase: '', pct: 0 })
-      }
-      reader2.readAsDataURL(sinFondo)
+      setFondoProgreso({ fase: 'Subiendo a Storage…', pct: 95 })
+
+      // Subir a Supabase Storage en lugar de usar Data URL
+      const timestamp = Date.now()
+      const nombreArchivo = `vino-${form.id || 'nuevo'}-${timestamp}.png`
+      const rutaStorage = `vinos/${nombreArchivo}`
+
+      const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+        .from('vinos')
+        .upload(rutaStorage, sinFondo, {
+          contentType: 'image/png',
+          upsert: true
+        })
+
+      if (uploadError) throw new Error(`Error subiendo a Storage: ${uploadError.message}`)
+
+      // Obtener URL pública
+      const { data: { publicUrl } } = supabaseAdmin.storage
+        .from('vinos')
+        .getPublicUrl(rutaStorage)
+
+      setFondoProgreso({ fase: 'Guardando…', pct: 100 })
+      setForm(prev => ({ ...prev, foto_url: publicUrl }))
+      setFondoLoading(false)
+      setFondoProgreso({ fase: '', pct: 0 })
     } catch (err) {
       console.error('Error quitar fondo:', err)
       const msg = err.message || String(err)

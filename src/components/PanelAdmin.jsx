@@ -617,8 +617,8 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
           }
 
           console.log(`  💾 Subiendo a Storage...`)
-          const timestamp = Date.now()
-          const nombreArchivo = `vino-${b.id}-${timestamp}.png`
+          // Usar ID del vino como nombre para que se sobrescriba (sin fotos huérfanas)
+          const nombreArchivo = `vino-${b.id}.png`
           const rutaStorage = `vinos/${nombreArchivo}`
 
           const { error: uploadError } = await supabaseAdmin.storage
@@ -1363,8 +1363,8 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
       setFondoProgreso({ fase: 'Subiendo a Storage…', pct: 95 })
 
       // Subir a Supabase Storage en lugar de usar Data URL
-      const timestamp = Date.now()
-      const nombreArchivo = `vino-${form.id || 'nuevo'}-${timestamp}.png`
+      // Usar ID del vino como nombre para que se sobrescriba (no dejar fotos huérfanas)
+      const nombreArchivo = `vino-${form.id || 'nuevo'}.png`
       const rutaStorage = `vinos/${nombreArchivo}`
 
       const { data: uploadData, error: uploadError } = await supabaseAdmin.storage

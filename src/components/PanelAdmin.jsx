@@ -887,16 +887,16 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
   async function actualizarCampo(bebidaId, campo, valor) {
     if (!hasSupabaseAdmin()) { alert('Falta service key Supabase en ⚙ Ajustes.'); return false }
     try {
-      // Actualizar en Supabase
+      const updateData = { [campo]: valor, updated_at: new Date().toISOString() }
       const { error } = await supabaseAdmin.from('carta_bebidas')
-        .update({ [campo]: valor, updated_at: new Date().toISOString() })
+        .update(updateData)
         .eq('id', bebidaId)
-      if (error) throw error
-      // Recargar lista inmediatamente
+      if (error) throw new Error(`Supabase error: ${error.message}`)
+      alert(`✅ ${campo} = ${valor}`)
       onActualizar()
       return true
     } catch (e) {
-      alert('Error: ' + e.message)
+      alert(`❌ Error guardando:\n${e.message}`)
       return false
     }
   }

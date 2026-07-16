@@ -900,11 +900,13 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
       // Guardar en Supabase
       const updateData = { [campo]: valor, updated_at: new Date().toISOString() }
       console.log(`📤 Enviando a Supabase:`, updateData)
-      const { data, error } = await supabaseAdmin.from('carta_bebidas')
+      const { data, error, count } = await supabaseAdmin.from('carta_bebidas')
         .update(updateData)
         .eq('id', bebidaId)
-      console.log(`📥 Respuesta Supabase:`, { data, error })
+        .select('id', { count: 'exact' })
+      console.log(`📥 Respuesta Supabase:`, { data, error, count })
       if (error) throw new Error(`Supabase error: ${error.message}`)
+      if (count === 0) throw new Error(`Vino ID ${bebidaId} no encontrado en Supabase`)
       alert(`✅ ${campo} = ${valor}\nID=${bebidaId}`)
       // Recargar en el padre (App.jsx) para que se refleje en la web pública
       console.log(`🔃 Llamando onActualizar...`)

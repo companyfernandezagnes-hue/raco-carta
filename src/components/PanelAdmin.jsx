@@ -885,15 +885,22 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
   // Actualiza un solo campo del vino en Supabase. Útil para Orden y Disponible
   // desde la lista sin tener que abrir cada ficha.
   async function actualizarCampo(bebidaId, campo, valor) {
+    console.log(`📝 Actualizando: ID=${bebidaId}, ${campo}=${valor}`)
     if (!hasSupabaseAdmin()) { alert('Falta service key Supabase en ⚙ Ajustes.'); return false }
     try {
+      console.log(`  → Guardando en Supabase...`)
       const { error } = await supabaseAdmin.from('carta_bebidas')
         .update({ [campo]: valor, updated_at: new Date().toISOString() })
         .eq('id', bebidaId)
       if (error) throw error
+      console.log(`  ✅ Guardado exitosamente`)
       onActualizar()
       return true
-    } catch (e) { alert('Error: ' + e.message); return false }
+    } catch (e) {
+      console.error(`  ❌ Error:`, e)
+      alert('Error: ' + e.message);
+      return false
+    }
   }
 
   // Auto-ordena toda la carta. NO toca el orden de los grandes bloques

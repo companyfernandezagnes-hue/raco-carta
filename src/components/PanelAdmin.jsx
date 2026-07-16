@@ -896,13 +896,15 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
         b.id === bebidaId ? { ...b, [campo]: valor, updated_at: new Date().toISOString() } : b
       ))
 
-      // Guardar en Supabase en background
+      // Guardar en Supabase
       const updateData = { [campo]: valor, updated_at: new Date().toISOString() }
       const { error } = await supabaseAdmin.from('carta_bebidas')
         .update(updateData)
         .eq('id', bebidaId)
       if (error) throw new Error(`Supabase error: ${error.message}`)
       alert(`✅ ${campo} = ${valor}`)
+      // Recargar en el padre (App.jsx) para que se refleje en la web pública
+      onActualizar()
       return true
     } catch (e) {
       alert(`❌ Error guardando:\n${e.message}`)

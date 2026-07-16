@@ -412,6 +412,10 @@ CA: "Celler familiar de quarta generació."`
 }
 
 export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta, onToggleModoCarta, presentacionConfig, onPresentacionConfig, autoResetConfig, onAutoResetConfig }) {
+  // Estado local que sincroniza con las props de bebidas
+  const [bebidasLocal, setBebidasLocal] = useState(bebidas)
+  useEffect(() => { setBebidasLocal(bebidas) }, [bebidas])
+
   const [pantallaCompleta, setPantallaCompleta] = useState(() => !!document.fullscreenElement)
   function alternarPantallaCompleta() {
     if (document.fullscreenElement) {
@@ -887,17 +891,23 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
   async function actualizarCampo(bebidaId, campo, valor) {
     if (!hasSupabaseAdmin()) { alert('Falta service key Supabase en ⚙ Ajustes.'); return false }
     try {
+      // Actualizar localmente INMEDIATAMENTE
+      setBebidasLocal(prev => prev.map(b =>
+        b.id === bebidaId ? { ...b, [campo]: valor, updated_at: new Date().toISOString() } : b
+      ))
+
+      // Guardar en Supabase en background
       const updateData = { [campo]: valor, updated_at: new Date().toISOString() }
       const { error } = await supabaseAdmin.from('carta_bebidas')
         .update(updateData)
         .eq('id', bebidaId)
       if (error) throw new Error(`Supabase error: ${error.message}`)
       alert(`✅ ${campo} = ${valor}`)
-      // Recargar lista para reflejar cambios
-      await onActualizar()
       return true
     } catch (e) {
       alert(`❌ Error guardando:\n${e.message}`)
+      // Revertir cambio local si falló
+      setBebidasLocal(bebidas)
       return false
     }
   }
@@ -1734,7 +1744,7 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
             {tabAdmin === 'platos' && <AdminPlatos />}
             {tabAdmin === 'bebidas' && (<>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'12px'}}>
-              <h2 style={{margin:0,fontSize:'18px'}}>Bebidas ({bebidas.filter(b=>b.disponible!==false).length}{bebidas.some(b=>b.disponible===false) ? ` + ${bebidas.filter(b=>b.disponible===false).length} ocultos` : ''})</h2>
+              <h2 style={{margin:0,fontSize:'18px'}}>Bebidas ({bebidasLocal.filter(b=>b.disponible!==false).length}{bebidasLocal.some(b=>b.disponible===false) ? ` + ${bebidasLocal.filter(b=>b.disponible===false).length} ocultos` : ''})</h2>
             </div>
             {/* Leyenda de precios */}
             <div style={{display:'flex',gap:'8px',marginBottom:'12px',flexWrap:'wrap',fontSize:'11px',alignItems:'center'}}>
@@ -1860,7 +1870,7 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
                 if (filtroSubAdmin === 'tinto')    return sub.startsWith('tinto')
                 return true
               }
-              const filtradas = bebidas.filter(b => {
+              const filtradas = bebidasLocal.filter(b => {
                 if (!matchSub(b.subcategoria)) return false
                 if (!q) return true
                 return [b.nombre, b.bodega, b.uvas, b.region, b.subcategoria, b.pais]
@@ -1990,7 +2000,7 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
               }
               // Filtro + ORDENADO POR 'orden' asc para mantener el esquema visible.
               // Separamos activos de desactivados.
-              const todasFiltradas = bebidas.filter(b => {
+              const todasFiltradas = bebidasLocal.filter(b => {
                 const sub = (b.subcategoria || '').toLowerCase().trim()
                 if (filtroSubAdmin === 'espumoso' && sub !== 'espumoso') return false
                 if (filtroSubAdmin === 'rosado' && sub !== 'rosado') return false

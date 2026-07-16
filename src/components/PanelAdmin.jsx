@@ -893,7 +893,8 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
         .eq('id', bebidaId)
       if (error) throw new Error(`Supabase error: ${error.message}`)
       alert(`✅ ${campo} = ${valor}`)
-      onActualizar()
+      // Recargar lista para reflejar cambios
+      await onActualizar()
       return true
     } catch (e) {
       alert(`❌ Error guardando:\n${e.message}`)

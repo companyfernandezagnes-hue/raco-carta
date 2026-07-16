@@ -890,8 +890,11 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
   // desde la lista sin tener que abrir cada ficha.
   async function actualizarCampo(bebidaId, campo, valor) {
     if (!hasSupabaseAdmin()) { alert('Falta service key Supabase en ⚙ Ajustes.'); return false }
-    console.log(`🔄 Actualizando bebida ID=${bebidaId}, ${campo}=${valor}`)
     try {
+      // Verificar que el vino existe
+      const { data: existe } = await supabaseAdmin.from('carta_bebidas').select('id').eq('id', bebidaId).single()
+      if (!existe) throw new Error(`❌ El vino NO existe en Supabase (ID: ${bebidaId})\n\nNecesita reinsertar los vinos.`)
+
       // Actualizar localmente INMEDIATAMENTE
       setBebidasLocal(prev => prev.map(b =>
         b.id === bebidaId ? { ...b, [campo]: valor, updated_at: new Date().toISOString() } : b
@@ -899,23 +902,16 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
 
       // Guardar en Supabase
       const updateData = { [campo]: valor, updated_at: new Date().toISOString() }
-      console.log(`📤 Enviando a Supabase:`, updateData)
-      const { data, error, count } = await supabaseAdmin.from('carta_bebidas')
+      const { error } = await supabaseAdmin.from('carta_bebidas')
         .update(updateData)
         .eq('id', bebidaId)
-        .select('id', { count: 'exact' })
-      console.log(`📥 Respuesta Supabase:`, { data, error, count })
       if (error) throw new Error(`Supabase error: ${error.message}`)
-      if (count === 0) throw new Error(`Vino ID ${bebidaId} no encontrado en Supabase`)
-      alert(`✅ ${campo} = ${valor}\nID=${bebidaId}`)
-      // Recargar en el padre (App.jsx) para que se refleje en la web pública
-      console.log(`🔃 Llamando onActualizar...`)
+      alert(`✅ ${campo} = ${valor}`)
       onActualizar()
       return true
     } catch (e) {
-      console.error(`❌ Error en actualizarCampo:`, e)
-      alert(`❌ Error guardando:\n${e.message}`)
-      // Revertir cambio local si falló
+      console.error(`❌ Error:`, e)
+      alert(`${e.message}`)
       setBebidasLocal(bebidas)
       return false
     }

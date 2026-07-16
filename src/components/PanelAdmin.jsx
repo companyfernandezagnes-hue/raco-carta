@@ -3439,7 +3439,10 @@ function FilaListaAdmin({ bebida, esPrimera, esUltima, onEditar, onActualizarCam
       }}
         title={b.disponible ? 'Visible en la carta. Click para ocultarlo.' : 'Oculto. Click para volverlo a poner.'}>
         <input type="checkbox" checked={b.disponible !== false}
-          onChange={e => onActualizarCampo('disponible', e.target.checked)}
+          onChange={e => {
+            console.log(`✓ Checkbox click detectado: disponible=${e.target.checked}`)
+            onActualizarCampo('disponible', e.target.checked)
+          }}
           style={{ width:'14px', height:'14px', cursor:'pointer', accentColor:'#7dcc50' }}/>
         <span style={{ fontSize:'10px', fontWeight:'700', color: b.disponible ? '#7dcc50' : '#ff8888',
           letterSpacing:'0.04em', textTransform:'uppercase', userSelect:'none' }}>

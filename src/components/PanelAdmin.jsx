@@ -890,6 +890,7 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
   // desde la lista sin tener que abrir cada ficha.
   async function actualizarCampo(bebidaId, campo, valor) {
     if (!hasSupabaseAdmin()) { alert('Falta service key Supabase en ⚙ Ajustes.'); return false }
+    console.log(`🔄 Actualizando bebida ID=${bebidaId}, ${campo}=${valor}`)
     try {
       // Actualizar localmente INMEDIATAMENTE
       setBebidasLocal(prev => prev.map(b =>
@@ -898,15 +899,19 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
 
       // Guardar en Supabase
       const updateData = { [campo]: valor, updated_at: new Date().toISOString() }
-      const { error } = await supabaseAdmin.from('carta_bebidas')
+      console.log(`📤 Enviando a Supabase:`, updateData)
+      const { data, error } = await supabaseAdmin.from('carta_bebidas')
         .update(updateData)
         .eq('id', bebidaId)
+      console.log(`📥 Respuesta Supabase:`, { data, error })
       if (error) throw new Error(`Supabase error: ${error.message}`)
-      alert(`✅ ${campo} = ${valor}`)
+      alert(`✅ ${campo} = ${valor}\nID=${bebidaId}`)
       // Recargar en el padre (App.jsx) para que se refleje en la web pública
+      console.log(`🔃 Llamando onActualizar...`)
       onActualizar()
       return true
     } catch (e) {
+      console.error(`❌ Error en actualizarCampo:`, e)
       alert(`❌ Error guardando:\n${e.message}`)
       // Revertir cambio local si falló
       setBebidasLocal(bebidas)

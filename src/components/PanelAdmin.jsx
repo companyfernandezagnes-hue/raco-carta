@@ -891,28 +891,30 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
   async function actualizarCampo(bebidaId, campo, valor) {
     if (!hasSupabaseAdmin()) { alert('Falta service key Supabase en ⚙ Ajustes.'); return false }
     try {
-
-      // Actualizar localmente INMEDIATAMENTE
-      setBebidasLocal(prev => prev.map(b =>
-        b.id === bebidaId ? { ...b, [campo]: valor, updated_at: new Date().toISOString() } : b
-      ))
-
-      // Guardar en Supabase en background (no esperar)
-      const updateData = { [campo]: valor, updated_at: new Date().toISOString() }
-      supabaseAdmin.from('carta_bebidas')
-        .update(updateData)
+      // Actualizar en Supabase
+      const { error } = await supabaseAdmin.from('carta_bebidas')
+        .update({ [campo]: valor, updated_at: new Date().toISOString() })
         .eq('id', bebidaId)
-        .then(({ error }) => {
-          if (error) console.error('Error en background:', error)
-          else console.log('✅ Guardado en background')
-        })
+
+      if (error) throw new Error(error.message)
+
+      // Recargar SOLO ese vino desde Supabase para obtener el estado actual
+      const { data: vinoActualizado } = await supabaseAdmin.from('carta_bebidas')
+        .select('*')
+        .eq('id', bebidaId)
+        .single()
+
+      if (vinoActualizado) {
+        // Actualizar SOLO ese vino en bebidasLocal
+        setBebidasLocal(prev => prev.map(b =>
+          b.id === bebidaId ? vinoActualizado : b
+        ))
+      }
 
       alert(`✅ ${campo} = ${valor}`)
       return true
     } catch (e) {
-      console.error(`❌ Error:`, e)
-      alert(`${e.message}`)
-      setBebidasLocal(bebidas)
+      alert(`❌ Error: ${e.message}`)
       return false
     }
   }

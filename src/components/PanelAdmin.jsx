@@ -899,10 +899,10 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
       if (error) throw new Error(error.message)
 
       // Recargar SOLO ese vino desde Supabase para obtener el estado actual
-      const { data: vinoActualizado } = await supabaseAdmin.from('carta_bebidas')
+      const { data: vinosActualizados } = await supabaseAdmin.from('carta_bebidas')
         .select('*')
         .eq('id', bebidaId)
-        .single()
+      const vinoActualizado = vinosActualizados?.[0]
 
       if (vinoActualizado) {
         // Actualizar SOLO ese vino en bebidasLocal

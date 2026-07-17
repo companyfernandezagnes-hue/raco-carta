@@ -1184,6 +1184,18 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
           }
         })()
       }
+      // Recargar SOLO ese vino desde Supabase
+      if (bebidaId) {
+        const { data: vinoActualizado } = await supabaseAdmin.from('carta_bebidas')
+          .select('*')
+          .eq('id', bebidaId)
+          .single()
+        if (vinoActualizado) {
+          setBebidasLocal(prev => prev.map(b =>
+            b.id === bebidaId ? vinoActualizado : b
+          ))
+        }
+      }
       onActualizar()
       // Borrar el borrador autoguardado, ya tenemos los datos en BD
       try {

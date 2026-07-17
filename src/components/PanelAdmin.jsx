@@ -891,9 +891,6 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
   async function actualizarCampo(bebidaId, campo, valor) {
     if (!hasSupabaseAdmin()) { alert('Falta service key Supabase en ⚙ Ajustes.'); return false }
     try {
-      // Verificar que el vino existe
-      const { data: existe } = await supabaseAdmin.from('carta_bebidas').select('id').eq('id', bebidaId).single()
-      if (!existe) throw new Error(`❌ El vino NO existe en Supabase (ID: ${bebidaId})\n\nNecesita reinsertar los vinos.`)
 
       // Actualizar localmente INMEDIATAMENTE
       setBebidasLocal(prev => prev.map(b =>

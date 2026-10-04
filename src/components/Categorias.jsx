@@ -42,7 +42,7 @@ const pill = (activo) => ({
   cursor: 'pointer',
 })
 
-export default function Categorias({ categoriaActiva, subcategoriaActiva, onCategoria, onSubcategoria, bebidas, idioma = 'es' }) {
+export default function Categorias({ categoriaActiva, subcategoriaActiva, onCategoria, onSubcategoria, bebidas, idioma = 'es', hayBodegaInvitada = false }) {
   const cuentaGrupo = (gid) => {
     const grupo = GRUPOS.find(g => g.id === gid)
     if (!grupo) return 0
@@ -70,6 +70,19 @@ export default function Categorias({ categoriaActiva, subcategoriaActiva, onCate
         justifyContent: 'center',
         flexWrap: 'wrap',
       }}>
+        {hayBodegaInvitada && (
+          <button
+            style={{
+              ...pill(categoriaActiva === 'bodega'),
+              borderColor: '#8a6d2f',
+              color: categoriaActiva === 'bodega' ? '#fff' : '#8a6d2f',
+              background: categoriaActiva === 'bodega' ? '#8a6d2f' : 'rgba(138,109,47,0.08)',
+            }}
+            onClick={() => { onCategoria('bodega'); onSubcategoria(null) }}
+          >
+            🍇 {t(idioma, 'bodegaInvitada')}
+          </button>
+        )}
         {GRUPOS.map(g => {
           const n = cuentaGrupo(g.id)
           if (n === 0 && g.id !== 'todas') return null

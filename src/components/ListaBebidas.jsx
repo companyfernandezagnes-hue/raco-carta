@@ -209,6 +209,13 @@ const TarjetaBebida = memo(function TarjetaBebida({ bebida, onSeleccionar, desta
       )}
 
       <div style={{ flex: 1, minWidth: 0 }}>
+        {bebida._enPromo && (
+          <div style={{ marginBottom: '5px' }}>
+            <span style={{ fontFamily: 'var(--font-body)', fontWeight: '600', fontSize: '9px', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#8a6d2f', border: '1px solid rgba(138,109,47,0.4)', borderRadius: '4px', padding: '2px 7px', background: 'rgba(138,109,47,0.08)' }}>
+              🍇 Jueves de Bodega
+            </span>
+          </div>
+        )}
         {destacado && (
           <div style={{ marginBottom: '5px' }}>
             <span style={{ fontFamily: 'var(--font-body)', fontWeight: '600', fontSize: '9px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--raco-khaki)', border: '1px solid rgba(107,122,62,0.35)', borderRadius: '4px', padding: '2px 7px', background: 'rgba(107,122,62,0.06)' }}>

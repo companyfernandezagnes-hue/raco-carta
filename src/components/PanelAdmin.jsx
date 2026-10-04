@@ -3,6 +3,7 @@ import { supabaseAdmin, hasSupabaseAdmin, getSupabaseUrl, getSupabaseServiceKey 
 import { parsePrecio } from '../lib/precio'
 import { hayPasswordConfigurada, definirPassword, intentarLogin, msHastaDesbloqueo, intentosRestantes, formatearTiempo } from '../lib/auth'
 import AdminPlatos from './AdminPlatos.jsx'
+import AdminJuevesBodega from './AdminJuevesBodega.jsx'
 
 // Vista previa que reutiliza la ficha del cliente. Lazy para no engordar
 // el bundle del admin cuando no se usa.
@@ -1665,6 +1666,8 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
                   onClick={()=>setTabAdmin('bebidas')}>🍷 Bebidas</button>
                 <button style={{...btn(tabAdmin==='platos'?'#7c3aed':'#2a2a2a'),padding:'6px 14px',fontSize:'13px'}}
                   onClick={()=>setTabAdmin('platos')}>🍽 Platos</button>
+                <button style={{...btn(tabAdmin==='bodega'?'#7c3aed':'#2a2a2a'),padding:'6px 14px',fontSize:'13px'}}
+                  onClick={()=>setTabAdmin('bodega')}>🍇 Jueves de Bodega</button>
               </div>
               <div style={{display:'flex',gap:'8px',flexWrap:'wrap'}}>
                 {tabAdmin === 'bebidas' && (
@@ -1761,6 +1764,7 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
               </div>
             )}
             {tabAdmin === 'platos' && <AdminPlatos />}
+            {tabAdmin === 'bodega' && <AdminJuevesBodega bebidas={bebidasLocal} onActualizar={onActualizar} />}
             {tabAdmin === 'bebidas' && (<>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'12px'}}>
               <h2 style={{margin:0,fontSize:'18px'}}>Bebidas ({bebidasLocal.filter(b=>b.disponible!==false).length}{bebidasLocal.some(b=>b.disponible===false) ? ` + ${bebidasLocal.filter(b=>b.disponible===false).length} ocultos` : ''})</h2>

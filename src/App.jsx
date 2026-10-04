@@ -9,6 +9,8 @@ import ListaBebidas from './components/ListaBebidas.jsx'
 import HeroDestacado from './components/HeroDestacado.jsx'
 import PantallaBienvenida, { esModoCliente } from './components/PantallaBienvenida.jsx'
 import VistaBotella from './components/VistaBotella.jsx'
+import JuevesBodega from './components/JuevesBodega.jsx'
+import { aplicarPromo, vinosDeBodega } from './lib/juevesBodega'
 
 // Lazy load: estos componentes solo se descargan cuando el usuario los abre.
 // Reduce mucho el peso del JS inicial que ven los clientes en la carta.
@@ -225,6 +227,10 @@ export default function App() {
   useKeepAwake()
   useAutoFullscreen()
   const [bebidas, setBebidas] = useState([])
+  // Bodega invitada activa (Jueves de Bodega). null si no hay ninguna.
+  const [bodegaInvitada, setBodegaInvitada] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('raco_cache_bodega') || 'null') } catch { return null }
+  })
   const [loading, setLoading] = useState(true)
   const [categoriaActiva, setCategoriaActiva] = useState('todas')
   const [subcategoriaActiva, setSubcategoriaActiva] = useState(null)
@@ -380,8 +386,18 @@ export default function App() {
     setBebidaseleccionada(prev => prev ? (arr.find(x => x.id === prev.id) || prev) : prev)
     try { localStorage.setItem('raco_cache_carta', JSON.stringify({ bebidas: arr, ts: Date.now() })) } catch {}
   }
+  async function cargarBodegaInvitada() {
+    try {
+      const { data, error } = await supabase.from('bodegas_invitadas').select('*').eq('activa', true).limit(1)
+      if (error || !Array.isArray(data)) return   // tabla aún no creada o sin conexión → mantener caché
+      const b = data[0] || null
+      setBodegaInvitada(b)
+      try { localStorage.setItem('raco_cache_bodega', JSON.stringify(b)) } catch {}
+    } catch {}
+  }
   async function cargar() {
     const myId = lastLoadIdRef.current
+    cargarBodegaInvitada()
     try {
       const { data, error } = await supabase.from('carta_bebidas').select('*').order('orden', { ascending: true })
       if (!error && Array.isArray(data)) {
@@ -476,7 +492,16 @@ export default function App() {
 
   // Para las vistas de cliente, solo las bebidas activas (disponible !== false).
   // El admin recibe TODAS para poder ver y reactivar las desactivadas.
-  const bebidasActivas = useMemo(() => bebidas.filter(b => b.disponible !== false), [bebidas])
+  // Jueves de Bodega: a los vinos de la bodega invitada se les aplica el
+  // precio de promo SOLO en las vistas de cliente. Los agotados salen de la
+  // carta normal (en el bloque de la bodega se ven como "Agotado").
+  const bebidasCliente = useMemo(() => aplicarPromo(bebidas, bodegaInvitada), [bebidas, bodegaInvitada])
+  const vinosBodegaInvitada = useMemo(
+    () => vinosDeBodega(bebidasCliente, bodegaInvitada).filter(b => b.disponible !== false),
+    [bebidasCliente, bodegaInvitada]
+  )
+  const hayBodegaInvitada = vinosBodegaInvitada.some(b => b._enPromo)
+  const bebidasActivas = useMemo(() => bebidasCliente.filter(b => b.disponible !== false && !b._agotado), [bebidasCliente])
 
   const paises = [...new Set(bebidasActivas.map(b => b.pais).filter(Boolean))].sort()
   const tipos = [...new Set(bebidasActivas.map(b => b.subcategoria).filter(Boolean))].sort()
@@ -504,6 +529,7 @@ export default function App() {
       if (filtroFormato === 'ambos' && !(tieneCopa && tieneBot)) return false
     }
     if (categoriaActiva === 'todas') return true
+    if (categoriaActiva === 'bodega') return !!b._enPromo
     // .trim() defensivo: algunos vinos tienen espacios sobrantes en subcategoria
     // (ej: " blanco nacional") que rompen startsWith. Limpiamos al filtrar.
     const sub = (b.subcategoria || '').toLowerCase().trim()
@@ -543,7 +569,11 @@ export default function App() {
       <Header vista={vista} onVolver={volver} onMaridaje={() => setVista('maridaje')} onAdmin={esCliente ? undefined : () => setAdminAbierto(true)} idioma={idioma} onIdioma={cambiarIdioma} />
       {vista === 'carta' && (
         <div>
-          <Categorias categoriaActiva={categoriaActiva} subcategoriaActiva={subcategoriaActiva} onCategoria={cat => { setCategoriaActiva(cat); setSubcategoriaActiva(null) }} onSubcategoria={setSubcategoriaActiva} bebidas={bebidasActivas} idioma={idioma} />
+          <Categorias categoriaActiva={categoriaActiva} subcategoriaActiva={subcategoriaActiva} onCategoria={cat => { setCategoriaActiva(cat); setSubcategoriaActiva(null) }} onSubcategoria={setSubcategoriaActiva} bebidas={bebidasActivas} idioma={idioma} hayBodegaInvitada={hayBodegaInvitada} />
+          {/* Jueves de Bodega: en la vista global (sin filtros) y en su propia pestaña */}
+          {(categoriaActiva === 'bodega' || categoriaActiva === 'todas') && !busqueda && !filtroPais && !filtroTipo && !filtroFormato && !filtroGraduacion && modoVista !== 'favoritos' && (
+            <JuevesBodega bodega={bodegaInvitada} vinos={vinosBodegaInvitada} onSeleccionar={abrirDetalle} idioma={idioma} />
+          )}
           {/* HERO destacado: aparece sólo en la vista global, sin filtros */}
           {categoriaActiva === 'todas' && !busqueda && !filtroPais && !filtroTipo && !filtroFormato && !filtroGraduacion && modoVista !== 'favoritos' && (
             (() => {
@@ -701,7 +731,7 @@ export default function App() {
         </div>
       )}
       <Suspense fallback={<div style={{padding:'30px',textAlign:'center',color:'var(--raco-stone)',fontSize:'12px',letterSpacing:'0.2em'}}>{t(idioma, 'cargandoMore')}</div>}>
-        {vista==='detalle' && bebidaseleccionada && <DetalleBebida bebida={bebidaseleccionada} onVolver={volverODetalle} todasBebidas={bebidasActivas} idioma={idioma} />}
+        {vista==='detalle' && bebidaseleccionada && <DetalleBebida bebida={bebidasCliente.find(x => x.id === bebidaseleccionada.id) || bebidaseleccionada} onVolver={volverODetalle} todasBebidas={bebidasActivas} idioma={idioma} />}
         {vista==='maridaje' && <Maridaje bebidas={bebidasActivas} onSeleccionar={abrirDetalle} onVolver={volver} idioma={idioma} />}
         {vista==='comoFunciona' && <EducacionVino idioma={idioma} tab="funciona" onCerrar={volver} />}
         {vista==='newsletter'   && <EducacionVino idioma={idioma} tab="news"     onCerrar={volver} />}

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { supabaseAdmin, hasSupabaseAdmin } from '../lib/supabaseAdmin'
 import { parsePrecio, formatPrecio } from '../lib/precio'
-import { agotado } from '../lib/juevesBodega'
+import { agotado, proximasBodegas, PRECIO_CATA, STOCK_POR_DEFECTO } from '../lib/juevesBodega'
 
 // Mismo estilo oscuro que AdminPlatos
 const inp = {
@@ -18,10 +18,14 @@ const btn = (color = '#444') => ({
 const card = { background: '#2a2a2a', borderRadius: '10px', padding: '14px', marginBottom: '12px' }
 const MORADO = '#7c3aed'
 
-function proximoJueves() {
+// Primer jueves libre a partir de hoy (si ya hay bodegas en esas fechas, salta a la semana siguiente)
+function proximoJueves(ocupadas = []) {
   const d = new Date()
+  d.setHours(12, 0, 0, 0)
   d.setDate(d.getDate() + ((4 - d.getDay() + 7) % 7))
-  return d.toISOString().slice(0, 10)
+  const iso = x => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`
+  while (ocupadas.includes(iso(d))) d.setDate(d.getDate() + 7)
+  return iso(d)
 }
 
 function fechaBonita(iso) {
@@ -61,7 +65,8 @@ export default function AdminJuevesBodega({ bebidas = [], onActualizar }) {
   useEffect(() => { cargarBodegas() }, [])
 
   const activa = bodegas.find(b => b.activa)
-  const historial = bodegas.filter(b => !b.activa)
+  const programadas = proximasBodegas(bodegas, 99)
+  const historial = bodegas.filter(b => !b.activa && !programadas.includes(b))
   const vinosActiva = useMemo(
     () => activa ? bebidas.filter(b => b.bodega_invitada_id === activa.id).sort((a, b) => (a.orden || 0) - (b.orden || 0)) : [],
     [bebidas, activa]
@@ -93,9 +98,18 @@ export default function AdminJuevesBodega({ bebidas = [], onActualizar }) {
         descripcion_en: e.descripcion_en || null, descripcion_de: e.descripcion_de || null,
       }
       if (e.id) await ejecutar(supabaseAdmin.from('bodegas_invitadas').update(datos).eq('id', e.id))
-      else await ejecutar(supabaseAdmin.from('bodegas_invitadas').insert([{ ...datos, activa: true }]))
+      // Si ya hay una bodega activa, la nueva queda PROGRAMADA para su jueves
+      else await ejecutar(supabaseAdmin.from('bodegas_invitadas').insert([{ ...datos, activa: !activa }]))
       setEditandoBodega(null)
       await cargarBodegas()
+    })
+  }
+
+  function activarBodega(b) {
+    if (activa) return alert(`Primero cierra la semana de "${activa.nombre}".`)
+    return conOcupado(async () => {
+      await ejecutar(supabaseAdmin.from('bodegas_invitadas').update({ activa: true }).eq('id', b.id))
+      await refrescarTodo()
     })
   }
 
@@ -119,6 +133,7 @@ export default function AdminJuevesBodega({ bebidas = [], onActualizar }) {
       disponible: true,
       precio_promo_copa: vino.precio_promo_copa ?? null,
       precio_promo_botella: vino.precio_promo_botella ?? null,
+      stock_promo: vino.stock_promo ?? STOCK_POR_DEFECTO,
     }).then(() => setBusqueda(''))
   }
 
@@ -144,7 +159,7 @@ export default function AdminJuevesBodega({ bebidas = [], onActualizar }) {
         precio_botella: parsePrecio(v.precio_botella),
         precio_promo_copa: parsePrecio(v.precio_promo_copa),
         precio_promo_botella: parsePrecio(v.precio_promo_botella),
-        stock_promo: v.stock_promo === '' || v.stock_promo == null ? null : parseInt(v.stock_promo),
+        stock_promo: v.stock_promo === '' || v.stock_promo == null ? STOCK_POR_DEFECTO : parseInt(v.stock_promo),
         bodega_invitada_id: activa.id,
         disponible: true,
         orden: maxOrden + 10,
@@ -167,11 +182,17 @@ export default function AdminJuevesBodega({ bebidas = [], onActualizar }) {
     return conOcupado(async () => {
       for (const v of vinosActiva) {
         // bodega_invitada_id se conserva → queda el histórico de qué trajo cada bodega
-        const patch = { precio_promo_copa: null, precio_promo_botella: null, stock_promo: null }
-        if (cerrando[v.id] === 'retirar') patch.disponible = false
+        // Los que se quedan conservan sus botellas restantes: en la carta se ven
+        // en la semana anterior ("Aún quedan") y salen solos al llegar a 0.
+        const patch = { precio_promo_copa: null, precio_promo_botella: null }
+        if (cerrando[v.id] === 'retirar') { patch.disponible = false; patch.stock_promo = null }
         await ejecutar(supabaseAdmin.from('carta_bebidas').update(patch).eq('id', v.id))
       }
       await ejecutar(supabaseAdmin.from('bodegas_invitadas').update({ activa: false, cerrada_en: new Date().toISOString() }).eq('id', activa.id))
+      const siguiente = programadas[0]
+      if (siguiente && confirm(`Semana cerrada.\n\n¿Activar ya la siguiente bodega, "${siguiente.nombre}" (${fechaBonita(siguiente.fecha_jueves)})?`)) {
+        await ejecutar(supabaseAdmin.from('bodegas_invitadas').update({ activa: true }).eq('id', siguiente.id))
+      }
       setCerrando(null)
       await refrescarTodo()
     })
@@ -223,7 +244,7 @@ export default function AdminJuevesBodega({ bebidas = [], onActualizar }) {
           ))}
         </details>
         <button style={btn(ocupado ? '#666' : MORADO)} disabled={ocupado} onClick={guardarBodega}>
-          {ocupado ? 'Guardando…' : e.id ? 'Guardar' : 'Crear y activar'}
+          {ocupado ? 'Guardando…' : e.id ? 'Guardar' : activa ? 'Programar' : 'Crear y activar'}
         </button>
       </div>
     )
@@ -237,7 +258,9 @@ export default function AdminJuevesBodega({ bebidas = [], onActualizar }) {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
         <h3 style={{ margin: 0, color: '#fff' }}>🍇 Jueves de Bodega</h3>
-        {!activa && <button style={btn(MORADO)} onClick={() => setEditandoBodega({ fecha_jueves: proximoJueves() })}>+ Nueva bodega invitada</button>}
+        <button style={btn(MORADO)} onClick={() => setEditandoBodega({ fecha_jueves: proximoJueves(bodegas.filter(b => !b.cerrada_en).map(b => b.fecha_jueves)) })}>
+          {activa ? '+ Programar otro jueves' : '+ Nueva bodega invitada'}
+        </button>
       </div>
 
       {!activa && (
@@ -253,6 +276,9 @@ export default function AdminJuevesBodega({ bebidas = [], onActualizar }) {
               <p style={{ margin: 0, fontSize: '10px', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#a78bfa' }}>Activa · {fechaBonita(activa.fecha_jueves)}</p>
               <p style={{ margin: '2px 0 0', fontSize: '17px', color: '#fff' }}>{activa.nombre}</p>
               {activa.region && <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#aaa' }}>{activa.region}</p>}
+              <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#a78bfa' }}>
+                Cata del jueves: 3 vinos · {formatPrecio(activa.precio_cata ?? PRECIO_CATA)} € · luego en carta toda la semana hasta agotar
+              </p>
             </div>
             <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
               <button style={btn()} onClick={() => setEditandoBodega(activa)}>Editar</button>
@@ -295,9 +321,11 @@ export default function AdminJuevesBodega({ bebidas = [], onActualizar }) {
                 </div>
 
                 {!cerrando && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginTop: '8px' }}>
-                    <CampoBlur label="Promo copa (€)" valor={v.precio_promo_copa} onGuardar={val => actualizarVino(v.id, { precio_promo_copa: parsePrecio(val) })} />
-                    <CampoBlur label="Promo botella (€)" valor={v.precio_promo_botella} onGuardar={val => actualizarVino(v.id, { precio_promo_botella: parsePrecio(val) })} />
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '8px', marginTop: '8px' }}>
+                    <CampoBlur label="Copa normal (€)" valor={v.precio_copa} onGuardar={val => actualizarVino(v.id, { precio_copa: parsePrecio(val) })} />
+                    <CampoBlur label="Botella normal (€)" valor={v.precio_botella} onGuardar={val => actualizarVino(v.id, { precio_botella: parsePrecio(val) })} />
+                    <CampoBlur label="Precio especial copa (opcional)" valor={v.precio_promo_copa} onGuardar={val => actualizarVino(v.id, { precio_promo_copa: parsePrecio(val) })} />
+                    <CampoBlur label="Precio especial botella (opcional)" valor={v.precio_promo_botella} onGuardar={val => actualizarVino(v.id, { precio_promo_botella: parsePrecio(val) })} />
                     <CampoBlur label="Stock (vacío = sin control)" valor={v.stock_promo} entero
                       onGuardar={val => actualizarVino(v.id, { stock_promo: val === '' ? null : Math.max(0, parseInt(val) || 0) })} />
                   </div>
@@ -345,7 +373,7 @@ export default function AdminJuevesBodega({ bebidas = [], onActualizar }) {
                 <div><label style={lbl}>Añada</label><input style={inp} value={nuevoVino.anada || ''} onChange={ev => setNuevoVino(p => ({ ...p, anada: ev.target.value }))} /></div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px', marginBottom: '10px' }}>
-                {[['precio_copa', 'Copa normal'], ['precio_botella', 'Bot. normal'], ['precio_promo_copa', 'Copa promo'], ['precio_promo_botella', 'Bot. promo'], ['stock_promo', 'Stock']].map(([k, txt]) => (
+                {[['precio_copa', 'Copa'], ['precio_botella', 'Botella'], ['precio_promo_copa', 'Copa especial'], ['precio_promo_botella', 'Bot. especial'], ['stock_promo', 'Botellas (3)']].map(([k, txt]) => (
                   <div key={k}><label style={lbl}>{txt}</label>
                     <input style={inp} inputMode={k === 'stock_promo' ? 'numeric' : 'decimal'} value={nuevoVino[k] || ''} onChange={ev => setNuevoVino(p => ({ ...p, [k]: ev.target.value }))} />
                   </div>
@@ -361,6 +389,22 @@ export default function AdminJuevesBodega({ bebidas = [], onActualizar }) {
         </div>
       )}
 
+      {/* Programadas */}
+      {programadas.length > 0 && (
+        <div style={{ marginTop: '18px' }}>
+          <p style={{ fontSize: '11px', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#a78bfa', marginBottom: '6px' }}>Próximos jueves programados ({programadas.length}) · se anuncian en la carta</p>
+          {programadas.map(p => (
+            <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', padding: '10px', marginBottom: '6px', background: '#2a2a2a', borderRadius: '8px', borderLeft: '3px solid #a78bfa' }}>
+              <p style={{ margin: 0, color: '#fff', fontSize: '13px', minWidth: 0 }}>{p.nombre} <span style={{ color: '#777', fontSize: '11px' }}>· {fechaBonita(p.fecha_jueves)}{p.region ? ' · ' + p.region : ''}</span></p>
+              <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                <button style={{ ...btn(), padding: '4px 10px', fontSize: '12px' }} onClick={() => setEditandoBodega(p)}>Editar</button>
+                {!activa && <button style={{ ...btn(MORADO), padding: '4px 10px', fontSize: '12px' }} disabled={ocupado} onClick={() => activarBodega(p)}>Activar</button>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Histórico */}
       {historial.length > 0 && (
         <div style={{ marginTop: '18px' }}>
@@ -370,13 +414,20 @@ export default function AdminJuevesBodega({ bebidas = [], onActualizar }) {
             return (
               <div key={h.id} style={{ padding: '10px', marginBottom: '6px', background: '#2a2a2a', borderRadius: '8px' }}>
                 <p style={{ margin: 0, color: '#fff', fontSize: '13px' }}>{h.nombre} <span style={{ color: '#777', fontSize: '11px' }}>· {fechaBonita(h.fecha_jueves)}</span></p>
-                {vinos.length > 0 && (
-                  <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#aaa' }}>
-                    {vinos.map((v, i) => (
-                      <span key={v.id}>{i > 0 && ' · '}<span style={{ color: v.disponible === false ? '#777' : '#7ec87e' }}>{v.nombre}{v.disponible === false ? ' (retirado)' : ' (en carta)'}</span></span>
-                    ))}
-                  </p>
-                )}
+                {vinos.map(v => (
+                  <div key={v.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', marginTop: '6px', fontSize: '12px' }}>
+                    <span style={{ color: v.disponible === false ? '#777' : agotado(v) ? '#f87171' : '#7ec87e', minWidth: 0 }}>
+                      {v.nombre}{v.disponible === false ? ' (retirado)' : agotado(v) ? ' (agotado)' : ' (en carta)'}
+                    </span>
+                    {v.disponible !== false && v.stock_promo != null && (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                        <button style={{ ...btn('#333'), padding: '3px 9px', fontSize: '12px' }} disabled={ocupado} onClick={() => cambiarStock(v, -1)}>−1</button>
+                        <span style={{ minWidth: '22px', textAlign: 'center', color: '#fff' }}>{v.stock_promo}</span>
+                        <button style={{ ...btn('#333'), padding: '3px 9px', fontSize: '12px' }} disabled={ocupado} onClick={() => cambiarStock(v, +1)}>+1</button>
+                      </span>
+                    )}
+                  </div>
+                ))}
               </div>
             )
           })}
@@ -388,7 +439,7 @@ export default function AdminJuevesBodega({ bebidas = [], onActualizar }) {
 
 // Input que guarda al salir del campo (o con Enter), para no escribir en
 // Supabase en cada pulsación.
-function CampoBlur({ label, valor, onGuardar, entero }) {
+function CampoBlur({ label, valor, onGuardar, entero, placeholder }) {
   const inicial = valor == null ? '' : (entero ? String(valor) : formatPrecio(valor))
   const [v, setV] = useState(inicial)
   useEffect(() => { setV(inicial) }, [inicial])
@@ -396,7 +447,7 @@ function CampoBlur({ label, valor, onGuardar, entero }) {
   return (
     <div>
       <label style={lbl}>{label}</label>
-      <input style={inp} inputMode={entero ? 'numeric' : 'decimal'} value={v}
+      <input style={inp} inputMode={entero ? 'numeric' : 'decimal'} value={v} placeholder={placeholder}
         onChange={ev => setV(ev.target.value)} onBlur={guardar}
         onKeyDown={ev => { if (ev.key === 'Enter') ev.currentTarget.blur() }} />
     </div>

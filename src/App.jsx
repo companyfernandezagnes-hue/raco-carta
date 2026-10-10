@@ -227,10 +227,12 @@ export default function App() {
   useKeepAwake()
   useAutoFullscreen()
   const [bebidas, setBebidas] = useState([])
-  // Bodega invitada activa (Jueves de Bodega). null si no hay ninguna.
-  const [bodegaInvitada, setBodegaInvitada] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('raco_cache_bodega') || 'null') } catch { return null }
+  // Jueves de Bodega: todas las bodegas (anteriores, activa y programadas)
+  // para la línea de semanas. La activa es la de esta semana.
+  const [bodegas, setBodegas] = useState(() => {
+    try { const c = JSON.parse(localStorage.getItem('raco_cache_bodegas') || '[]'); return Array.isArray(c) ? c : [] } catch { return [] }
   })
+  const bodegaInvitada = useMemo(() => bodegas.find(b => b.activa) || null, [bodegas])
   const [loading, setLoading] = useState(true)
   const [categoriaActiva, setCategoriaActiva] = useState('todas')
   const [subcategoriaActiva, setSubcategoriaActiva] = useState(null)
@@ -388,11 +390,10 @@ export default function App() {
   }
   async function cargarBodegaInvitada() {
     try {
-      const { data, error } = await supabase.from('bodegas_invitadas').select('*').eq('activa', true).limit(1)
+      const { data, error } = await supabase.from('bodegas_invitadas').select('*').order('fecha_jueves', { ascending: true })
       if (error || !Array.isArray(data)) return   // tabla aún no creada o sin conexión → mantener caché
-      const b = data[0] || null
-      setBodegaInvitada(b)
-      try { localStorage.setItem('raco_cache_bodega', JSON.stringify(b)) } catch {}
+      setBodegas(data)
+      try { localStorage.setItem('raco_cache_bodegas', JSON.stringify(data)) } catch {}
     } catch {}
   }
   async function cargar() {
@@ -569,10 +570,10 @@ export default function App() {
       <Header vista={vista} onVolver={volver} onMaridaje={() => setVista('maridaje')} onAdmin={esCliente ? undefined : () => setAdminAbierto(true)} idioma={idioma} onIdioma={cambiarIdioma} />
       {vista === 'carta' && (
         <div>
-          <Categorias categoriaActiva={categoriaActiva} subcategoriaActiva={subcategoriaActiva} onCategoria={cat => { setCategoriaActiva(cat); setSubcategoriaActiva(null) }} onSubcategoria={setSubcategoriaActiva} bebidas={bebidasActivas} idioma={idioma} hayBodegaInvitada={hayBodegaInvitada} />
+          <Categorias categoriaActiva={categoriaActiva} subcategoriaActiva={subcategoriaActiva} onCategoria={cat => { setCategoriaActiva(cat); setSubcategoriaActiva(null) }} onSubcategoria={setSubcategoriaActiva} bebidas={bebidasActivas} idioma={idioma} hayBodegaInvitada={hayBodegaInvitada || bodegas.length > 0} />
           {/* Jueves de Bodega: en la vista global (sin filtros) y en su propia pestaña */}
           {(categoriaActiva === 'bodega' || categoriaActiva === 'todas') && !busqueda && !filtroPais && !filtroTipo && !filtroFormato && !filtroGraduacion && modoVista !== 'favoritos' && (
-            <JuevesBodega bodega={bodegaInvitada} vinos={vinosBodegaInvitada} onSeleccionar={abrirDetalle} idioma={idioma} />
+            <JuevesBodega bodegas={bodegas} bebidas={bebidasCliente} abiertoInicial={categoriaActiva === 'bodega'} key={categoriaActiva === 'bodega' ? 'jb-abierto' : 'jb'} onSeleccionar={abrirDetalle} idioma={idioma} />
           )}
           {/* HERO destacado: aparece sólo en la vista global, sin filtros */}
           {categoriaActiva === 'todas' && !busqueda && !filtroPais && !filtroTipo && !filtroFormato && !filtroGraduacion && modoVista !== 'favoritos' && (

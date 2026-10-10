@@ -10,12 +10,12 @@
 :root {
   color-scheme: light only !important;
   forced-color-adjust: none !important;
-  --raco-cream:    #F5EFE0;
+  --raco-cream:    #EFE6D1;   /* Fondo algo más profundo para que las fichas destaquen */
   --raco-khaki:    #B69A6A;   /* Tan dorado del logo (Pantone 465) */
   --raco-black:    #0A0A05;   /* Más oscuro: máximo contraste */
-  --raco-sand:     #DACAA8;
-  --raco-stone:    #5C4B34;   /* Más oscuro para mejor legibilidad */
-  --raco-paper:    #F9F4E6;
+  --raco-sand:     #CDB88E;   /* Bordes más visibles */
+  --raco-stone:    #4A3A26;   /* Texto secundario más oscuro (más contraste) */
+  --raco-paper:    #FFFDF8;   /* Fichas casi blancas sobre el fondo crema */
   --raco-khaki-lt: #C9B387;   /* Tan más claro para hover */
   --raco-earth:    #6B533A;   /* Marrón cálido para acentos oscuros */
 

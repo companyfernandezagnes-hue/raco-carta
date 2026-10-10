@@ -408,7 +408,7 @@ export default function App() {
             const { data: trads } = await supabase.from('bebidas_traducciones').select('*').eq('idioma', idioma)
             if (Array.isArray(trads)) {
               const mapa = Object.fromEntries(trads.map(t => [t.bebida_id, t]))
-              const camposTraducibles = ['nombre','descripcion','nota_cata','nota_visual','nota_nariz','nota_boca','maridajes','historia','curiosidad','pais','crianza','elaboracion','vinedo','descripcion_bodega','clima','temperatura']
+              const camposTraducibles = ['descripcion','nota_cata','nota_visual','nota_nariz','nota_boca','maridajes','historia','curiosidad','pais','crianza','elaboracion','vinedo','descripcion_bodega','clima','temperatura']
               const merged = data.map(b => {
                 const t = mapa[b.id]
                 if (!t) return b

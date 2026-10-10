@@ -225,6 +225,23 @@ export function t(idioma, clave) {
   return (TEXTOS[idioma] && TEXTOS[idioma][clave]) || TEXTOS.es[clave] || clave
 }
 
+// Traduce el tipo de vino guardado en español ("tinto mallorca", "blanco nacional"…)
+const TIPOS = {
+  ca: { tinto: 'negre', blanco: 'blanc', rosado: 'rosat', espumoso: 'escumós', dulce: 'dolç', vino: 'vi', nacional: 'nacional', internacional: 'internacional', mallorca: 'mallorca' },
+  en: { tinto: 'red', blanco: 'white', rosado: 'rosé', espumoso: 'sparkling', dulce: 'sweet', vino: 'wine', nacional: 'spanish', internacional: 'international', mallorca: 'mallorca' },
+  de: { tinto: 'rotwein', blanco: 'weißwein', rosado: 'rosé', espumoso: 'schaumwein', dulce: 'süßwein', vino: 'wein', nacional: 'spanischer', internacional: 'internationaler', mallorca: 'mallorca' },
+}
+export function tipoVino(sub, idioma = 'es') {
+  if (!sub) return ''
+  const limpio = String(sub).trim()
+  const dic = TIPOS[idioma]
+  if (!dic) return limpio
+  const p = limpio.toLowerCase().split(/\s+/).map(w => dic[w] || w)
+  // EN/DE: "red mallorca" → "Mallorca red" se lee mejor con el origen delante
+  if ((idioma === 'en' || idioma === 'de') && p.length === 2) return `${p[1]} ${p[0]}`
+  return p.join(' ')
+}
+
 export function getTexto(bebida, campo, idioma) {
   if (!bebida) return ''
   if (!idioma || idioma === 'es') return bebida[campo] ?? ''

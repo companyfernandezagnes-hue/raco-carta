@@ -150,6 +150,23 @@ function Precio({ botella, copa, grande = false }) {
   )
 }
 
+// Color por tipo de vino: franja lateral y etiqueta del tipo
+export function colorTipo(sub = '') {
+  const s = (sub || '').toLowerCase()
+  if (s.includes('tinto')) return '#8E2436'
+  if (s.includes('rosado')) return '#D0707A'
+  if (s.includes('dulce')) return '#C0802A'
+  if (s.includes('espum') || s.includes('cava') || s.includes('champ')) return '#B89A3E'
+  if (s.includes('blanco')) return '#C9A93A'
+  return '#B69A6A'
+}
+
+// Versión oscura del color, legible como texto sobre fondo claro
+function textoTipo(sub = '') {
+  const c = colorTipo(sub)
+  return ({ '#C9A93A': '#7A6312', '#B89A3E': '#6E5A1E', '#D0707A': '#A23E4A', '#C0802A': '#875414', '#B69A6A': '#6B533A' })[c] || c
+}
+
 // Placeholder sin foto
 function FotoPlaceholder({ bebida, width = 56, height = 72, fontSize = 20 }) {
   const coloresCat = {
@@ -183,7 +200,9 @@ const TarjetaBebida = memo(function TarjetaBebida({ bebida, onSeleccionar, desta
       style={{
         background: 'var(--raco-paper)',
         border: '1px solid ' + (destacado ? 'rgba(107,122,62,0.45)' : 'var(--raco-sand)'),
-        borderRadius: '14px', padding: '14px', cursor: 'pointer',
+        borderLeft: '4px solid ' + colorTipo(bebida.subcategoria),
+        boxShadow: '0 1px 2px rgba(60,40,20,0.06), 0 8px 20px -14px rgba(60,40,20,0.35)',
+        borderRadius: '14px', padding: '14px', cursor: 'pointer', overflow: 'hidden',
         transition: 'border-color 0.2s, box-shadow 0.2s, transform 0.15s',
         display: 'flex', gap: '14px', alignItems: 'center', position: 'relative',
         animation: 'fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) both',
@@ -191,8 +210,8 @@ const TarjetaBebida = memo(function TarjetaBebida({ bebida, onSeleccionar, desta
         contentVisibility: 'auto',
         containIntrinsicSize: '0 100px',
       }}
-      onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--raco-khaki)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(107,122,62,0.10)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = destacado ? 'rgba(107,122,62,0.45)' : 'var(--raco-sand)'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)' }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--raco-khaki)'; e.currentTarget.style.borderLeftColor = colorTipo(bebida.subcategoria); e.currentTarget.style.boxShadow = '0 10px 24px -12px rgba(60,40,20,0.4)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = destacado ? 'rgba(107,122,62,0.45)' : 'var(--raco-sand)'; e.currentTarget.style.borderLeftColor = colorTipo(bebida.subcategoria); e.currentTarget.style.boxShadow = '0 1px 2px rgba(60,40,20,0.06), 0 8px 20px -14px rgba(60,40,20,0.35)'; e.currentTarget.style.transform = 'translateY(0)' }}
     >
       {bebida.foto_url ? (
         <div style={{
@@ -230,7 +249,7 @@ const TarjetaBebida = memo(function TarjetaBebida({ bebida, onSeleccionar, desta
           {[bebida.bodega, bebida.region, bebida.anada].filter(Boolean).join(' · ')}
         </p>
         <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', alignItems: 'center' }}>
-          {bebida.subcategoria && <Tag>{bebida.subcategoria}</Tag>}
+          {bebida.subcategoria && <Tag color={colorTipo(bebida.subcategoria)} texto={textoTipo(bebida.subcategoria)}>{bebida.subcategoria}</Tag>}
           {bebida.uvas && <Tag>{bebida.uvas.split(',')[0].trim()}</Tag>}
         </div>
         {puntuaciones.length > 0 && (
@@ -376,9 +395,15 @@ function BadgeCritico({ nota, critico, mini }) {
 }
 
 // Tag tipo/uva
-function Tag({ children }) {
+function Tag({ children, color, texto }) {
   return (
-    <span style={{ fontFamily: 'var(--font-body)', fontSize: '10px', padding: '3px 9px', borderRadius: '4px', background: 'rgba(107,122,62,0.07)', color: 'var(--raco-stone)', border: '1px solid var(--raco-sand)', letterSpacing: '0.05em', textTransform: 'capitalize' }}>
+    <span style={{
+      fontFamily: 'var(--font-body)', fontSize: '10px', padding: '3px 9px', borderRadius: '4px', letterSpacing: '0.05em', textTransform: 'capitalize',
+      background: color ? color + '1A' : 'rgba(107,122,62,0.07)',
+      color: color ? (texto || color) : 'var(--raco-stone)',
+      border: '1px solid ' + (color ? color + '66' : 'var(--raco-sand)'),
+      fontWeight: color ? 600 : 300,
+    }}>
       {children}
     </span>
   )

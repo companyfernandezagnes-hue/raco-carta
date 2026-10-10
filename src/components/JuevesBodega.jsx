@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { formatPrecio } from '../lib/precio'
-import { t } from '../lib/idioma'
+import { t, tipoVino } from '../lib/idioma'
 import { descripcionBodega, esJueves, PRECIO_CATA, STOCK_POR_DEFECTO, estadoBodega, rangoSemana } from '../lib/juevesBodega'
 
 /**
@@ -403,7 +403,7 @@ function TarjetaVinoBodega({ vino, n = 0, onSeleccionar, idioma }) {
           {vino.nombre}
         </p>
         <p style={{ margin: '2px 0 7px', fontSize: '10px', fontWeight: '300', opacity: 0.72, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textTransform: 'capitalize' }}>
-          {[vino.subcategoria, vino.uvas && vino.uvas.split(',')[0].trim(), vino.anada].filter(Boolean).join(' · ')}
+          {[tipoVino(vino.subcategoria, idioma), vino.uvas && vino.uvas.split(',')[0].trim(), vino.anada].filter(Boolean).join(' · ')}
         </p>
         {off ? (
           <span style={{ display: 'block', fontSize: '10px', fontWeight: '600', letterSpacing: '0.22em', textTransform: 'uppercase', color: '#f3a59a' }}>

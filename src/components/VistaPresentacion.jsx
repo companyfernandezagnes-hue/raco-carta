@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import BotellaTilt3D from './BotellaTilt3D'
 import { formatPrecio } from '../lib/precio'
-import { t } from '../lib/idioma'
+import { t, tipoVino } from '../lib/idioma'
 import QRCode from 'qrcode'
 
 /**
@@ -124,7 +124,7 @@ export default function VistaPresentacion({ bebidas, intervaloMs = 8000, onSalir
               fontFamily: 'var(--font-body)', fontSize: '11px', letterSpacing: '0.3em',
               textTransform: 'uppercase', color: 'var(--raco-khaki)',
               marginBottom: '14px', fontWeight: '600',
-            }}>★ {b.subcategoria}</p>
+            }}>★ {tipoVino(b.subcategoria, idioma)}</p>
           )}
           <h2 style={{
             fontFamily: 'var(--font-brand)', fontSize: '46px', fontWeight: '400',

@@ -1,6 +1,6 @@
 import BotellaTilt3D from './BotellaTilt3D'
 import { formatPrecio } from '../lib/precio'
-import { t } from '../lib/idioma'
+import { t, tipoVino } from '../lib/idioma'
 
 /**
  * Hero superior con un vino destacado. Si hay varios marcados como
@@ -60,7 +60,7 @@ export default function HeroDestacado({ bebida, onClick, idioma = 'es' }) {
             fontFamily: 'var(--font-body)', fontSize: '9px', letterSpacing: '0.24em',
             textTransform: 'uppercase', color: 'var(--raco-stone)',
             marginBottom: '6px', fontWeight: '500',
-          }}>{bebida.subcategoria}</p>
+          }}>{tipoVino(bebida.subcategoria, idioma)}</p>
         )}
         <h2 style={{
           fontFamily: 'var(--font-brand)', fontSize: '22px', fontWeight: '400',

@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { formatPrecio } from '../lib/precio'
-import { t as tLabel } from '../lib/idioma'
+import { t as tLabel, tipoVino } from '../lib/idioma'
 import { usePinchZoom } from '../lib/usePinchZoom'
 import BotellaTilt3D from './BotellaTilt3D'
 
@@ -37,7 +37,7 @@ export default function DetalleBebida({ bebida, onVolver, todasBebidas, idioma =
             fontFamily: 'var(--font-body)', fontSize: '10px', letterSpacing: '0.24em',
             textTransform: 'uppercase', color: 'var(--raco-stone)', marginBottom: '8px'
           }}>
-            {bebida.categoria} · {bebida.subcategoria}
+            {bebida.categoria} · {tipoVino(bebida.subcategoria, idioma)}
           </p>
         )}
 

@@ -1,6 +1,6 @@
 import { memo } from 'react'
 import { formatPrecio } from '../lib/precio'
-import { t } from '../lib/idioma'
+import { t, tipoVino } from '../lib/idioma'
 
 const LABEL_ORIGEN = { mallorca: 'mallorca', nacional: 'nacionales', internacional: 'internacionales' }
 
@@ -56,7 +56,7 @@ export default function ListaBebidas({ bebidas, onSeleccionar, modoVista = 'list
           <>
             <SeccionHeader>{t(idioma, 'seleccionSumiller')}</SeccionHeader>
             <div style={{ display: 'grid', gridTemplateColumns: cols, gap: '10px', marginBottom: '28px' }}>
-              {destacados.map(b => <TarjetaGrid key={b.id} bebida={b} onSeleccionar={onSeleccionar} destacado esPequena={modoVista === 'grid-sm'} esFavorito={favoritos.includes(b.id)} onToggleFavorito={fav} enComparador={comparador.some(c => c.id === b.id)} onToggleComparador={comp} />)}
+              {destacados.map(b => <TarjetaGrid key={b.id} bebida={b} onSeleccionar={onSeleccionar} destacado esPequena={modoVista === 'grid-sm'} esFavorito={favoritos.includes(b.id)} onToggleFavorito={fav} enComparador={comparador.some(c => c.id === b.id)} onToggleComparador={comp} idioma={idioma} />)}
             </div>
           </>
         )}
@@ -65,7 +65,7 @@ export default function ListaBebidas({ bebidas, onSeleccionar, modoVista = 'list
             <div key={g.id} style={{ marginBottom: idx < gruposOrigen.length - 1 ? '28px' : 0 }}>
               <SeccionHeader>{t(idioma, LABEL_ORIGEN[g.id])} · {g.items.length}</SeccionHeader>
               <div style={{ display: 'grid', gridTemplateColumns: cols, gap: '10px' }}>
-                {g.items.map(b => <TarjetaGrid key={b.id} bebida={b} onSeleccionar={onSeleccionar} esPequena={modoVista === 'grid-sm'} esFavorito={favoritos.includes(b.id)} onToggleFavorito={fav} enComparador={comparador.some(c => c.id === b.id)} onToggleComparador={comp} />)}
+                {g.items.map(b => <TarjetaGrid key={b.id} bebida={b} onSeleccionar={onSeleccionar} esPequena={modoVista === 'grid-sm'} esFavorito={favoritos.includes(b.id)} onToggleFavorito={fav} enComparador={comparador.some(c => c.id === b.id)} onToggleComparador={comp} idioma={idioma} />)}
               </div>
             </div>
           ))
@@ -73,7 +73,7 @@ export default function ListaBebidas({ bebidas, onSeleccionar, modoVista = 'list
           <>
             {destacados.length > 0 && <SeccionHeader>{t(idioma, 'cartaCompleta')}</SeccionHeader>}
             <div style={{ display: 'grid', gridTemplateColumns: cols, gap: '10px' }}>
-              {resto.map(b => <TarjetaGrid key={b.id} bebida={b} onSeleccionar={onSeleccionar} esPequena={modoVista === 'grid-sm'} esFavorito={favoritos.includes(b.id)} onToggleFavorito={fav} enComparador={comparador.some(c => c.id === b.id)} onToggleComparador={comp} />)}
+              {resto.map(b => <TarjetaGrid key={b.id} bebida={b} onSeleccionar={onSeleccionar} esPequena={modoVista === 'grid-sm'} esFavorito={favoritos.includes(b.id)} onToggleFavorito={fav} enComparador={comparador.some(c => c.id === b.id)} onToggleComparador={comp} idioma={idioma} />)}
             </div>
           </>
         )}
@@ -87,7 +87,7 @@ export default function ListaBebidas({ bebidas, onSeleccionar, modoVista = 'list
         <>
           <SeccionHeader>{t(idioma, 'seleccionSumiller')}</SeccionHeader>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '28px' }}>
-            {destacados.map(b => <TarjetaBebida key={b.id} bebida={b} onSeleccionar={onSeleccionar} destacado esFavorito={favoritos.includes(b.id)} onToggleFavorito={fav} enComparador={comparador.some(c => c.id === b.id)} onToggleComparador={comp} />)}
+            {destacados.map(b => <TarjetaBebida key={b.id} bebida={b} onSeleccionar={onSeleccionar} destacado esFavorito={favoritos.includes(b.id)} onToggleFavorito={fav} enComparador={comparador.some(c => c.id === b.id)} onToggleComparador={comp} idioma={idioma} />)}
           </div>
         </>
       )}
@@ -96,7 +96,7 @@ export default function ListaBebidas({ bebidas, onSeleccionar, modoVista = 'list
           <div key={g.id} style={{ marginBottom: idx < gruposOrigen.length - 1 ? '28px' : 0 }}>
             <SeccionHeader>{t(idioma, LABEL_ORIGEN[g.id])} · {g.items.length}</SeccionHeader>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {g.items.map(b => <TarjetaBebida key={b.id} bebida={b} onSeleccionar={onSeleccionar} esFavorito={favoritos.includes(b.id)} onToggleFavorito={fav} enComparador={comparador.some(c => c.id === b.id)} onToggleComparador={comp} />)}
+              {g.items.map(b => <TarjetaBebida key={b.id} bebida={b} onSeleccionar={onSeleccionar} esFavorito={favoritos.includes(b.id)} onToggleFavorito={fav} enComparador={comparador.some(c => c.id === b.id)} onToggleComparador={comp} idioma={idioma} />)}
             </div>
           </div>
         ))
@@ -104,7 +104,7 @@ export default function ListaBebidas({ bebidas, onSeleccionar, modoVista = 'list
         <>
           {destacados.length > 0 && <SeccionHeader>{t(idioma, 'cartaCompleta')}</SeccionHeader>}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {resto.map(b => <TarjetaBebida key={b.id} bebida={b} onSeleccionar={onSeleccionar} esFavorito={favoritos.includes(b.id)} onToggleFavorito={fav} enComparador={comparador.some(c => c.id === b.id)} onToggleComparador={comp} />)}
+            {resto.map(b => <TarjetaBebida key={b.id} bebida={b} onSeleccionar={onSeleccionar} esFavorito={favoritos.includes(b.id)} onToggleFavorito={fav} enComparador={comparador.some(c => c.id === b.id)} onToggleComparador={comp} idioma={idioma} />)}
           </div>
         </>
       )}
@@ -192,7 +192,7 @@ function FotoPlaceholder({ bebida, width = 56, height = 72, fontSize = 20 }) {
 }
 
 // Tarjeta lista
-const TarjetaBebida = memo(function TarjetaBebida({ bebida, onSeleccionar, destacado, esFavorito, onToggleFavorito, enComparador, onToggleComparador }) {
+const TarjetaBebida = memo(function TarjetaBebida({ bebida, onSeleccionar, destacado, esFavorito, onToggleFavorito, enComparador, onToggleComparador, idioma = 'es' }) {
   const puntuaciones = Array.isArray(bebida.puntuaciones) ? bebida.puntuaciones.filter(p => p.critico && p.nota) : []
   return (
     <div
@@ -249,7 +249,7 @@ const TarjetaBebida = memo(function TarjetaBebida({ bebida, onSeleccionar, desta
           {[bebida.bodega, bebida.region, bebida.anada].filter(Boolean).join(' · ')}
         </p>
         <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', alignItems: 'center' }}>
-          {bebida.subcategoria && <Tag color={colorTipo(bebida.subcategoria)} texto={textoTipo(bebida.subcategoria)}>{bebida.subcategoria}</Tag>}
+          {bebida.subcategoria && <Tag color={colorTipo(bebida.subcategoria)} texto={textoTipo(bebida.subcategoria)}>{tipoVino(bebida.subcategoria, idioma)}</Tag>}
           {bebida.uvas && <Tag>{bebida.uvas.split(',')[0].trim()}</Tag>}
         </div>
         {puntuaciones.length > 0 && (

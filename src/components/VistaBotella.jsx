@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import BotellaTilt3D from './BotellaTilt3D'
 import { formatPrecio } from '../lib/precio'
-import { t } from '../lib/idioma'
+import { t, tipoVino } from '../lib/idioma'
 
 /**
  * Vista "Modo botella" — galería tipo museo. Una botella enorme centrada
@@ -75,7 +75,7 @@ export default function VistaBotella({ bebidas, onSeleccionar, idioma = 'es' }) 
             fontFamily:'var(--font-body)', fontSize:'10px', letterSpacing:'0.3em',
             textTransform:'uppercase', color:'var(--raco-khaki)',
             margin:0, fontWeight:'600',
-          }}>★ {b.subcategoria}</p>
+          }}>★ {tipoVino(b.subcategoria, idioma)}</p>
         )}
         <h2 style={{
           fontFamily:'var(--font-brand)', fontSize:'32px', fontWeight:'400',

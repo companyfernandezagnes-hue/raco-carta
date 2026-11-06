@@ -1307,6 +1307,22 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
       return await cargarComoBlob(url)
     } catch {}
 
+    // 3b) Proxy propio (Edge Function img-proxy en nuestro Supabase): descarga la
+    //     imagen desde el servidor y la devuelve con CORS. Es la vía fiable.
+    try {
+      const clave = getSupabaseServiceKey()
+      if (clave) {
+        const r = await fetch(
+          `${getSupabaseUrl()}/functions/v1/img-proxy?url=${encodeURIComponent(url)}`,
+          { headers: { Authorization: `Bearer ${clave}`, apikey: clave } }
+        )
+        if (r.ok) {
+          const b = await r.blob()
+          if (b.size > 100) return b
+        }
+      }
+    } catch {}
+
     // 4) Cascada de proxies CORS — probamos uno tras otro hasta que funcione.
     //    Cada proxy tiene políticas y caídas distintas, así casi siempre alguno responde.
     const sinProtocolo = url.replace(/^https?:\/\//, '')

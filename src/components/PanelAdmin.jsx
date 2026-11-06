@@ -1416,7 +1416,10 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
 
       // Subir a Supabase Storage en lugar de usar Data URL
       // Usar ID del vino como nombre para que se sobrescriba (no dejar fotos huérfanas)
-      const nombreArchivo = `vino-${form.id || 'nuevo'}.png`
+      // OJO: el formulario no guarda el id; el vino que se edita está en `bebida`.
+      // Antes todos caían en "vino-nuevo.png" y las fotos se pisaban entre sí.
+      const idFoto = bebida?.id || form.id || `nuevo-${Date.now()}`
+      const nombreArchivo = `vino-${idFoto}.png`
       const rutaStorage = `vinos/${nombreArchivo}`
 
       const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
@@ -1434,7 +1437,8 @@ export default function PanelAdmin({ bebidas, onCerrar, onActualizar, modoCarta,
         .getPublicUrl(rutaStorage)
 
       setFondoProgreso({ fase: 'Guardando…', pct: 100 })
-      setForm(prev => ({ ...prev, foto_url: publicUrl }))
+      // ?v= evita que el navegador enseñe la foto anterior del mismo archivo
+      setForm(prev => ({ ...prev, foto_url: `${publicUrl}?v=${Date.now()}` }))
       setFondoLoading(false)
       setFondoProgreso({ fase: '', pct: 0 })
     } catch (err) {

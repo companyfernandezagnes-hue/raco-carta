@@ -8,6 +8,12 @@ import { t } from '../lib/idioma'
 //   Tintos             (subcategoria empieza por 'tinto')    → Mallorca / Nacionales / Internacionales
 //   Dulces             (subcategoria = 'dulce')
 
+//   Magnums            (el nombre contiene "magnum")          → siguen también en su Tinto/Blanco
+
+// Los magnums se detectan por el nombre ("... Magnum"): cualquier vino nuevo
+// con "Magnum" en el nombre aparecerá automáticamente en esta pestaña.
+const esMagnum = (b) => /magnum/i.test(b?.nombre || '')
+
 const GRUPOS = [
   { id: 'todas',    txt: 'todas',           match: () => true },
   { id: 'espumoso', txt: 'cavasChampanes',  match: s => s === 'espumoso' },
@@ -15,6 +21,7 @@ const GRUPOS = [
   { id: 'rosado',   txt: 'rosados',         match: s => s === 'rosado' },
   { id: 'tinto',    txt: 'tintos',          match: s => s.startsWith('tinto') },
   { id: 'dulce',    txt: 'dulces',          match: s => s === 'dulce' },
+  { id: 'magnum',   txt: 'magnums',         match: (s, b) => esMagnum(b) },
 ]
 
 // IMPORTANTE: el match de "nacional" debe excluir explícitamente
@@ -46,7 +53,7 @@ export default function Categorias({ categoriaActiva, subcategoriaActiva, onCate
   const cuentaGrupo = (gid) => {
     const grupo = GRUPOS.find(g => g.id === gid)
     if (!grupo) return 0
-    return bebidas.filter(b => grupo.match((b.subcategoria || '').toLowerCase().trim())).length
+    return bebidas.filter(b => grupo.match((b.subcategoria || '').toLowerCase().trim(), b)).length
   }
   const cuentaOrigen = (oid) => {
     const grupo = GRUPOS.find(g => g.id === categoriaActiva)
@@ -54,7 +61,7 @@ export default function Categorias({ categoriaActiva, subcategoriaActiva, onCate
     if (!grupo || !origen) return 0
     return bebidas.filter(b => {
       const s = (b.subcategoria || '').toLowerCase().trim()
-      return grupo.match(s) && origen.match(s)
+      return grupo.match(s, b) && origen.match(s)
     }).length
   }
   const muestraOrigenes = categoriaActiva === 'blanco' || categoriaActiva === 'tinto'

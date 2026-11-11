@@ -541,6 +541,7 @@ export default function App() {
     else if (categoriaActiva === 'rosado') okGrupo = sub === 'rosado'
     else if (categoriaActiva === 'tinto') okGrupo = sub.startsWith('tinto')
     else if (categoriaActiva === 'dulce') okGrupo = sub === 'dulce'
+    else if (categoriaActiva === 'magnum') okGrupo = /magnum/i.test(b.nombre || '')
     else okGrupo = b.categoria === categoriaActiva
     if (!okGrupo) return false
     // Origen (mallorca / nacional / internacional) — solo aplica a blancos y tintos

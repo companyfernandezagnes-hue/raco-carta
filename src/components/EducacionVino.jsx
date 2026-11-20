@@ -16,6 +16,7 @@ import { useState } from 'react'
 //   - ENTRY_EMAIL  → entry.XXXXX del campo Email
 //   - ENTRY_CONSENT → entry.XXXXX del checkbox de aceptación
 const GOOGLE_REVIEW_URL = 'https://g.page/r/CRlOwkmqOimzEBM/review'
+const TARJETA_REGALO_URL = 'https://racorestaurant.com/tarjeta-regalo/?utm_source=carta&utm_medium=newsletter&utm_campaign=tarjeta-regalo'
 
 const FORM_ID = '1FAIpQLScuLJMV6q4HmRiXL_UKO7JWj3YZ60tIfWCnYiH2qVDIZZ2IZQ'
 const ENTRY_EMAIL = 'entry.12182691'
@@ -75,6 +76,9 @@ const T = {
     reviewTitulo: '¿Te ha gustado la experiencia?',
     reviewTexto: 'Tu opinión nos ayuda a mejorar y a que otros nos conozcan. Déjanos una reseña en Google — tarda un minuto.',
     reviewBoton: 'Dejar reseña',
+regaloTitulo: '¿Buscas un regalo especial?',
+regaloTexto: 'Regala una comida en RACO con nuestra tarjeta regalo, con el importe que tú elijas.',
+regaloBoton: 'Ver tarjeta regalo',
     cerrar: 'Cerrar',
   },
   ca: {
@@ -121,6 +125,9 @@ const T = {
     reviewTitulo: 'T\'ha agradat l\'experiència?',
     reviewTexto: 'La teva opinió ens ajuda a millorar i a que altres ens coneguin. Deixa\'ns una ressenya a Google — triga un minut.',
     reviewBoton: 'Deixar ressenya',
+regaloTitulo: 'Busques un regal especial?',
+regaloTexto: 'Regala un àpat a RACO amb la nostra targeta regal, amb l\'import que triïs.',
+regaloBoton: 'Veure la targeta regal',
     cerrar: 'Tancar',
   },
   en: {
@@ -167,6 +174,9 @@ const T = {
     reviewTitulo: 'Enjoyed your experience?',
     reviewTexto: 'Your feedback helps us improve and lets others discover us. Leave a Google review — it only takes a minute.',
     reviewBoton: 'Leave a review',
+regaloTitulo: 'Looking for a special gift?',
+regaloTexto: 'Give a meal at RACO with our gift card, for the amount you choose.',
+regaloBoton: 'See the gift card',
     cerrar: 'Close',
   },
   de: {
@@ -213,6 +223,9 @@ const T = {
     reviewTitulo: 'Hat es Ihnen gefallen?',
     reviewTexto: 'Ihr Feedback hilft uns, besser zu werden. Hinterlassen Sie eine Google-Bewertung — dauert nur eine Minute.',
     reviewBoton: 'Bewertung abgeben',
+regaloTitulo: 'Auf der Suche nach einem besonderen Geschenk?',
+regaloTexto: 'Verschenken Sie ein Essen im RACO mit unserer Geschenkkarte, in der Höhe Ihres Wunsches.',
+regaloBoton: 'Geschenkkarte ansehen',
     cerrar: 'Schließen',
   },
 }
@@ -452,6 +465,36 @@ function TabNewsletter({ idioma }) {
           {tt(idioma, 'reviewBoton')}
         </a>
       </div>
+
+{/* Tarjeta regalo */}
+<div style={{
+marginTop: '36px', paddingTop: '28px',
+borderTop: '1px solid var(--raco-sand)',
+}}>
+<div style={{ fontSize: '34px', marginBottom: '14px' }}>🎁</div>
+<p style={{
+fontFamily: 'var(--font-brand)', fontSize: '18px', fontWeight: '400',
+color: 'var(--raco-black)', marginBottom: '10px', lineHeight: '1.3',
+}}>{tt(idioma, 'regaloTitulo')}</p>
+<p style={{
+fontFamily: 'var(--font-body)', fontSize: '13px', fontWeight: '300',
+color: 'var(--raco-stone)', marginBottom: '18px', lineHeight: '1.5',
+}}>{tt(idioma, 'regaloTexto')}</p>
+<a href={TARJETA_REGALO_URL} target="_blank" rel="noopener noreferrer" style={{
+display: 'inline-flex', alignItems: 'center', gap: '10px',
+fontFamily: 'var(--font-body)', fontSize: '13px', fontWeight: '500',
+letterSpacing: '0.14em', textTransform: 'uppercase',
+padding: '14px 28px', borderRadius: '12px', border: 'none',
+background: 'var(--raco-khaki)', color: 'var(--raco-cream)',
+cursor: 'pointer', textDecoration: 'none',
+transition: 'opacity 0.2s',
+}}
+onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+>
+{tt(idioma, 'regaloBoton')}
+</a>
+</div>
 
       {/* Modal de aceptación de términos */}
       {estado === 'terminos' && (

@@ -729,7 +729,7 @@ export default function App() {
             />
           )}
           {mostrarComparador && comparador.length===2 && <ComparadorModal bebida1={comparador[0]} bebida2={comparador[1]} onCerrar={() => setMostrarComparador(false)} idioma={idioma} />}
-          <FooterRaco />
+          <FooterRaco idioma={idioma} />
         </div>
       )}
       <Suspense fallback={<div style={{padding:'30px',textAlign:'center',color:'var(--raco-stone)',fontSize:'12px',letterSpacing:'0.2em'}}>{t(idioma, 'cargandoMore')}</div>}>
@@ -817,9 +817,37 @@ export default function App() {
   )
 }
 
-function FooterRaco() {
+// Enlace a la tarjeta regalo (página en racorestaurant.com)
+const TARJETA_REGALO_URL = 'https://racorestaurant.com/tarjeta-regalo/?utm_source=carta&utm_medium=enlace&utm_campaign=tarjeta-regalo'
+const TARJETA_REGALO_TXT = {
+  es: 'Tarjeta regalo',
+  ca: 'Targeta regal',
+  en: 'Gift card',
+  de: 'Geschenkkarte',
+}
+
+function FooterRaco({ idioma = 'es' }) {
   return (
     <footer style={{ padding: '32px 16px 40px', textAlign: 'center', borderTop: '1px solid var(--raco-sand)', marginTop: '20px' }}>
+<div style={{ marginBottom: '18px' }}>
+<a
+href={TARJETA_REGALO_URL}
+target="_blank"
+rel="noopener noreferrer"
+style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: 'var(--raco-khaki)', textDecoration: 'none', fontFamily: 'var(--font-body)', fontSize: '12px', letterSpacing: '0.18em', textTransform: 'uppercase', border: '1px solid var(--raco-sand)', borderRadius: '14px', padding: '8px 18px', transition: 'opacity 0.2s' }}
+onMouseEnter={e => e.currentTarget.style.opacity = '0.7'}
+onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+<rect x="3" y="8" width="18" height="4" rx="1"/>
+<path d="M12 8v13"/>
+<path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/>
+<path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8"/>
+<path d="M16.5 8a2.5 2.5 0 0 0 0-5C13 3 12 8 12 8"/>
+</svg>
+{TARJETA_REGALO_TXT[idioma] || TARJETA_REGALO_TXT.es}
+</a>
+</div>
       <a
         href="https://instagram.com/racoblanquerna"
         target="_blank"

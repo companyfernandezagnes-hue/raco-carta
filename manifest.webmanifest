@@ -1,0 +1,26 @@
+{
+  "name": "Racó · Carta de Bebidas",
+  "short_name": "Racó",
+  "description": "Carta de vinos y bebidas del restaurante Racó",
+  "start_url": "/raco-carta/?qr=1",
+  "scope": "/raco-carta/",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone", "minimal-ui"],
+  "orientation": "portrait",
+  "background_color": "#F5EFE0",
+  "theme_color": "#F5EFE0",
+  "icons": [
+    {
+      "src": "logo-raco.png",
+      "sizes": "1250x1250",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "logo-raco.png",
+      "sizes": "1250x1250",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
